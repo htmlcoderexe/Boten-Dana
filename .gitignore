@@ -1,0 +1,9 @@
+.token
+*.session
+*.session*
+*.log
+*.log.*
+.idea
+__pycache__
+main.db
+main.sqbpro
