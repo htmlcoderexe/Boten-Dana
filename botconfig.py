@@ -4,8 +4,7 @@ import sqlite3
 
 # default time to clean own/replied messages
 killdelay = 40.0
-# don't show anyone this, #TODO: make this load from
-# a git-ignore'd file
+# load the token from file
 with open(".token") as tokenfile:
     bottoken = tokenfile.read()
 # set up the bot data connection
