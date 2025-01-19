@@ -55,8 +55,9 @@ def extract_status_change(chat_member_update: ChatMemberUpdated) -> Optional[Tup
 
 # #handle a message that's a reply to the bot
 
-def handle_backtalk(userid: int, chatid: int, botmsg: string, usermsg: string):
-    if botmsg == "пизда":
+def handle_backtalk(userid: int, chatid: int, botmsg: string, usermsg: string, msgid: int ):
+    is_pizda_reply=datastuff.check_if_pizda_reply(chatid=chatid,msgid=msgid)
+    if is_pizda_reply:
         if usermsg in strings.pizdaresponses.keys():
             return random.choice(strings.pizdaresponses[usermsg]), -1, -1
         mat_score = 0
@@ -374,6 +375,7 @@ async def handle_with_reply(upd: Update, context: ContextTypes.DEFAULT_TYPE):
     usertag = MD(user.full_name)
     userid = user.id
     thisuid = upd.message.from_user.id
+    rmsgid=replied.id
     if user.is_bot:
         botreply = True
 
@@ -426,7 +428,7 @@ async def handle_with_reply(upd: Update, context: ContextTypes.DEFAULT_TYPE):
         # output=replosestring.format(usertag=usertag,userid=userid,userrep=userrep)
         output = (random.choice(strings.nominus), 15, -1)
     if mereply:
-        return handle_backtalk(userid=thisuid, chatid=chatid, botmsg=sourcemessage, usermsg=stext)
+        return handle_backtalk(userid=thisuid, chatid=chatid, botmsg=sourcemessage, usermsg=stext,msgid=rmsgid)
     if stext in strings.whoises:
         output = (datastuff.whois(userid=userid, chatid=chatid), 60, 5)
     if stext in strings.quotegrab:
@@ -660,12 +662,14 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pizda_pool = datastuff.console_get_env(env_name="pizda_pool_id",chatid=update.effective_chat.id)
     print(pizda_pool)
     if stext == "да" and datastuff.user_subscribed(userid) and random.random() < pizda_freq and pizda_pool:
-        await datastuff.retrieve_message_from_pool(chatid=update.effective_chat.id,target_chatid=update.effective_chat.id,pool_id=pizda_pool,reply_to_id=update.message.id)
+        datastuff.tag_pizda_target(chatid=chatid,msgid=update.message.id,userid=userid)
+        pizda_reply_id = await datastuff.retrieve_message_from_pool(chatid=update.effective_chat.id,target_chatid=update.effective_chat.id,pool_id=pizda_pool,reply_to_id=update.message.id)
+        datastuff.tag_pizda_reply(chatid=chatid,msgid=pizda_reply_id[0],userid=userid,replytoid=update.message.id)
         #await context.bot.send_message(chat_id=update.effective_chat.id, text="пизда",
          #                              reply_to_message_id=update.message.id)
         return
     if "доминир" in stext or "доминант" in stext:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="**DOMINATING!**",
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="**DOMINATING\\!**",
                                        reply_to_message_id=update.message.id,parse_mode="MarkdownV2")
         return
     # joiners

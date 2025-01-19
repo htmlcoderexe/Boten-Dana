@@ -107,6 +107,44 @@ def blast(bot_message: string, remove: bool = True, doprivates: bool = False):
         print("------BLAST END---------")
 
 
+def write_message_event(chatid: int, msgid: int, event_type: string, data0: string ="", data1: string ="", data2: string ="", data3: string ="", data4: string ="", data5: string ="", data6: string =""):
+    botstate.DBLink.execute("INSERT INTO message_events VALUES (?,?,?,?,?,?,?,?,?,?)",(chatid,msgid,event_type,data0,data1,data2,data3,data4,data5,data6))
+    botstate.write()
+
+
+def tag_pizda_target(chatid: int, msgid: int, userid: int):
+    write_message_event(chatid=chatid,msgid=msgid,event_type="pizda_target",data0=userid)
+
+
+def find_pizda_target(chatid:int,msgid:int) -> int:
+    res = botstate.DBLink.execute("""
+    SELECT data0 FROM message_events
+    WHERE chatid = ? 
+    AND messageid = ?
+    """,(chatid,msgid))
+    row = res.fetchone()
+    if row:
+        return row[0]
+    return 0
+
+
+def tag_pizda_reply(chatid:int, msgid: int,userid:int, replytoid: int,depth: int = 0):
+    write_message_event(chatid=chatid,msgid=msgid,event_type="pizda_reply",data0=userid,data1=replytoid,data2=depth)
+
+
+def check_if_pizda_reply(chatid:int,msgid:int) -> bool:
+    res = botstate.DBLink.execute("""
+    SELECT data0, data1, data2 FROM message_events
+    WHERE chatid = ?
+    AND messageid = ?
+    AND event_type = ?
+    """,(chatid,msgid,"pizda_reply"))
+    row = res.fetchone()
+    if row:
+        return True
+    return False
+
+
 # update user's last seen and add to existing users.
 def log_user(userid: int, chatid: int):
     last = time.time()
