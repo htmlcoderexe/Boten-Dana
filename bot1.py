@@ -57,7 +57,7 @@ def extract_status_change(chat_member_update: ChatMemberUpdated) -> Optional[Tup
 
 def handle_backtalk(userid: int, chatid: int, botmsg: string, usermsg: string, msgid: int ):
     is_pizda_reply=datastuff.check_if_pizda_reply(chatid=chatid,msgid=msgid)
-    if is_pizda_reply:
+    if is_pizda_reply > 0:
         if usermsg in strings.pizdaresponses.keys():
             return random.choice(strings.pizdaresponses[usermsg]), -1, -1
         mat_score = 0
@@ -66,11 +66,10 @@ def handle_backtalk(userid: int, chatid: int, botmsg: string, usermsg: string, m
             if word in strings.badwords1:
                 mat_score += 1
 
-        if mat_score > 2:
+        if (mat_score > 1) and (is_pizda_reply == userid):
             datastuff.unsubscribe_user(userid)
             return random.choice(strings.nomorepizda), -1, -1
-
-    return
+    return random.choice(strings.pizdaresponses["default"]), -1, -1
 
 
 async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, commands: list[string],

@@ -132,7 +132,7 @@ def tag_pizda_reply(chatid:int, msgid: int,userid:int, replytoid: int,depth: int
     write_message_event(chatid=chatid,msgid=msgid,event_type="pizda_reply",data0=userid,data1=replytoid,data2=depth)
 
 
-def check_if_pizda_reply(chatid:int,msgid:int) -> bool:
+def check_if_pizda_reply(chatid:int,msgid:int) -> int:
     res = botstate.DBLink.execute("""
     SELECT data0, data1, data2 FROM message_events
     WHERE chatid = ?
@@ -141,8 +141,10 @@ def check_if_pizda_reply(chatid:int,msgid:int) -> bool:
     """,(chatid,msgid,"pizda_reply"))
     row = res.fetchone()
     if row:
-        return True
-    return False
+        return int(row[0])
+    return 0
+
+
 
 
 # update user's last seen and add to existing users.
