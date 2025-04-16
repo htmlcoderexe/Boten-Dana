@@ -1,0 +1,11 @@
+{
+  "name": "core",
+  "display_name": "Базовые функции",
+  "description": "Базовые функции бота.",
+  "version": [1,0,0,0],
+  "triggers": [
+    {
+
+    }
+  ]
+}

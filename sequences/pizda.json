@@ -1,0 +1,55 @@
+{
+  "name": "pizda",
+  "display_name": "Kirkorov-mod",
+  "description": "Быстро отучает говорить \"да\" в чятике.",
+  "version": [1,0,0,0],
+  "triggers": [
+    {
+      "type": "text_exact",
+      "params": ["да"],
+      "subseq": "main"
+    },
+    {
+      "type": "text_exact",
+      "params": ["твоя"],
+      "subseq": "tvoya",
+      "tag": "pizda_message"
+    }
+  ],
+  "subseqs":
+  {
+    "main": [
+      {
+        "action": "check_userlist",
+        "params": ["pizda_unsubscribe","exit","subscribed"]
+      }
+    ],
+    "subscribed": [
+      {
+        "action": "load_env",
+        "params": ["pizda_chance","pizda_chance"]
+      },
+      {
+        "action": "roll_random",
+        "params": ["pizda_chance","pizda","exit"]
+      }
+    ],
+    "pizda": [
+      {
+        "action": "reply_pool",
+        "params": ["pizda_pool",-1,"pizda_message"]
+      }
+    ],
+    "tvoya": [
+      {
+        "action": "reply_pool",
+        "params": ["tvoya_pool",-1,"tvoya_message"]
+      }
+    ],
+    "exit": []
+  },
+  "config_vars": {
+    "name": "pizda_chance",
+    "display_name": "Шанс срабатывания пизды"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "qdb",
+  "display_name": "Цитатник",
+  "description": "Башорг для чатов.",
+  "version": [1,0,0,0],
+  "triggers": [
+    {
+      "type": "text_exact",
+      "params": ["бот запиши"],
+      "subseq": "save_quote"
+    }
+  ],
+  "subseqs":
+  {
+    "save_quote": [
+      {
+        "action": "save_quote",
+        "params": [0, "quotesave"]
+      },
+      {
+        "action": "kill_src",
+        "params": [0]
+      }
+    ],
+    "quotesave_ok": [
+      {
+        "action": "reply_text",
+        "params": ["save_success",10]
+      }
+    ],
+    "quotesave_notext": [
+      {
+        "action": "reply_text",
+        "params": ["nothing_to_save",10]
+      }
+    ],
+    "quotesave_nomessage": [
+      {
+        "action": "reply_text",
+        "params": ["no_target",10]
+      }
+    ]
+  },
+  "stringpools": {
+    "save_success": [
+      "Сохранено!"
+    ],
+    "nothing_to_save": [
+      "Тут нечего сохранять."
+    ],
+    "no_target": [
+      "Эту команду нужно писать в ответ на сообщение, которое нужно сохранить."
+    ]
+  }
+}

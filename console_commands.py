@@ -1,4 +1,4 @@
-import botstate
+from botstate import BotState
 import datastuff
 
 
@@ -96,7 +96,7 @@ async def pool_capture_start(args, userid: int,chatid:int):  # pool-capture-star
         cap_mode="full-glob"
     sessid = str(chatid) + " " + str(userid)
     context = pool_id
-    botstate.DBLink.execute("""
+    BotState.DBLink.execute("""
     INSERT INTO message_captures
     VALUES (?,?,?,?)
     """,(sessid,cap_mode,context,command))

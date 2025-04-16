@@ -1,4 +1,4 @@
-﻿import botstate
+﻿from botstate import BotState
 import datastuff
 
 messages = {
@@ -69,7 +69,7 @@ messages = {
 def blast_logs():
     accumulator = ""
     known_changelogs = []
-    res = botstate.DBLink.execute("""
+    res = BotState.DBLink.execute("""
     SELECT logid
     FROM changelogs""")
     rows = res.fetchall()
@@ -80,11 +80,11 @@ def blast_logs():
     for logid, changelog in messages.items():
         print((logid, changelog))
         if logid not in known_changelogs:  # and False:
-            botstate.DBLink.execute("""
+            BotState.DBLink.execute("""
             INSERT INTO changelogs
             VALUES (?)""", (logid,))
             print(changelog)
             accumulator += changelog
     if accumulator:
         datastuff.blast(bot_message=accumulator, remove=False)
-    botstate.write()
+    BotState.write()

@@ -9,13 +9,16 @@ from typing import Optional, Tuple, Any
 
 from pyrogram import Client
 from telegram import Poll, Update, ChatMember, ChatMemberUpdated, Message
-from telegram.ext import CallbackContext, PollHandler
+from telegram.ext import CallbackContext
 from telegram.ext import filters, PollAnswerHandler, PollHandler, MessageHandler, ApplicationBuilder, CommandHandler, \
     ContextTypes, MessageReactionHandler, ChatMemberHandler
 
+import UserInfo
+import actions
 import antimat
 import botconfig
-import botstate
+import scores
+from botstate import BotState
 import changelogs
 import datastuff
 import strings
@@ -56,7 +59,7 @@ def extract_status_change(chat_member_update: ChatMemberUpdated) -> Optional[Tup
 # #handle a message that's a reply to the bot
 
 def handle_backtalk(userid: int, chatid: int, botmsg: string, usermsg: string, msgid: int ):
-    is_pizda_reply=datastuff.check_if_pizda_reply(chatid=chatid,msgid=msgid)
+    is_pizda_reply=datastuff.check_if_pizda_reply(chatid=chatid,msgid=msgid) and BotState.talk
     if is_pizda_reply > 0:
         if usermsg in strings.pizdaresponses.keys():
             return random.choice(strings.pizdaresponses[usermsg]), -1, -1
@@ -69,7 +72,7 @@ def handle_backtalk(userid: int, chatid: int, botmsg: string, usermsg: string, m
         if (mat_score > 1) and (is_pizda_reply == userid):
             datastuff.unsubscribe_user(userid)
             return random.choice(strings.nomorepizda), -1, -1
-    return random.choice(strings.pizdaresponses["default"]), -1, -1
+        return random.choice(strings.pizdaresponses["default"]), -1, -1
 
 
 async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, commands: list[string],
@@ -93,11 +96,11 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
     match command:
         case "призовой":
             if trail2 == "выкл":
-                botstate.prize_mode = False
+                BotState.prize_mode = False
                 await context.bot.send_message(chat_id=chatid, text="Правильный ответ теперь будет отображаться.", parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
             if trail2 == "вкл":
-                botstate.prize_mode = True
+                BotState.prize_mode = True
                 await context.bot.send_message(chat_id=chatid, text="Правильный ответ теперь будет спрятан.", parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
         case "показать":
@@ -378,7 +381,7 @@ async def handle_with_reply(upd: Update, context: ContextTypes.DEFAULT_TYPE):
     if user.is_bot:
         botreply = True
 
-    if user.id == botstate.botuid:
+    if user.id == BotState.botuid:
         mereply = True
     chatid = upd.effective_chat.id
     output = ""
@@ -571,7 +574,7 @@ async def handle_plain_message(upd: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def test_poll(chatid: int):
-    pollupdate = (await botstate.bot.send_poll(
+    pollupdate = (await BotState.bot.send_poll(
         chatid,
         "Тест",
         ["Вар. 1", "Вар. 2", "Вар. 3", "Вар. 4"],
@@ -597,10 +600,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # update bot's userID
     # global botuid
-    botstate.botuid = context.bot.id
-    botstate.bot = context.bot
+    BotState.botuid = context.bot.id
+    BotState.bot = context.bot
     print(context)
-    print(botstate.botuid)
+    print(BotState.botuid)
     print(update)
     # check for weird updates and bail
     if update.message is None:
@@ -613,64 +616,55 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     userid = update.message.from_user.id
     # check if message has a parent message
     replyis = update.message.reply_to_message
+
+
     # logg messages
-    datastuff.log_user(userid=userid, chatid=chatid)
-    # get the currently known name of the user
-    oldnick = datastuff.get_newest_nick(userid=userid, chatid=chatid)
-    # upcount messages
-    datastuff.upcountmessage(userid=userid, chatid=chatid)
-    datastuff.score_add(userid=userid, chatid=chatid, scorename="msgcount", delta=1)
+    ###############################datastuff.log_user(userid=userid, chatid=chatid)
+    UserInfo.User.refresh(user_id=userid,chat_id=chatid)
+    ########################datastuff.upcountmessage(userid=userid, chatid=chatid)
+    ################datastuff.score_add(userid=userid, chatid=chatid, scorename="msgcount", delta=1)
+    usr = UserInfo.User(userid,chatid)
+    usr.msg_uptick()
+    usr.refresh_nick(update.message.from_user.full_name)
     # upcount voice seconds if there's a voice message
     if update.message.voice is not None:
-        datastuff.score_add(userid=userid, chatid=chatid, scorename="voice", delta=update.message.voice.duration)
-
-    # get user's name and check if it changed since last
-    newnick = update.message.from_user.full_name
-    if oldnick is None:
-        datastuff.log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
-        print("initial user seen")
-        # fake join, currently the only working join
-        datastuff.log_user_event(userid=userid, chatid=chatid, event_type="joined", data="message")
-    # if user unknown yet, add with today's join date
-    if datastuff.get_join_date(userid=userid, chatid=chatid) is None:
-        datastuff.handle_new_user(userid=userid, chatid=chatid)
-        print(f"new user {userid}@{chatid}!")
-    # log user rename
-    if oldnick is not None and oldnick != newnick:
-        datastuff.log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
-        print(f"User <{oldnick}> is now known as <{newnick}>.")
-    # prepare text for processing, if there is any
-    # output = ()
+        usr.score_add("voice", update.message.voice.duration)
+        usr.score_add("voice_count")
+    if update.message.video_note is not None:
+        usr.score_add("eblovoice", update.message.video_note.duration)
+        usr.score_add("eblovoice_count")
     rawtext = ""
     stext = ""
     if update.message.text:
         rawtext = update.message.text.strip()
         stext = S(update.message.text.lower())
         # also upcount character counts
-        datastuff.score_add(userid=userid, chatid=chatid, scorename="text", delta=len(rawtext))
-    datastuff.score_add(userid=userid, chatid=chatid, scorename="mat",
-                        delta=len(antimat.get_mats("тест " + rawtext + " тест")))
-    # PIZDA function
-    # TODO extract into actual metod with params etc etc
-    pizda_freq_val=datastuff.console_get_env(env_name="pizda_frequency",chatid=update.effective_chat.id)
-    try:
-        pizda_freq = float(pizda_freq_val)
-    except:
-        pizda_freq = 0.1
+        usr.score_add("text",len(rawtext))
+        usr.score_add("mat",len(antimat.get_mats("тест " + rawtext + " тест")))
 
-    pizda_pool = datastuff.console_get_env(env_name="pizda_pool_id",chatid=update.effective_chat.id)
-    print(pizda_pool)
-    if stext == "да" and datastuff.user_subscribed(userid) and random.random() < pizda_freq and pizda_pool:
-        datastuff.tag_pizda_target(chatid=chatid,msgid=update.message.id,userid=userid)
-        pizda_reply_id = await datastuff.retrieve_message_from_pool(chatid=update.effective_chat.id,target_chatid=update.effective_chat.id,pool_id=pizda_pool,reply_to_id=update.message.id)
-        datastuff.tag_pizda_reply(chatid=chatid,msgid=pizda_reply_id[0],userid=userid,replytoid=update.message.id)
-        #await context.bot.send_message(chat_id=update.effective_chat.id, text="пизда",
-         #                              reply_to_message_id=update.message.id)
-        return
-    if "доминир" in stext or "доминант" in stext:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="**DOMINATING\\!**",
-                                       reply_to_message_id=update.message.id,parse_mode="MarkdownV2")
-        return
+
+    actions.TriggeredSequence.run_triggers(update.message)
+
+    # get user's name and check if it changed since last
+###    newnick = update.message.from_user.full_name
+        ### if oldnick is None:
+        ###       datastuff.log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
+        ###print("initial user seen")
+        # fake join, currently the only working join
+        ###datastuff.log_user_event(userid=userid, chatid=chatid, event_type="joined", data="message")
+    # if user unknown yet, add with today's join date
+    ###if datastuff.get_join_date(userid=userid, chatid=chatid) is None:
+        ### datastuff.handle_new_user(userid=userid, chatid=chatid)
+        ###print(f"new user {userid}@{chatid}!")
+    # log user rename
+    ###if oldnick is not None and oldnick != newnick:
+        ### datastuff.log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
+        ###print(f"User <{oldnick}> is now known as <{newnick}>.")
+    # prepare text for processing, if there is any
+    # output = ()
+
+    # run triggers for response functions
+
     # joiners
     if update.message.new_chat_members:
         output = ("Это кто еще, блядь", -1, -1)
@@ -678,29 +672,29 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         output = ("Куда, блядь", -1, -1)
     else:
 
-        # if the message is a reply to something, handle with reply
-        if replyis is not None:
-            output = await handle_with_reply(upd=update, context=context)
-        # else handle standalone message
-        else:
-            output = await handle_plain_message(upd=update, context=context)
+    # if the message is a reply to something, handle with reply
+    #    if replyis is not None:
+    #        output = await handle_with_reply(upd=update, context=context)
+    #    # else handle standalone message
+    #    else:
+    #        output = await handle_plain_message(upd=update, context=context)
     # if any of the handling functions returned some sort of a response,
     # send the message, schedule deletes if needed
-    if output:
-        msgid = await context.bot.send_message(chat_id=update.effective_chat.id, text=output[0],
-                                               parse_mode='MarkdownV2', reply_to_message_id=update.message.id)
-        botmsg_killdelay = output[1]
-        if botmsg_killdelay != -1:  # -1 to keep the bot's message
-            if botmsg_killdelay == 0:  # 0 to use default kill delay
-                botmsg_killdelay = botconfig.killdelay
-            datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=msgid.message_id,
-                                    expiration=time.time() + float(botmsg_killdelay))
-        usermsg_killdelay = output[2]
-        if usermsg_killdelay != -1:  # -1 to keep the user's message
-            if usermsg_killdelay == 0:  # 0 to use default kill delay
-                usermsg_killdelay = botconfig.killdelay
-            datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=update.message.id,
-                                    expiration=time.time() + float(usermsg_killdelay))
+    #if output and BotState.talk:
+    #    msgid = await context.bot.send_message(chat_id=update.effective_chat.id, text=output[0],
+    #                                           parse_mode='MarkdownV2', reply_to_message_id=update.message.id)
+    #    botmsg_killdelay = output[1]
+    #    if botmsg_killdelay != -1:  # -1 to keep the bot's message
+    #        if botmsg_killdelay == 0:  # 0 to use default kill delay
+    #            botmsg_killdelay = botconfig.killdelay
+    #        datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=msgid.message_id,
+    #                                expiration=time.time() + float(botmsg_killdelay))
+    #    usermsg_killdelay = output[2]
+    #    if usermsg_killdelay != -1:  # -1 to keep the user's message
+    #        if usermsg_killdelay == 0:  # 0 to use default kill delay
+    #            usermsg_killdelay = botconfig.killdelay
+    #        datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=update.message.id,
+    #                                expiration=time.time() + float(usermsg_killdelay))
 
 
 # handle joins/leaves etc
@@ -721,16 +715,16 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    botstate.q.run_once(when=6, callback=restart_bot)
+    BotState.q.run_once(when=6, callback=restart_bot)
 
 
 # #dump db to screen
 async def dumpdb(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    res = botstate.DBLink.execute("SELECT * FROM repuser")
+    res = BotState.DBLink.execute("SELECT * FROM repuser")
     rows = res.fetchall()
     print(rows)
     data = print_to_string(rows)
-    res = botstate.DBLink.execute("SELECT * FROM userseen")
+    res = BotState.DBLink.execute("SELECT * FROM userseen")
     rows = res.fetchall()
     print(rows)
     data += print_to_string(rows)
@@ -765,7 +759,7 @@ async def everyminute(context: CallbackContext):
         for (chat, msg) in kills:
             datastuff.kill_message(chatid=chat, msgid=msg)
     await datastuff.quiz_tick()
-    for chat in botstate.current_chats:
+    for chat in BotState.current_chats:
         if str(chat)[0] != "-":
             continue
         await random_chatter(chatid=chat)
@@ -795,7 +789,7 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def receive_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(update)
-    msg = await botstate.pyroclient.get_messages(update.effective_chat.id,update.message_reaction.message_id)
+    msg = await BotState.pyroclient.get_messages(update.effective_chat.id,update.message_reaction.message_id)
     print(msg)
     await console_capture_message(userid=update.effective_user.id,chatid=update.effective_chat.id,msg=msg)
     pass
@@ -815,9 +809,10 @@ async def chat_load():
 if __name__ == '__main__':
     # init links to Telegram
     application = ApplicationBuilder().token(botconfig.bottoken).build()
-    botstate.bot = application.bot
-    botstate.pyroclient = Client("BotenDana")
-
+    BotState.bot = application.bot
+    BotState.DB = botconfig.DB
+    BotState.DBLink = botconfig.DB.cursor()
+    BotState.pyroclient = Client("BotenDana")
     # create handlers
     start_handler = CommandHandler('start', start)
     data_handler = CommandHandler('dump', dumpdb)
@@ -838,17 +833,18 @@ if __name__ == '__main__':
     application.add_handler(ChatMemberHandler(join_leave))
     # state inits
     datastuff.load_chats()
-    botstate.q = application.job_queue
+    # datastuff.quiz_refresh_stats()
+    BotState.q = application.job_queue
     # botstate.q.run_once(callback=chat_load,when=0)
-    botstate.q.run_repeating(callback=everyminute, interval=1, first=1)
-    botstate.q.run_repeating(callback=everyminute, interval=60, first=1)
+    BotState.q.run_repeating(callback=everyminute, interval=1, first=1)
+    BotState.q.run_repeating(callback=everyminute, interval=60, first=1)
 
     # startup messages
     # #datastuff.blast("перезагрузка успешна!!11")
     changelogs.blast_logs()
 
     # start the main bot
-    botstate.pyroclient.start()
+    BotState.pyroclient.start()
     application.run_polling(allowed_updates=Update.ALL_TYPES)
     # botstate.pyroclient.stop()
     # anything to do before shutting down

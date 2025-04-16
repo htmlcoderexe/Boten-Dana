@@ -1,0 +1,18 @@
+{
+  "name": "cleaner",
+  "display_name": "Чистильщик",
+  "version": [1,0,0,0],
+  "description": "Даёт возможность удалять спам от ботов в руки обычным пользователям.",
+  "triggers": [
+    {
+      "type": "text_exact",
+      "params": ["бот убери"],
+      "subseq": "main"
+    }
+  ],
+  "subseqs": {
+    "main": [
+
+    ]
+  }
+}

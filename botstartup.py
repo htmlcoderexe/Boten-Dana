@@ -1,13 +1,23 @@
-import botstate
+from botstate import BotState
 
 
-def assert_table(name: str, args):
+def assert_table(name: str, columns, primary_key=None):
     print(name)
-    res = botstate.DBLink.execute("SELECT name FROM sqlite_master WHERE name=?", (name,))
+    headers = []
+    if primary_key:
+        for column in columns:
+            if column == primary_key:
+                headers.append(column + " INTEGER PRIMARY KEY ASC")
+            else:
+                headers.append(column)
+    else:
+        headers = list(columns)
+    query = f"CREATE TABLE {name}(" +" , ".join(headers) + ")"
+    res = BotState.DBLink.execute("SELECT name FROM sqlite_master WHERE name=?", (name,))
     if res.fetchone() is None:
-        botstate.DBLink.execute(f"CREATE TABLE {name}("+" , ".join(args)+")")
-        botstate.write()
-        print(f"Created table \"{name}\" with fields {args}.")
+        BotState.DBLink.execute(query)
+        BotState.write()
+        print(f"Created table \"{name}\" with fields {columns}.")
     else:
         print(f"Table \"{name}\" already exists.")
 
@@ -17,7 +27,7 @@ assert_table("userseen",("chatid","userid","last","lastunreg","emoji"))
 assert_table("user_events",("chatid","userid","time","event_type","event_data"))
 assert_table("join_dates",("chatid","userid","time","fake"))
 assert_table("user_info",("chatid","userid","nick","pronouns"))
-assert_table("qdb",("chatid","userid","author","messageid","quote"))
+assert_table("qdb",("qid","chatid","userid","author","messageid","quote","reply_id","reply_text","reply_user","rating"),"qid")
 assert_table("msgkills",("chatid","msgid","expiration"))
 assert_table("unsubscribers",("userid",))
 assert_table("perms",("chatid","userid","perm"))
