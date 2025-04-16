@@ -6,13 +6,71 @@
   "triggers": [
     {
       "type": "text_exact",
-      "params": ["бот убери"],
+      "params": ["сука заебал спамить","пошел нахуй бот ебучий","пошёл нахуй бот ебучий","нахуй пошёл бот ебучий","нахуй пошел бот ебучий","бот убери","рева убери","катя убери","поля убери","дана убери","нина убери","настя убери","богдан убери","еж убери","ёж убери","бодя убери","юля убери","гном убери","ёжик убери","ежик убери"],
       "subseq": "main"
     }
   ],
   "subseqs": {
     "main": [
-
+      {
+        "action": "check_message_type",
+        "params": ["message_type"],
+        "target": "reply"
+      },
+      {
+        "action": "gosub",
+        "params": ["*message_type"]
+      }
+    ],
+    "message_is_bot": [
+      {
+        "action": "kill_msg",
+        "params": [0],
+        "target": "reply"
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "score_up",
+        "params": ["cleaner", "1", "dev_null"]
+      },
+      {
+        "action": "reply_text",
+        "params": ["removal_phrases", 15]
+      }
+    ],
+    "message_is_channel": [
+      {
+        "action": "gosub",
+        "params": ["message_is_human"]
+      }
+    ],
+    "message_is_human": [
+      {
+        "action": "score_up",
+        "params": ["cleaner_human", "1", "dev_null"]
+      },
+      {
+        "action": "reply_text",
+        "params": ["not_a_bot", -1]
+      }
+    ],
+    "check_message_type_no_target": [
+      {
+        "action": "kill_msg",
+        "params": [30]
+      },
+      {
+        "action": "reply_text",
+        "params": ["cleaner_help", 60]
+      }
     ]
+  },
+  "stringpools": {
+    "removal_phrases": ["слушаюсь!","ок","так его","правильно, нехуй тут чятик засирать","щас я как жахну","да, и выебать еще","а может, сразу в бан нахуй?"],
+    "not_a_bot": ["а может тебя, сука?","совсем кожаные мешки охуели","а давай тебя","выебу","хватит тут мне играться","а человеков мне низя("],
+    "cleaner_help": ["Нужно ответить на сообщение, которое бот должен убрать."]
   }
 }

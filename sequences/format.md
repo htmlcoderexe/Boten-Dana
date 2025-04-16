@@ -120,6 +120,18 @@ Parameters:
 2. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
 3. A tag to apply to the sent message.
 
+### ``check_message_type``
+
+Checks if a message is from a regular user, a bot or a channel.
+
+Parameters:
+
+1. Variable to store the result in.
+
+Returns:
+
+``check_message_type_no_target`` if set to target the replied message and there isn't one.
+
 ### ``scoreboard``
 
 Fetches a scoreboard and stores it into var_store.
@@ -138,6 +150,16 @@ Parameters:
 
 1. Name of the score.
 2. Variable to store the score.
+
+### ``score_up``
+
+Modifies a specific score for the single user.
+
+Parameters:
+
+1. Name of the score.
+2. The amount, as a ``string``. If prefixed with ``*``, the amount is taken from that variable instead.
+3. Variable to score the updated score.
 
 ### ``whois``
 
@@ -219,3 +241,11 @@ Parameters:
 
 1. Name of the environment variable.
 2. Name of the var_store variable.
+
+### ``gosub``
+
+Returns its parameter, therefore triggering the corresponding *Subsequence*, given no later *Actions* return a value.
+
+Parameters:
+
+1. *Subsequence* name to trigger. If it starts with an ``*``, the value is taken from the variable with this name.

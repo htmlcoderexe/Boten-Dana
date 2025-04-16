@@ -3,6 +3,8 @@ This module contains code dealing with actions the bot is able to perform based 
 """
 import random
 import json
+
+import telegram.constants
 from telegram import Message as TGMessage
 
 import QDB
@@ -80,7 +82,10 @@ class TriggerTextExact(Trigger):
     """Matches exact text"""
 
     def match(self, data:str) -> str:
-        return data if self.trigger[0] == data else ""
+        for pattern in self.trigger:
+            if pattern == data:
+                return data
+        return ""
 
 
 class TriggerTextPre(Trigger):
@@ -148,27 +153,29 @@ class TriggeredAction:
 
     def construct(self):
         """Factory method to realise correct subtype"""
+        data = (self.sequence,self.subseq,self.action,self.data,self.target_reply)
         match self.action:
-            case "reply_pool":
-                return ActionRespond(self.sequence,self.subseq,self.action,self.data,self.target_reply)
+            case "check_message_type":
+                return ActionCheckMessageType(*data)
+            case "gosub":
+                return ActionGoSub(*data)
             case "reply_text":
-                return ActionRespondText(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "whois":
-                return ActionWhois(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "kill_src":
-                return ActionKillDirect(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "kill_reply":
-                return ActionKillReply(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "scoreboard":
-                return ActionScoreBoard(self.sequence,self.subseq,self.action,self.data,self.target_reply)
+                return ActionEmitText(*data)
+            case "kill_msg":
+                return ActionRemoveMessage(*data)
             case "score_up":
-                return ActionScoreUpReplied(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "save_msg":
-                return ActionSaveMessage(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "roll_env":
-                return ActionRandomProc(self.sequence,self.subseq,self.action,self.data,self.target_reply)
-            case "check_userlist":
-                return ActionCheckUserList(self.sequence,self.subseq,self.action,self.data,self.target_reply)
+                return ActionScoreUp(*data)
+
+    def get_param(self, index: int) -> str:
+        value = "" if index not in self.data else self.data[index]
+        if value.startswith("*"):
+            var_name = value.removeprefix("*")
+            if var_name not in self.varstore:
+                return ""
+        return value
+
+    def get_string(self, poolname: str):
+        return TriggeredSequence.running_sequences[self.sequence].get_string(poolname)
 
     async def run_action(self, message: TGMessage) -> str:
         """Does something with the message"""
@@ -203,22 +210,25 @@ class ActionRespond(TriggeredAction):
         return ""
 
 
-class ActionRespondText(TriggeredAction):
+class ActionEmitText(TriggeredAction):
     """Responds from an internal pool
-    param 0: pool to use
+    param 0: pool to use, can be *pointer
     param 1: message TTL, -1 to keep
     """
     async def run_action(self, message: TGMessage) -> str:
+        pool_name = self.get_param(0)
+        msg_ttl = int(self.get_param(1))
         if self.target_reply:
             if not message.reply_to_message:
                 return "respond_no_target"
             message = message.reply_to_message
-        text = TriggeredSequence.running_sequences[self.sequence].get_string(self.data[0])
+        text = self.get_string(pool_name)
+        text = text.format_map(self.varstore)
         msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=text,
                                                        parse_mode='MarkdownV2',
                                                        reply_to_message_id=message.id)
         if msg:
-            botutils.schedule_kill(message.chat.id,msg.id,float(self.data[1]))
+            botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
         return ""
 
 
@@ -246,8 +256,7 @@ class ActionKillReply(TriggeredAction):
 
 class ActionWhois(TriggeredAction):
     """Does a whois and responds one way or another
-    param 0: string pool for the template
-    param 1: seconds to keep the message
+    param 0: variable prefix for the whois data
     """
 
     async def run_action(self, message: TGMessage) -> str:
@@ -257,25 +266,53 @@ class ActionWhois(TriggeredAction):
             message = message.reply_to_message
         if message.from_user.id == botstate.botstate.botuid:
             return "self"
-        user = UserInfo.User(user_id=message.from_user.id, chat_id=message.chat.id)
-
-        whoistpl = TriggeredSequence.running_sequences[self.sequence].get_string(self.data[0])
-        whoistpl = whoistpl.format(usernick=user.current_nick,
-                                   userid=user.id,
-                                   userrep=user.chatinfos[message.chat_id].reputation)
-        msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=whoistpl, parse_mode='MarkdownV2',
-                                                       reply_to_message_id=message.id)
-        if msg:
-            botutils.schedule_kill(message.chat.id,msg.id,float(self.data[1]))
+        uid = UserInfo.User.extract_uid(message)
+        user = UserInfo.User(user_id=uid, chat_id=message.chat.id)
+        vp = self.data[0]
+        self.varstore[vp+"usernick"]=user.current_nick
+        self.varstore[vp+"userid"]=user.id
+        self.varstore[vp+"userrep"]=user.chatinfos[message.chat_id].reputation
+        # TODO: add the rest of them
         return ""
+
+
+class ActionCheckMessageType(TriggeredAction):
+    """Checks if a message comes from a regular user, a bot,
+    a channel or is a service message
+    param 0: var_store variable to store the result in
+    """
+    async def run_action(self, message: TGMessage) -> str:
+
+        var_name = self.data[0]
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "whois_no_target"
+            message = message.reply_to_message
+        if message.from_user.is_bot:
+            if message.from_user.id == telegram.constants.ChatID.ANONYMOUS_ADMIN:
+                self.varstore[var_name] = "message_is_channel"
+            elif message.from_user.id == telegram.constants.ChatID.SERVICE_CHAT:
+                self.varstore[var_name] = "message_is_service"
+            else:
+                self.varstore[var_name] = "message_is_bot"
+        else:
+            self.varstore[var_name] = "message_is_human"
+        return ""
+
+
+class ActionGoSub(TriggeredAction):
+    """Sets a Subsequence to follow next.
+    param 0: Subsequence name or *pointer to one.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        return self.get_param(0)
 
 
 class ActionScoreBoard(TriggeredAction):
     """Shows a top scoreboard
     param 0: score to show
     param 1: number of winners
-    param 2: text pool to use
-    param 3: message TTL, -1 to keep
+    param 2: variable to store the board in
     """
 
     async def run_action(self, message: TGMessage) -> str:
@@ -285,16 +322,7 @@ class ActionScoreBoard(TriggeredAction):
             message = message.reply_to_message
         ss = scores.ScoreHelper(message.from_user.id,message.chat.id)
         board = ss.get_top(self.data[0], int(self.data[1]))
-        board_text =""
-        for name,score,uid in board:
-            name = botutils.MD(name)
-            board_text += botutils.TU(name,int(uid)) + "    " + str(score) + "\n"
-        tpl = TriggeredSequence.running_sequences[self.sequence].get_string(self.data[2])
-        tpl = tpl.format(board=board_text)
-        msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=tpl, parse_mode='MarkdownV2',
-                                                       reply_to_message_id=message.id)
-        if msg:
-            botutils.schedule_kill(message.chat.id, msg.id, float(self.data[1]))
+        self.varstore[self.data[2]] = board
         return ""
 
 
@@ -321,14 +349,17 @@ class ActionSaveMessage(TriggeredAction):
 
 
 class ActionRemoveMessage(TriggeredAction):
-    """Erases a message"""
+    """Erases a message
+    param 0: time delay before removal
+    """
     async def run_action(self, message: TGMessage) -> str:
-        if not message.reply_to_message:
-            return "nomessage"
-        if message.reply_to_message.from_user.is_bot:
-            return "remove_ok"
-            pass  # TODO: link to message killing system
-        return "remove_human"
+        delay = self.data[0]
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "kill_no_target"
+            message = message.reply_to_message
+        botutils.schedule_kill(message.chat.id, message.id, float(delay))
+        return ""
 
 
 class ActionCheckUserList(TriggeredAction):
@@ -364,19 +395,21 @@ class ActionRandomProc(TriggeredAction):
         return self.data[1] if roll < env_value else self.data[2]
 
 
-class ActionScoreUpReplied(TriggeredAction):
+class ActionScoreUp(TriggeredAction):
     """Ups a score
     param 0: score name
-    param 1: amount
+    param 1: amount, can be *pointer
     """
     async def run_action(self, message: TGMessage) -> str:
         if self.target_reply:
             if not message.reply_to_message:
                 return "scoreup_no_target"
             message = message.reply_to_message
+        scorename = self.get_param(0)
+        scoreamount = self.get_param(1)
         ss = scores.ScoreHelper(message.from_user.id, message.chat.id)
-        amount = int(self.data[1])
-        ss.add(self.data[0], amount)
+        amount = int(scoreamount)
+        ss.add(scorename, amount)
         return ""
 
 
