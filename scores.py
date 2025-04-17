@@ -35,7 +35,7 @@ class ScoreHelper:
                 """, data3)
             BotState.write()
 
-    def add(self,scorename:str,delta: int = 1):
+    def add(self,scorename:str,delta: int = 1) -> int:
         year = self.today.strftime("%Y")
         yearmonth = self.today.strftime("%Y-%m")
         yearmonthday = self.today.strftime("%Y-%m-%d")
@@ -45,6 +45,7 @@ class ScoreHelper:
         self.add_scope(scorename=scorename,delta=delta,scope=yearmonth)
         self.add_scope(scorename=scorename,delta=delta,scope=yearmonthday)
         self.add_scope(scorename=scorename,delta=delta,scope=yearweek)
+        return self.get_scope(scorename,"all")
 
     def get_scope(self, scorename: str, scope: str):
         res = BotState.DBLink.execute("""
@@ -111,21 +112,39 @@ class ActionScoreBoard(TriggeredAction):
 
 class ActionScoreUp(TriggeredAction):
     """Ups a score
-    param 0: score name
-    param 1: amount, can be *pointer
+    param 0: uid
+    param 1: score name
+    param 2: amount, can be *pointer
+    param 3: variable to store into
     """
     async def run_action(self, message: TGMessage) -> str:
-        if self.target_reply:
-            if not message.reply_to_message:
-                return "scoreup_no_target"
-            message = message.reply_to_message
-        scorename = self.get_param(0)
-        scoreamount = self.get_param(1)
-        ss = ScoreHelper(message.from_user.id, message.chat.id)
+        uid = self.get_param(0)
+        scorename = self.get_param(1)
+        scoreamount = self.get_param(2)
+        outvar = self.get_param(3)
+        ss = ScoreHelper(uid, message.chat.id)
         amount = int(scoreamount)
-        ss.add(scorename, amount)
+        score = ss.add(scorename, amount)
+        self.varstore[outvar] = score
+        return ""
+
+
+class ActionScoreGet(TriggeredAction):
+    """Gets a score
+    param 0: uid
+    param 1: score name
+    param 2: variable to store into
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        uid = self.get_param(0)
+        scorename = self.get_param(1)
+        outvar = self.get_param(2)
+        ss = ScoreHelper(uid, message.chat.id)
+        score = ss.get(scorename)
+        self.varstore[outvar] = score
         return ""
 
 
 TriggeredAction.register("score_up", ActionScoreUp)
+TriggeredAction.register("score_get", ActionScoreGet)
 TriggeredAction.register("score_board", ActionScoreBoard)

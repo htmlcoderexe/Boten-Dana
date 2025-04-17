@@ -5,7 +5,75 @@
   "version": [1,0,0,0],
   "triggers": [
     {
-
+      "type": "text_exact",
+      "params": ["+"],
+      "subseq": "upvote_user"
     }
-  ]
+  ],
+  "subseqs": {
+    "upvote_user": [
+      {
+        "action": "get_uid",
+        "params": ["upvoter"]
+      },
+      {
+        "action": "get_uid",
+        "params": ["upvotee"],
+        "target": "reply"
+      },
+      {
+        "action": "if_eq",
+        "params": ["*upvotee",0,"upvote_no_target","upvote_proceed"]
+      }
+    ],
+    "upvote_proceed": [
+      {
+        "action": "concat",
+        "params": ["upvoteduser_","*upvotee","upvoterscore"]
+      },
+      {
+        "action": "concat",
+        "params": ["upvotedbyuser_","*upvoter","upvoteescore"]
+      },
+      {
+        "action": "score_up",
+        "params": [
+          "*upvotee",
+          "rep",
+          1,
+          "upvotee_new_rep"
+        ]
+      },
+      {
+        "action": "score_up",
+        "params": ["*upvotee","*upvoteescore",1,"dev_null"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*upvoter","*upvoterscore",1,"dev_null"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*upvoter","upvotes_given",1,"dev_null"]
+      },
+      {
+        "action": "reply_text",
+        "params": ["upvote_success",15]
+      }
+    ]
+  },
+  "stringpools": {
+    "upvote_success": [
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        "У [{usertag}](tg://user?id={upvotee}) теперь {upvotee_new_rep} пепяки, и это круто \\(нет\\)",
+        "Эй, [{usertag}](tg://user?id={upvotee}), у тебя уже {userrep} плюсов, можешь начинать гордиться",
+        "[{usertag}](tg://user?id={upvotee}) получает хуй в ро\\.\\.\\. плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+    ]
+  }
 }

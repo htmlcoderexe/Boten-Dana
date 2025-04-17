@@ -97,6 +97,16 @@ Parameters:
 2. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
 3. A tag to apply to the sent message.
 
+### ``reply_pool``
+
+Responds to the message using a saved message from a message pool.
+
+Parameters:
+
+1. *Message Pool* name.
+2. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
+3. A tag to apply to the sent message.
+
 
 ### ``fmt_list``
 
@@ -108,15 +118,7 @@ Parameters:
 2. *String Pool* name for the single entry template
 3. Variable to receive the formatted output.
 
-### ``reply_pool``
-
-Responds to the message using a saved message from a message pool.
-
-Parameters:
-
-1. *Message Pool* name.
-2. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
-3. A tag to apply to the sent message.
+### Information actions
 
 ### ``check_message_type``
 
@@ -126,38 +128,17 @@ Parameters:
 
 1. Variable to store the result in.
 
-Returns:
+Returns: 
 
-``check_message_type_no_target`` if set to target the replied message and there isn't one.
+``error_no_target`` if set to target the replied message and there isn't one.
 
-### ``scoreboard``
+### ``get_uid``
 
-Fetches a scoreboard and stores it into var_store.
-
-Parameters:
-
-1. Name of the score to retrieve.
-2. Amount of users to display.
-3. The variable name to store the user table in (``list`` of ``tuple`` of ``string, int``)
-
-### ``score_get``
-
-Retrieves a specific score for a single user.
+Gets a UserID out of the message. If the message is of a special type like anonymous channel message, a different unique ID is extracted.
 
 Parameters:
 
-1. Name of the score.
-2. Variable to store the score.
-
-### ``score_up``
-
-Modifies a specific score for the single user.
-
-Parameters:
-
-1. Name of the score.
-2. The amount, as a ``string``. If prefixed with ``*``, the amount is taken from that variable instead.
-3. Variable to score the updated score.
+1. Variable to store the UserID in.
 
 ### ``whois``
 
@@ -176,6 +157,39 @@ Following variables will be filled (ignoring the prefix):
 Parameters:
 
 1. Prefix for the variables to be filled with the information.
+
+### Score actions
+
+### ``scoreboard``
+
+Fetches a scoreboard and stores it into var_store.
+
+Parameters:
+
+1. Name of the score to retrieve.
+2. Amount of users to display.
+3. The variable name to store the user table in (``list`` of ``tuple`` of ``string, int``)
+
+### ``score_get``
+
+Retrieves a specific score for a single user.
+
+Parameters:
+
+1. User ID.
+2. Name of the score.
+3. Variable to store the score.
+
+### ``score_up``
+
+Modifies a specific score for the single user.
+
+Parameters:
+
+1. User ID.
+2. Name of the score.
+3. The amount, as a ``string``. If prefixed with ``*``, the amount is taken from that variable instead.
+4. Variable to score the updated score.
 
 ### QDB functions
 
@@ -256,6 +270,15 @@ Parameters:
 1. Variable name to count the items from.
 2. Variable name to store the count into.
 
+### ``load_env``
+
+Loads an environment variable into var_store.
+
+Parameters:
+
+1. Name of the environment variable.
+2. Name of the var_store variable.
+
 ### Flow Control
 
 ### ``if_eq``
@@ -269,6 +292,15 @@ Parameters:
 3. The *Subsequence* to trigger if the values are equal.
 4. The *Subsequence* to trigger if the values are not equal.
 
+### ``gosub``
+
+Returns its parameter, therefore triggering the corresponding *Subsequence*, given no later *Actions* return a value.
+
+Parameters:
+
+1. *Subsequence* name to trigger. If it starts with an ``*``, the value is taken from the variable with this name.
+
+
 ### ``roll_random``
 
 Rolls a random number from 0 to 1, fails if above threshold, succeeds if below.
@@ -279,29 +311,16 @@ Parameters:
 2. Return this if success.
 3. Return this if failure.
 
-### ``check_userlist``
+### Userlists
 
-Check if a user is on a given *User List* (``user_lists`` table)
+### ``userlist_check``, ``userlist_add``, ``userlist_remove``
 
-Parameters:
+All 3 act on a user is on a given *User List* (``user_lists`` table) and take the same parameters.
 
-1. *User List* to check.
-2. Return this if user is on the list.
-3. Return this if user is not on the list.
-
-### ``load_env``
-
-Loads an environment variable into var_store.
+The functions respectively check user's presence on a list, add the user to a list and remove the user from a list. The two functions modifying the lists return ``True`` only if a change happened.
 
 Parameters:
 
-1. Name of the environment variable.
-2. Name of the var_store variable.
-
-### ``gosub``
-
-Returns its parameter, therefore triggering the corresponding *Subsequence*, given no later *Actions* return a value.
-
-Parameters:
-
-1. *Subsequence* name to trigger. If it starts with an ``*``, the value is taken from the variable with this name.
+1. User ID to act on.
+2. *Userlist* to manipulate.
+3. Variable to store the result in.

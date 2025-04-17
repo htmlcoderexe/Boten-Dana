@@ -18,6 +18,10 @@
         "target": "reply"
       },
       {
+        "action": "get_uid",
+        "params": ["cleaner_uid"]
+      },
+      {
         "action": "gosub",
         "params": ["*message_type"]
       }
@@ -34,7 +38,7 @@
       },
       {
         "action": "score_up",
-        "params": ["cleaner", "1", "dev_null"]
+        "params": ["*cleaner_uid","cleaner", "1", "dev_null"]
       },
       {
         "action": "reply_text",
@@ -50,7 +54,7 @@
     "message_is_human": [
       {
         "action": "score_up",
-        "params": ["cleaner_human", "1", "dev_null"]
+        "params": ["*cleaner_uid","cleaner_human", "1", "dev_null"]
       },
       {
         "action": "reply_text",

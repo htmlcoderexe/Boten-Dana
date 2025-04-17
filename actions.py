@@ -185,6 +185,7 @@ class TriggeredAction:
             var_name = value.removeprefix("*")
             if var_name not in self.varstore:
                 return ""
+            return self.varstore[var_name]
         return value
 
     def get_string(self, poolname: str):
@@ -320,7 +321,7 @@ class ActionCheckMessageType(TriggeredAction):
         var_name = self.data[0]
         if self.target_reply:
             if not message.reply_to_message:
-                return "whois_no_target"
+                return "error_no_target"
             message = message.reply_to_message
         if message.from_user.is_bot:
             if message.from_user.id == telegram.constants.ChatID.ANONYMOUS_ADMIN:
@@ -396,7 +397,7 @@ class ActionGetUID(TriggeredAction):
         if self.target_reply:
             if not message.reply_to_message:
                 self.varstore[outvar] = 0
-                return "scoreboard_no_target"
+                return "no_target"
         message = message.reply_to_message
         self.varstore[outvar] = UserInfo.User.extract_uid(message)
 
