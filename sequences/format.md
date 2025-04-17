@@ -98,17 +98,15 @@ Parameters:
 3. A tag to apply to the sent message.
 
 
-### ``reply_text_table``
+### ``fmt_list``
 
-Responds to the message using a string from an internal *String Pool*, and formatting a table list using an additional template.
+Formats a list using a template.
 
 Parameters:
 
-1. *String Pool* name for the message template
+1. Variable containing the list.
 2. *String Pool* name for the single entry template
-3. Variable to contain a table  (``list`` of ``tuple`` of ``string, int``)
-4. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
-5. A tag to apply to the sent message.
+3. Variable to receive the formatted output.
 
 ### ``reply_pool``
 
@@ -179,17 +177,43 @@ Parameters:
 
 1. Prefix for the variables to be filled with the information.
 
+### QDB functions
+
 ### ``qdb_get_user``
 
 Gets quotes saved for a particular user.
 
 Parameters:
 
-1. Amount of quotes to get, -1 to get all eligible quotes.
-2. "local" to get quotes only for the current chat, "global" to get all.
-3. Minimum score of the quotes to be retrieved.
-4. Sorting mode: "score", "newest", "oldest" (default)
-5. Variable name to hold the list.
+1. UID of the user
+2. Amount of quotes to get, -1 to get all eligible quotes.
+3. "local" to get quotes only for the current chat, "global" to get all.
+4. Minimum score of the quotes to be retrieved.
+5. Sorting mode: "score", "newest", "random", "oldest" (default)
+6. Variable name to hold the list.
+
+### ``qdb_save``
+
+Saves a quote, stores the ID and the result in variables. Possible results are:
+
+* ``ok`` - the quote was saved and the ID of the new quote is stored.
+* ``exists`` - the message was already saved. The ID of the existing quote is stored.
+* ``no_text`` - the message doesn't contain any text. 0 is stored in the ID variable.
+
+Parameters:
+
+1. Variable to save the stored quote ID in.
+2. Variable to save the result of the action
+
+### ``qdb_upvote``
+
+Modifies a quote's rating. If the quote does not exist, the new score is set to -1.
+
+Parameters:
+
+1. Quote ID.
+2. Amount to add to the rating.
+3. Variable to store the new score in.
 
 ### Message manipulation
 
@@ -211,7 +235,39 @@ Parameters:
 2. Specific to the mode: variable name or prefix, unused if mode is ``param``
 3. Variable to store the resulting message name to
 
+### Variable manipulation
+
+### ``concat``
+
+Combines two values and writes to a variable.
+
+Parameters:
+
+1. The first value.
+2. The second value.
+3. The variable to write the result to.
+
+### ``count``
+
+Counts items in a given variable and stores the value in a variable. For strings, this conveniently returns their length.
+
+Parameters:
+
+1. Variable name to count the items from.
+2. Variable name to store the count into.
+
 ### Flow Control
+
+### ``if_eq``
+
+Compares two values, then triggers one of two *Subsequences* based on the equality.
+
+Parameters:
+
+1. First value to compare.
+2. Second value to compare.
+3. The *Subsequence* to trigger if the values are equal.
+4. The *Subsequence* to trigger if the values are not equal.
 
 ### ``roll_random``
 

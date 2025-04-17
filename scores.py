@@ -1,5 +1,6 @@
 from datetime import datetime
-
+from actions import TriggeredAction
+from telegram import Message as TGMessage
 from botstate import BotState
 
 
@@ -88,3 +89,43 @@ class ScoreHelper:
             ORDER BY amount DESC
             LIMIT ? """, (self.chatid, scorename, scope, count))
         return res.fetchall()
+
+
+class ActionScoreBoard(TriggeredAction):
+    """Shows a top scoreboard
+    param 0: score to show
+    param 1: number of winners
+    param 2: variable to store the board in
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "scoreboard_no_target"
+            message = message.reply_to_message
+        ss = ScoreHelper(message.from_user.id,message.chat.id)
+        board = ss.get_top(self.data[0], int(self.data[1]))
+        self.varstore[self.data[2]] = board
+        return ""
+
+
+class ActionScoreUp(TriggeredAction):
+    """Ups a score
+    param 0: score name
+    param 1: amount, can be *pointer
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "scoreup_no_target"
+            message = message.reply_to_message
+        scorename = self.get_param(0)
+        scoreamount = self.get_param(1)
+        ss = ScoreHelper(message.from_user.id, message.chat.id)
+        amount = int(scoreamount)
+        ss.add(scorename, amount)
+        return ""
+
+
+TriggeredAction.register("score_up", ActionScoreUp)
+TriggeredAction.register("score_board", ActionScoreBoard)

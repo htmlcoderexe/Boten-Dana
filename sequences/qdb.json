@@ -6,35 +6,102 @@
   "triggers": [
     {
       "type": "text_exact",
-      "params": ["бот запиши"],
+      "params": ["quote","бот запиши","бот сохрани","сохранить цитату","ахаха жжош сцуко","в цитатник"],
       "subseq": "save_quote"
+    },
+    {
+      "type": "text_exact",
+      "params": ["показать цитаты","есть компромат"],
+      "subseq": "show_all_quotes"
     }
   ],
   "subseqs":
   {
     "save_quote": [
       {
-        "action": "save_quote",
-        "params": [0, "quotesave"]
+        "action": "qdb_save",
+        "params": ["saved_quote_id", "quote_save_result"],
+        "target": "reply"
       },
       {
-        "action": "kill_src",
-        "params": [0]
+        "action": "concat",
+        "params": ["quote_save_", "*quote_save_result", "quote_save_result"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*quote_save_result"]
       }
     ],
-    "quotesave_ok": [
+    "quote_save_ok": [
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
       {
         "action": "reply_text",
         "params": ["save_success",10]
       }
     ],
-    "quotesave_notext": [
+    "quote_save_no_text": [
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
       {
         "action": "reply_text",
         "params": ["nothing_to_save",10]
       }
     ],
-    "quotesave_nomessage": [
+    "quote_save_exists": [
+      {
+        "action": "qdb_upvote",
+        "params": ["*saved_quote_id", 1, "dev_null"]
+      },
+      {
+        "action": "reply_text",
+        "params": ["quote exists",10]
+      }
+    ],
+    "show_all_quotes": [
+      {
+        "action": "get_uid",
+        "params": ["uid_to_fetch"],
+        "target": "reply"
+      },
+      {
+        "action": "qdb_get_user",
+        "params": ["*uid_to_fetch",-1, "global", 0, "oldest","user_quotes"]
+      },
+      {
+        "action": "count",
+        "params": ["user_quotes", "user_quotes_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*user_quotes_count","0","no_quotes_yet","show_user_quotes"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      }
+    ],
+    "no_quotes_yet": [
+      {
+        "action": "reply_text",
+        "params": ["no_quotes", 10]
+      }
+    ],
+    "show_user_quotes": [
+      {
+        "action": "fmt_list",
+        "params": ["user_quotes","user_quotes_format","quote_list"]
+      },
+      {
+        "action": "reply_text",
+        "params": ["user_quotes_template",60]
+      }
+    ],
+    "qdb_save_no_target": [
       {
         "action": "reply_text",
         "params": ["no_target",10]
@@ -43,13 +110,25 @@
   },
   "stringpools": {
     "save_success": [
-      "Сохранено!"
+      "Цитата сохранена под номером {saved_quote_id}"
     ],
     "nothing_to_save": [
       "Тут нечего сохранять."
     ],
     "no_target": [
       "Эту команду нужно писать в ответ на сообщение, которое нужно сохранить."
+    ],
+    "quote_exists": [
+      "Эту цитату уже сохранили. Цитата №{saved_quote_id} получает +1 к рейтингу."
+    ],
+    "no_quotes": [
+      "На этого человека компромата ещё нет."
+    ],
+    "user_quotes_template": [
+      "За пользователем **{usernick}** были записаны следующие цитаты:{quote_list}"
+    ],
+    "user_quotes_format": [
+      "\n**№{0.id}**\n<=============\n{0.text_raw}\n=============>"
     ]
   }
 }

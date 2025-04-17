@@ -136,6 +136,13 @@ class TriggerRetVal(Trigger):
 # 12    | msgstore  |   main    | load  |               | 1.0
 class TriggeredAction:
     """An action that may be triggered"""
+    registry = {}
+    """registry containing strings mapping to corresponding trigger actions"""
+
+    @staticmethod
+    def register(name:str, cls):
+        TriggeredAction.registry[name] = cls
+
     def __init__(self,seq:str, subseq:str,a_type:str, data:list[str], target_reply:bool):
         self.data = data
         """Action param"""
@@ -154,17 +161,23 @@ class TriggeredAction:
     def construct(self):
         """Factory method to realise correct subtype"""
         data = (self.sequence,self.subseq,self.action,self.data,self.target_reply)
+        if self.action in TriggeredAction.registry:
+            return TriggeredAction.registry[self.action](*data)
         match self.action:
             case "check_message_type":
                 return ActionCheckMessageType(*data)
             case "gosub":
                 return ActionGoSub(*data)
+            case "concat":
+                return ActionConcat(*data)
+            case "get_uid":
+                return ActionGetUID(*data)
+            case "fmt_list":
+                return ActionFormatList(*data)
             case "reply_text":
                 return ActionEmitText(*data)
             case "kill_msg":
                 return ActionRemoveMessage(*data)
-            case "score_up":
-                return ActionScoreUp(*data)
 
     def get_param(self, index: int) -> str:
         value = "" if index not in self.data else self.data[index]
@@ -229,6 +242,27 @@ class ActionEmitText(TriggeredAction):
                                                        reply_to_message_id=message.id)
         if msg:
             botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
+        return ""
+
+
+class ActionFormatList(TriggeredAction):
+    """Takes a list and a format string, outputs formatted list into a variable.
+    param 0: variable to take the list from
+    param 1: format string pool
+    param 2: variable to write to"""
+    async def run_action(self, message: TGMessage) -> str:
+        listvar = self.get_param(0)
+        poolname = self.get_param(1)
+        outvar = self.get_param(2)
+        if listvar not in self.varstore:
+            self.varstore[outvar] = ""
+            return "reference_error"
+        data = self.varstore[listvar]
+        fmt_string = self.get_string(poolname)
+        output = ""
+        for item in data:
+            output += fmt_string.format(item)
+        self.varstore[outvar] = output
         return ""
 
 
@@ -300,6 +334,22 @@ class ActionCheckMessageType(TriggeredAction):
         return ""
 
 
+class ActionIfEquals(TriggeredAction):
+    """
+    Compares two values, then triggers one of the specified Subsequences depending on whether the values are equaol or not.
+    param 0: first value
+    param 1: second value
+    param 2: subsequence to return if values are equaol
+    param 3: subsequence to return if values are not equal
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        a = self.get_param(0)
+        b = self.get_param(1)
+        equal = self.get_param(2)
+        not_equal = self.get_param(3)
+        return equal if a == b else not_equal
+
+
 class ActionGoSub(TriggeredAction):
     """Sets a Subsequence to follow next.
     param 0: Subsequence name or *pointer to one.
@@ -308,22 +358,47 @@ class ActionGoSub(TriggeredAction):
         return self.get_param(0)
 
 
-class ActionScoreBoard(TriggeredAction):
-    """Shows a top scoreboard
-    param 0: score to show
-    param 1: number of winners
-    param 2: variable to store the board in
+class ActionConcat(TriggeredAction):
+    """Concatenates two values and stores the result
+    param 0: first value
+    param 1: second value
+    param 2: variable to write
     """
-
     async def run_action(self, message: TGMessage) -> str:
+        a = self.get_param(0)
+        b = self.get_param(1)
+        x = self.get_param(2)
+        self.varstore[x] = a + b
+        return ""
+
+
+class ActionCount(TriggeredAction):
+    """Counts items in a given variable, then stores the results into a variable.
+    param 0: Variable containing items to count.
+    param 1: Variable to store the result into."""
+    async def run_action(self, message: TGMessage) -> str:
+        countvar = self.get_param(0)
+        outvar = self.get_param(1)
+        if countvar not in self.varstore:
+            self.varstore[outvar] = -1
+            return ""
+        targetvar = self.varstore[countvar]
+        self.varstore[outvar] = len(targetvar)
+        return ""
+
+
+class ActionGetUID(TriggeredAction):
+    """Gets the userID out of the message
+    param 0: variable to store the extracted userID
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        outvar = self.get_param(0)
         if self.target_reply:
             if not message.reply_to_message:
+                self.varstore[outvar] = 0
                 return "scoreboard_no_target"
-            message = message.reply_to_message
-        ss = scores.ScoreHelper(message.from_user.id,message.chat.id)
-        board = ss.get_top(self.data[0], int(self.data[1]))
-        self.varstore[self.data[2]] = board
-        return ""
+        message = message.reply_to_message
+        self.varstore[outvar] = UserInfo.User.extract_uid(message)
 
 
 class ActionSaveMessage(TriggeredAction):
@@ -395,23 +470,6 @@ class ActionRandomProc(TriggeredAction):
         return self.data[1] if roll < env_value else self.data[2]
 
 
-class ActionScoreUp(TriggeredAction):
-    """Ups a score
-    param 0: score name
-    param 1: amount, can be *pointer
-    """
-    async def run_action(self, message: TGMessage) -> str:
-        if self.target_reply:
-            if not message.reply_to_message:
-                return "scoreup_no_target"
-            message = message.reply_to_message
-        scorename = self.get_param(0)
-        scoreamount = self.get_param(1)
-        ss = scores.ScoreHelper(message.from_user.id, message.chat.id)
-        amount = int(scoreamount)
-        ss.add(scorename, amount)
-        return ""
-
 
 class ActionAnnounceScore(TriggeredAction):
     """Announces a single score
@@ -435,48 +493,6 @@ class ActionAnnounceScore(TriggeredAction):
         return ""
 
 
-class ActionQDBSave(TriggeredAction):
-    """
-    Saves to QDB
-    param 0: additional score to give to the saved quote
-    param 1: prefix for redirected returns
-    """
-    async def run_action(self, message: TGMessage) -> str:
-        if not message.reply_to_message:
-            return self.data[1] + "_nomessage"
-        if not message.reply_to_message.text and not message.reply_to_message.caption:
-            return self.data[1] + "_notext"
-        text = message.reply_to_message.text_markdown_v2 if message.reply_to_message.text else message.reply_to_message.caption_markdown_v2
-        uid = UserInfo.User.extract_uid(message.reply_to_message)
-        msgid = message.reply_to_message.id
-        chatid = message.chat.id
-        replyid = 0
-        replytext = ""
-        replyuser = 0
-        qdb = QDB.Database(message.chat.id, message.from_user.id)
-        # use pyro to get the context of the message being captured if possible
-        pc = botstate.BotState.pyroclient
-        fullmsg = await pc.get_messages(chatid,msgid)
-        if fullmsg and fullmsg.reply_to_message:
-            replyid = fullmsg.reply_to_message.id
-            replyuser = UserInfo.User.extract_uid(fullmsg.reply_to_message)
-            replytext = fullmsg.reply_to_message.text if fullmsg.reply_to_message.text else replytext
-            replytext = fullmsg.reply_to_message.caption if fullmsg.reply_to_message.caption else replytext
-
-        q = qdb.save_quote(text=text, msg_id=msgid, user_id=uid, reply_text=replytext, reply_user=replyuser, reply_id=replyid)
-        if int(self.data[0]) > 0:
-            q.upvote()
-            return self.data[1] + "_ok"
-
-
-class ActionQDBGetUserQuotes(TriggeredAction):
-    """
-    Gets quotes for user
-    param 0: amount of quotes to get, -1 to get all
-    param 1: "local" or "global" to get quotes from everywhere or just this chat.
-    param 2: score threshold
-    param 3: sorting mode: "score", "newest", "oldest"
-    """
 
 
 
