@@ -174,12 +174,17 @@ class TriggeredAction:
                 return ActionGetUID(*data)
             case "fmt_list":
                 return ActionFormatList(*data)
-            case "reply_text":
+            case "emit_text":
                 return ActionEmitText(*data)
             case "kill_msg":
                 return ActionRemoveMessage(*data)
 
     def get_param(self, index: int) -> str:
+        """
+        Fetches a single param at a specific index.
+        @param index: the index at which to retrieve.
+        @return: a string containing the value if found, empty string otherwise.
+        """
         value = "" if index not in self.data else self.data[index]
         if value.startswith("*"):
             var_name = value.removeprefix("*")
@@ -187,6 +192,27 @@ class TriggeredAction:
                 return ""
             return self.varstore[var_name]
         return value
+
+    def get_params_rest(self, start_from:int) -> list[str]:
+        """
+        Fetches all remaining params starting from an index
+        @param start_from: the index to start from
+        @return: a list containing any params retrieved
+        """
+        if start_from not in self.data:
+            return []
+        result = []
+        for param in self.data[start_from:]:
+            value = ""
+            if param.startswith("*"):
+                param = param.removeprefix("*")
+                if param in self.varstore:
+                    value = self.varstore[param]
+            else:
+                value = param
+            result.append(value)
+        return result
+
 
     def get_string(self, poolname: str):
         return TriggeredSequence.running_sequences[self.sequence].get_string(poolname)
@@ -215,6 +241,7 @@ class ActionRespond(TriggeredAction):
         results = await store.replay_message(name=pool.fetch(), reply_to=message.id)
         if results:
             for msgid in results:
+                self.varstore["__last_msg"] = msgid
                 # apply tags if specified
                 if self.data[2]:
                     messagetagger.MessageTagger.tag_message(message.chat_id, msgid, self.data[2])
@@ -242,7 +269,39 @@ class ActionEmitText(TriggeredAction):
                                                        parse_mode='MarkdownV2',
                                                        reply_to_message_id=message.id)
         if msg:
+            self.varstore["__last_msg"] = msg
             botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
+        return ""
+
+
+class ActionEmitPoll(TriggeredAction):
+    """Posts a poll.
+    param 0: text of the poll.
+    param 6: variable containing answer options (list of string!)
+    param 3: correct answer index
+    param 4: timer
+    param 1: type "quiz"/"regular"
+    param 2: hide answers?
+    param 5: variable to store the resulting poll ID into
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        text = self.get_param(0)
+        answers = self.varstore[self.get_param(1)]
+        correct = int(self.get_param(2))
+        timer = int(self.get_param(3))
+        poll_type = telegram.Poll.QUIZ if self.get_param(4) == "quiz" else telegram.Poll.REGULAR
+        anon_mode = bool(self.get_param(5))
+        poll_id_var = self.get_param(6)
+        poll = await botstate.BotState.bot.send_poll(message.chat.id,
+                                                     text,
+                                                     answers,
+                                                     type=poll_type,
+                                                     is_anonymous=anon_mode,
+                                                     correct_option_id=correct,
+                                                     open_period=timer)
+        if poll:
+            self.varstore[poll_id_var] = poll.poll.id
+            self.varstore["__last_msg"] = poll.id
         return ""
 
 
@@ -304,9 +363,9 @@ class ActionWhois(TriggeredAction):
         uid = UserInfo.User.extract_uid(message)
         user = UserInfo.User(user_id=uid, chat_id=message.chat.id)
         vp = self.data[0]
-        self.varstore[vp+"usernick"]=user.current_nick
-        self.varstore[vp+"userid"]=user.id
-        self.varstore[vp+"userrep"]=user.chatinfos[message.chat_id].reputation
+        self.varstore[vp+"usernick"] = user.current_nick
+        self.varstore[vp+"userid"] = user.id
+        self.varstore[vp+"userrep"] = user.chatinfos[message.chat_id].reputation
         # TODO: add the rest of them
         return ""
 
@@ -438,27 +497,6 @@ class ActionRemoveMessage(TriggeredAction):
         return ""
 
 
-class ActionCheckUserList(TriggeredAction):
-    """Checks if triggering user is on a UserList
-    param 0: UserList name
-    param 1: returned if user on the list
-    param 2: returned if user NOT on the list
-    """
-    async def run_action(self, message: TGMessage) -> str:
-        if self.target_reply:
-            if not message.reply_to_message:
-                return "respond_no_target"
-            message = message.reply_to_message
-        uid = message.from_user.id
-        res = botstate.BotState.DBLink.execute("""
-        SELECT user_id FROM userlists
-        WHERE name = ?
-        AND user_id = ?
-        """,(self.data[0], uid))
-        row = res.fetchone()
-        return self.data[1] if row else self.data[2]
-
-
 class ActionRandomProc(TriggeredAction):
     """Rolls a chance based on an env_var
     param 0: env_var containing chance
@@ -469,32 +507,6 @@ class ActionRandomProc(TriggeredAction):
         env_value = float(self.data[0])  # TODO: properly get env_var
         roll = random.random()
         return self.data[1] if roll < env_value else self.data[2]
-
-
-
-class ActionAnnounceScore(TriggeredAction):
-    """Announces a single score
-    param 0: score name
-    param 1: message TTL
-    param 2: string pool
-    """
-    async def run_action(self, message: TGMessage) -> str:
-        if self.target_reply:
-            if not message.reply_to_message:
-                return "score_announce_no_target"
-            message = message.reply_to_message
-        ss = scores.ScoreHelper(message.from_user.id, message.chat.id)
-        amount = ss.get(self.data[0])
-        tpl = TriggeredSequence.running_sequences[self.sequence].get_string(self.data[2])
-        tpl = tpl.format(score=amount)
-        msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=tpl, parse_mode='MarkdownV2',
-                                                       reply_to_message_id=message.id)
-        if msg:
-            botutils.schedule_kill(message.chat.id, msg.id, float(self.data[1]))
-        return ""
-
-
-
 
 
 class TriggeredSequence:
@@ -693,4 +705,7 @@ class TriggeredSequence:
         return actions
 
 
-
+class MockMessage:
+    """Can be imported for use by actions not explicitly needing the actual Telegram Message"""
+    def __init__(self, msgid:int):
+        self.id = msgid

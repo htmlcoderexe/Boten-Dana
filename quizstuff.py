@@ -1,22 +1,500 @@
+import time
+
+import botutils
+import scores
+from actions import TriggeredAction
+from telegram import Message as TGMessage
 from botstate import BotState
 
 
-class Quiz:
-    id = 0
+class Question:
+    """Represents a single Quiz question"""
+    @classmethod
+    def fetch(cls, quizid:str,index:int):
+        """Fetches a specific question from a quiz
+        @param quizid: ID of the quiz
+        @param index: number of the question
+        """
+        res = BotState.DBLink.execute("""
+            SELECT question,options,correct_option,extraid
+            FROM quiz_questions
+            WHERE quiz_name = ?
+            AND ordinal = ?""", (quizid, index))
+        row = res.fetchone()
+        if not row:
+            return
+        text, options, correct, extra_id = row
+        return cls(quizid,index,text,options.split("|"),correct,extra_id)
 
-    def __init__(self, quizid):
-        self.id = quizid
+    def __init__(self, quiz_id:str, index:int, text:str, choices:list[str], correct:int, attachment:str):
+        self.parent_quiz = quiz_id
+        """Quiz this belongs to"""
+        self.index = index
+        """Number of the question"""
+        self.text = text
+        """Question text"""
+        self.choices = choices
+        """Question answers"""
+        self.correct_answer = correct
+        """Number of the correct option"""
+        self.attachment = attachment
+        """Saved Message ID attached to the question"""
+
+    def attach_media(self, mediaid:str):
+        """Attaches a specific Saved Message to this question"""
+        BotState.DBLink.execute("""
+            UPDATE quiz_questions
+            SET extraid = ?
+            WHERE quiz_name = ?
+            AND ordinal = ?""", (mediaid, self.parent_quiz, self.index))
+        BotState.write()
+        self.attachment = mediaid
+
+
+class Quiz:
+    """Represents a Quiz"""
+    def __init__(self, quiz_id:str, owner_id:int,created:float,title:str,question_time:float,questions:list[Question]):
+        self.id:str = quiz_id
+        """This Quiz's ID."""
+        self.owner_id:int = owner_id
+        """Quiz creator UID"""
+        self.creation_time:float = created
+        """Quiz creation timestamp"""
+        self.title:str = title
+        """Title of the quiz"""
+        self.question_time:float = question_time
+        """Time to answer a question, in seconds"""
+        self.questions:list[Question] = questions
+        """Questions belonging to the quiz"""
+
+    @classmethod
+    def load(cls, quizid:str):
+        res = BotState.DBLink.execute("""
+            SELECT ownerid,created,title,question_time
+            FROM quizzes
+            WHERE name = ?
+            """, (quizid,))
+        row = res.fetchone()
+        if not row:
+            return
+        owner_id = int(row[0])
+        creation_time = float(row[1])
+        title = row[2]
+        question_time = float(row[3])
+        # fetch the questions
+        res = BotState.DBLink.execute("""
+            SELECT quiz_name, ordinal, question, options, correct, extraid
+            FROM quiz_questions
+            WHERE quiz_name = ?
+            SORT BY ordinal ASC
+            """, (quizid,))
+        rows = res.fetchall()
+        qlist = []
+        if rows:
+            for row in rows:
+                qdata = list(row)
+                qdata[1] = int(qdata[1])
+                qdata[3] = qdata[3].split("|")
+                qlist.append(Question(*qdata))
+        return cls(quizid,owner_id,creation_time,title,question_time,qlist)
+
+    @staticmethod
+    def find_by_owner(owner_id:int) -> list[str]:
+        """
+        Finds all Quizes owned by a user.
+        @param owner_id: User to check.
+        @return: List of Quiz IDs found.
+        """
+        res = BotState.DBLink.execute("""
+           SELECT title,name
+           FROM quizzes
+           WHERE ownerid = ?
+           """, (owner_id,))
+        rows = res.fetchall()
+        if not rows:
+            return []
+        return [row[0] for row in rows]
 
     def rename(self, newname: str):
+        """Renames the Quiz"""
         BotState.DBLink.execute("""
                 UPDATE quizzes
                 SET title = ?
                 WHERE name = ?""", (newname, self.id))
         BotState.write()
+        self.title = newname
 
     def set_time(self, newtime:int):
+        """Sets the question timer on the Quiz"""
         BotState.DBLink.execute("""
                 UPDATE quizzes
                 SET question_time = ?
                 WHERE name = ?""", (newtime, self.id))
         BotState.write()
+        self.question_time = newtime
+
+    def add_question(self, question:Question, index:int = -1):
+        """Adds a Question to the Quiz
+        @param question: The Question to be added.
+        @param index: Optional index to insert the question at. This will renumber the questions after it.
+        """
+        # easy case with adding on the end
+        if index == -1 or index >= len(self.questions):
+            BotState.DBLink.execute("""
+                INSERT INTO quiz_questions
+                VALUES (?,?,?,?,?,?)
+                """, (self.id, question.text, len(self.questions), "|".join(question.choices), question.correct_answer, question.attachment))
+            BotState.write()
+            self.questions.append(question)
+            return
+        # insert the question
+        BotState.DBLink.execute("""
+                        INSERT INTO quiz_questions
+                        VALUES (?,?,?,?,?,?)
+                        """, (self.id, question.text, index, "|".join(question.choices), question.correct_answer,question.attachment))
+        # update the question indices in the DB
+        BotState.DBLink.execute("""
+        UPDATE quiz_questions
+        SET ordinal = ordinal + 1
+        WHERE quiz_name = ?
+        AND ordinal >= ?
+        """,(self.id, index))
+        BotState.write()
+        # update this object
+        self.questions.insert(index,question)
+        # update question indices in this object
+        for ordinal, question in enumerate(self.questions):
+            question.index = ordinal
+
+    def remove_question(self, index:int):
+        """
+        Removes a question at the specific index.
+        @param index: Number of the question to remove
+        @return:
+        """
+        # erase question from DB
+        BotState.DBLink.execute("""
+        DELETE FROM quiz_questions
+        WHERE quiz_name = ?
+        AND ordinal = ?""",(self.id, index))
+        # update indices in DB
+        BotState.DBLink.execute("""
+                UPDATE quiz_questions
+                SET ordinal = ordinal - 1
+                WHERE quiz_name = ?
+                AND ordinal > ?
+                """, (self.id, index))
+        # update this object
+        self.questions.pop(index)
+        # update question indices in this object
+        for ordinal, question in enumerate(self.questions):
+            question.index = ordinal
+
+
+class QuizPlaySession:
+    """Represents a single run of a Quiz."""
+    START_MESSAGE_ANIMATION_TIMER: float = 3
+    MEDAL_EMOJI: list[str] = ["🥇", "🥈", "🥉"]
+    """Time delay used between edits"""
+    @classmethod
+    def load(cls, session_id: str):
+        """
+        Loads a session from the database
+        @param session_id: The session to load
+        @return:
+        """
+        # TODO: modify the table schema of quiz_sessions and quiz_replytracker
+        res = BotState.DBLink.execute("""
+            SELECT quiz_session_id,chatid,quiz_id,start_message_id,ended
+            FROM quiz_sessions
+            WHERE quiz_session_id = ?""", (session_id,))
+        row = res.fetchone()
+        if not row:
+            return None
+        return cls(*row)
+
+    @classmethod
+    def start(cls, quiz_id: str, chat_id: int, start_message: int):
+        now = time.time()
+        # create session ID
+        session_id = str(chat_id) + quiz_id + str(now)
+        # write to DB
+        BotState.DBLink.execute("""
+            INSERT INTO quiz_sessions
+            VALUES (?,?,?,?,0)""", (session_id, chat_id, quiz_id, start_message))
+        BotState.write()
+        # return session object
+        return cls(session_id, chat_id, quiz_id, start_message, False)
+
+    @staticmethod
+    def check_ongoing(chat_id: int) -> bool:
+        """
+        Checks if a chat has an unfinished session.
+        @param chat_id: Chat ID to check
+        @return: A bool indicating whether an unfinished session was found.
+        """
+        res = BotState.DBLink.execute("""
+            SELECT ended
+            FROM quiz_sessions
+            WHERE chatid = ?
+            AND ended = 0""", (chat_id,))
+        rows = res.fetchall()
+        if rows:
+            return True
+        return False
+
+    @staticmethod
+    def submit_answer(poll_id:int, user_id:int, option_picked:int):
+        """
+        Processes a poll asnwer
+        @param poll_id: PollID the answer comes from
+        @param user_id: User that sent the answer
+        @param option_picked: The answer option picked
+        @return:
+        """
+        # put down time
+        now = time.time()
+        # find the corresponding tracker
+        res = BotState.DBLink.execute("""
+            SELECT quiz_session_id, quiz_name,ordinal,time,msgid
+            FROM quiz_replytracker
+            WHERE pollid = ?""", (str(poll_id),))
+        row = res.fetchone()
+        # exit if not found
+        if not row:
+            return
+        session_id, quiz_id, question_number, poll_time, poll_msgid = row
+        session = QuizPlaySession.load(session_id)
+        # fetch the question
+        question = Question.fetch(quiz_id, question_number)
+        # exit if not found
+        if not question:
+            return
+        # on a correct answer, record this
+        if option_picked == question.correct_answer:
+            diff = now - poll_time
+            session.award_correct_answer(user_id, diff)
+        # on a single player session, advance immediately to the next question
+        if session.singleplayer:
+            next_question = question_number + 1
+            quiz = Quiz.load(session.quiz_id)
+            # if this was the last question, set it to the end TODO: maybe use the question number >= question count as the end signal?
+            if next_question >= len(quiz.questions):
+                next_question = -3
+            botutils.schedule_kill(session.chat_id, poll_msgid, 0)
+            BotState.DBLink.execute(("""
+                    UPDATE quiz_next
+                    SET time = 0
+                    WHERE quiz_session_id = ?
+                    AND ordinal = ?
+                    """), (session_id, next_question))
+            BotState.write()
+
+    def __init__(self, session_id: str, chat_id: int, quiz_id: str, starting_message: int, ended: bool):
+        self.id = session_id
+        """Session ID"""
+        self.chat_id = chat_id
+        """Chat running the session"""
+        self.singleplayer = chat_id > 0
+        """Determines whether this session is run in a private chat with one person or in a chat with multiple people."""
+        self.quiz_id = quiz_id
+        """The Quiz used in the session"""
+        self.start_message = starting_message
+        """MessageID of the message launching the session"""
+        self.ended = ended
+        """Determines if the session has ended."""
+
+    def write_plan(self, question_count: int, question_timer: float):
+        """Writes out the commands to follow for the quiz runner
+        @param question_count: amount of questions
+        @param question_timer: time given per question
+        """
+        # set starting point
+        now = time.time()
+        # this will hold the items to be written to the DB
+        plan = []
+        # 2 message edits #TODO make this more flexible somehow?
+        now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
+        plan.append((now,-2))
+        now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
+        plan.append((now,-1))
+        now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
+        # the questions
+        for index in range(question_count):
+            plan.append((now,index))
+            now += question_timer
+        # final item to finish the quiz
+        plan.append((now, question_count))
+        # write to DB
+        for entry in plan:
+            moment, command = entry
+            BotState.DBLink.execute("""
+                    INSERT INTO quiz_next
+                    VALUES (?,?,?,?,?)""", (self.id, self.chat_id, moment, self.quiz_id, command))
+        BotState.write()
+
+    def award_correct_answer(self, user_id:int, seconds:float):
+        """
+        Scores a correct answer in this session.
+        @param user_id: User to receive score
+        @param seconds: Seconds to add to user's time score
+        @return:
+        """
+        res = BotState.DBLink.execute("""
+            SELECT seconds,answers
+            FROM quiz_scores
+            WHERE quiz_session_id = ?
+            AND quiz_name = ?
+            AND userid = ?""", (self.id, self.quiz_id, user_id))
+        row = res.fetchone()
+        if row:
+            secs, score = row
+            secs += seconds
+            score += 1
+            BotState.DBLink.execute("""
+                UPDATE quiz_scores
+                SET seconds = ?,answers = ?
+                WHERE quiz_session_id = ?
+                AND quiz_name = ?
+                AND userid = ?""", (secs, score, self.id, self.quiz_id, user_id))
+        else:
+            BotState.DBLink.execute("""
+                INSERT INTO quiz_scores
+                VALUES (?,?,?,?,?)""", (self.id, self.quiz_id, user_id, seconds, 1,))
+        BotState.write()
+
+    def get_results(self) -> list:
+        """
+        Fetches results of this session.
+        @return: list of (medal, uid, seconds, correct answers)
+        """
+        res = BotState.DBLink.execute("""
+            SELECT userid,seconds,answers
+            FROM quiz_scores
+            WHERE quiz_session_id = ?
+            ORDER BY answers DESC,seconds""", (self.id,))
+        db_results = res.fetchall()
+        results = []
+        for i, result in enumerate(db_results):
+            if i < len(QuizPlaySession.MEDAL_EMOJI):
+                results.append((QuizPlaySession.MEDAL_EMOJI[i],) + result)
+            else:
+                results.append((" ",) + result)
+        return results
+
+    def give_awards(self):
+        """
+        Processes the session's results and awards medal and other scores.
+        @return:
+        """
+        results = self.get_results()
+        for i,result in enumerate(results):
+            sh = scores.ScoreHelper(result[1],self.chat_id)
+            if i >= len(QuizPlaySession.MEDAL_EMOJI):
+                sh.add("quiz_medals_other")
+            sh.add("quiz_medals_" + str(i))
+            sh.add("quiz_participations")
+
+    def end(self):
+        """
+        Ends the session.
+        @return:
+        """
+        BotState.DBLink.execute("""
+            UPDATE quiz_sessions
+            SET ended = ?
+            WHERE quiz_session_id = ?""", (1, self.id))
+        botutils.schedule_kill(self.chat_id, self.start_message, 0)
+
+
+class RunQuiz(TriggeredAction):
+    """Begins a quiz.
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.get_param(0)
+        starting_message = int(self.get_param(1))
+
+        chat_id = message.chat_id
+        quiz = Quiz(quiz_id)
+        session = QuizPlaySession.start(quiz_id, chat_id, starting_message)
+        session.write_plan(len(quiz.questions), quiz.question_time)
+        return ""
+
+
+class TryStartQuiz(TriggeredAction):
+    """Checks if a quiz may be launched
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.get_param(0)
+        outvar = self.get_param(1)
+
+        chat_id = message.chat_id
+        if QuizPlaySession.check_ongoing(chat_id):
+            self.varstore[outvar] = "quiz_ongoing"
+            return ""
+        quiz = Quiz.load(quiz_id)
+        if not quiz:
+            self.varstore[outvar] = "quiz_not_found"
+            return ""
+        self.varstore[outvar] = "ok"
+        return ""
+
+
+class FetchEvents(TriggeredAction):
+    """Fetches quiz runner commands.
+    param 0: variable to store the events in.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        outvar = self.get_param(0)
+        events = []
+        now = time.time()
+        res = BotState.DBLink.execute("""
+            SELECT quiz_session_id,chatid,time,quiz_name,ordinal
+            FROM quiz_next
+            WHERE time < ?""", (now,))
+        events = res.fetchall()
+        self.varstore[outvar] = events
+        return ""
+
+
+class ProcessEvent(TriggeredAction):
+    """Processes a single event.
+    param 0: variable storing the events.
+    param 1: variable to store the command type
+    param 2: variable to store modified event
+    param 3: variable to store session ID
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        events = self.varstore[self.get_param(0)]
+        out_type = self.get_param(1)
+        out_param = self.get_param(2)
+        out_session = self.get_param(3)
+
+        event = events.pop(0)
+        sid, chat, time_stamp, quiz, cmd = event
+        # store the session
+        self.varstore[out_session] = QuizPlaySession.load(sid)
+        # negative numbers animate the starting message
+        if cmd < 0:
+            self.varstore[out_type] = "start_animation"
+            self.varstore[out_param] = int(cmd) * -1
+            return ""
+        # numbers past the last question end the quiz
+        quiz = Quiz.load(quiz)
+        if cmd >= len(quiz.questions):
+            self.varstore[out_type] = "quiz_finish"
+            self.varstore[out_param] = 0
+            return ""
+        # any others should post the question
+        self.varstore[out_type] = "question"
+        self.varstore[out_param] = cmd
+        return ""
+
+
+# TODO: "obj_read" "edit_msg" "quiz_finish" "quiz_fetch_question" "quiz_fetch_quiz" "quiz_register_poll" and some sort of a ticking trigger
+TriggeredAction.register("quiz_begin", RunQuiz)
+TriggeredAction.register("quiz_check_clear", TryStartQuiz)
+TriggeredAction.register("quiz_get_plan", FetchEvents)
+TriggeredAction.register("quiz_do_plan", ProcessEvent)

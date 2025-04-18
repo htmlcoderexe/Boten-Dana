@@ -1174,7 +1174,8 @@ def create_quiz(userid: int, quizid: string):
     BotState.write()
 
 
-def quiz_count_questions(quizid: string):
+# len(quiz.questions)
+def XX__quiz_count_questions(quizid: string):
     res = BotState.DBLink.execute("""
     SELECT ordinal
     FROM quiz_questions
@@ -1186,7 +1187,8 @@ def quiz_count_questions(quizid: string):
     return len(rows)
 
 
-def quiz_get_info(quizid: string):
+# quiz.init
+def XX__quiz_get_info(quizid: string):
     """
 
     @param quizid: the specific quiz to retrieve info from
@@ -1204,7 +1206,8 @@ def quiz_get_info(quizid: string):
     return row[0], row[1], row[2], row[3], count
 
 
-def quiz_get_question(quizid: string, ordinal: int):
+# quiz.question.init
+def XX__quiz_get_question(quizid: string, ordinal: int):
     """
 
     @param quizid: the quiz containing the question
@@ -1222,7 +1225,8 @@ def quiz_get_question(quizid: string, ordinal: int):
     return row[0], row[1], row[2], row[3]
 
 
-def quiz_get_all_questions(quizid: string):
+# quiz.questions contains
+def XX__quiz_get_all_questions(quizid: string):
     info = quiz_get_info(quizid=quizid)
     count = info[4]
     questions = []
@@ -1232,7 +1236,8 @@ def quiz_get_all_questions(quizid: string):
     return questions
 
 
-def quiz_add_question(quizname: string, question: string, answers: list[string], correct: int):
+# quiz.add_question
+def XX__quiz_add_question(quizname: string, question: string, answers: list[string], correct: int):
     ordinal = quiz_count_questions(quizid=quizname)
     BotState.DBLink.execute("""
     INSERT INTO quiz_questions
@@ -1241,7 +1246,8 @@ def quiz_add_question(quizname: string, question: string, answers: list[string],
     BotState.write()
 
 
-def quiz_attach_media(quizname: string, question_id:int,media_id: string):
+# question.attach_media
+def XX__quiz_attach_media(quizname: string, question_id:int,media_id: string):
     BotState.DBLink.execute("""
     UPDATE quiz_questions
     SET extraid = ?
@@ -1250,7 +1256,8 @@ def quiz_attach_media(quizname: string, question_id:int,media_id: string):
     BotState.write()
 
 
-def quiz_rename(quizid: string, newname: string):
+# quiz.rename
+def XX__quiz_rename(quizid: string, newname: string):
     BotState.DBLink.execute("""
         UPDATE quizzes
         SET title = ?
@@ -1258,7 +1265,8 @@ def quiz_rename(quizid: string, newname: string):
     BotState.write()
 
 
-def quiz_set_time(quizid: string, newtime: int):
+# quiz.set_time
+def XX__quiz_set_time(quizid: string, newtime: int):
     BotState.DBLink.execute("""
         UPDATE quizzes
         SET question_time = ?
@@ -1266,7 +1274,8 @@ def quiz_set_time(quizid: string, newtime: int):
     BotState.write()
 
 
-def quiz_add_score(sessionid: string, quizid: string, userid: int, seconds: float):
+# session.award_correct_answer
+def XX__quiz_add_score(sessionid: string, quizid: string, userid: int, seconds: float):
     res = BotState.DBLink.execute("""
     SELECT quiz_session_id,quiz_name,userid,seconds,answers
     FROM quiz_scores
@@ -1293,7 +1302,8 @@ def quiz_add_score(sessionid: string, quizid: string, userid: int, seconds: floa
         print((sessionid, quizid, userid, seconds, 1,))
 
 
-def quiz_verify_answer(poll: int, user: int, answer: int):
+# session.submit_answer
+def XX__quiz_verify_answer(poll: int, user: int, answer: int):
     now = time.time()
     res = BotState.DBLink.execute("""
     SELECT quiz_session_id,pollid,quiz_name,ordinal,time,msgid
@@ -1327,7 +1337,8 @@ def quiz_verify_answer(poll: int, user: int, answer: int):
         BotState.write()
 
 
-def quiz_write_plan(session_id: string, chatid: int, quizid: string):
+# session.write_plan
+def XX__quiz_write_plan(session_id: string, chatid: int, quizid: string):
     now = time.time()
     plan = []
 
@@ -1357,14 +1368,16 @@ def quiz_write_plan(session_id: string, chatid: int, quizid: string):
     BotState.write()
 
 
-def quiz_session_start(session_id: string, chatid: int, startid: int):
+# session.start
+def XX__quiz_session_start(session_id: string, chatid: int, startid: int):
     BotState.DBLink.execute("""
     INSERT INTO quiz_sessions
     VALUES (?,?,?,0)""", (session_id, chatid, startid))
     BotState.write()
 
 
-def quiz_session_end(session_id: string):
+# session.end
+def XX__quiz_session_end(session_id: string):
     BotState.DBLink.execute("""
     UPDATE quiz_sessions
     SET ended = ?
@@ -1379,7 +1392,8 @@ def quiz_session_end(session_id: string):
     BotState.write()
 
 
-def quiz_session_check(chatid: int):
+# session.check_ongoing
+def XX__quiz_session_check(chatid: int):
     res = BotState.DBLink.execute("""
     SELECT ended
     FROM quiz_sessions
@@ -1391,7 +1405,8 @@ def quiz_session_check(chatid: int):
     return False
 
 
-async def quiz_start(chatid: int, context: ContextTypes.DEFAULT_TYPE, quizid: string):
+# will be ported to sequences
+async def XXSEQ__quiz_start(chatid: int, context: ContextTypes.DEFAULT_TYPE, quizid: string):
     ongoing = quiz_session_check(chatid=chatid)
     failmsg = """Unable to start.
 Already a quiz going!! finish it first."""
@@ -1413,8 +1428,8 @@ _{count}_ вопросов.
     quiz_session_start(session_id=session_id, chatid=chatid, startid=startid)
     quiz_write_plan(session_id=session_id, chatid=chatid, quizid=quizid)
 
-
-async def quiz_post_poll(chatid: int, session_id: string, quizid: string, ordinal: int):
+# will be ported to sequences
+async def XXSEQ__quiz_post_poll(chatid: int, session_id: string, quizid: string, ordinal: int):
     questiondata = quiz_get_question(quizid=quizid, ordinal=ordinal)
     quizdata = quiz_get_info(quizid=quizid)
     good_answer = questiondata[2]
@@ -1451,11 +1466,12 @@ async def quiz_post_poll(chatid: int, session_id: string, quizid: string, ordina
     BotState.write()
 
 
-def quiz_cleanup_session(session_id: string):
+# unused?
+def XX__quiz_cleanup_session(session_id: string):
     quiz_session_end(session_id=session_id)
 
-
-def quiz_get_all(userid: int):
+# quiz.find_by_owner
+def XX__quiz_get_all(userid: int):
     res = BotState.DBLink.execute("""
     SELECT title,name
     FROM quizzes
@@ -1472,7 +1488,8 @@ def quiz_get_all(userid: int):
     return quizzes
 
 
-def quiz_get_session(session_id: string):
+# session.load
+def XX__quiz_get_session(session_id: string):
     res = BotState.DBLink.execute("""
     SELECT chatid,start_message_id
     FROM quiz_sessions
@@ -1483,7 +1500,8 @@ def quiz_get_session(session_id: string):
     return 0, 0
 
 
-def quiz_get_results(session_id: string):
+# session.get_results
+def XX__quiz_get_results(session_id: string):
     res = BotState.DBLink.execute("""
     SELECT userid,seconds,answers,quiz_name
     FROM quiz_scores
@@ -1493,7 +1511,8 @@ def quiz_get_results(session_id: string):
     return rows
 
 
-def quiz_refresh_stats():
+# was a one-off migration
+def XUTIL__quiz_refresh_stats():
 
     BotState.DBLink.execute("""
     DELETE FROM scores
@@ -1511,8 +1530,8 @@ def quiz_refresh_stats():
         sessionid,chatid = row
         quiz_award_medals(sessionid,chatid)
 
-
-def quiz_award_medals(session, chatid):
+# session.give_awards
+def XX__quiz_award_medals(session, chatid):
     results = quiz_get_results(session)
     winnertable = []
     medalcounter = 0
@@ -1538,7 +1557,8 @@ def quiz_award_medals(session, chatid):
     return winnertable
 
 
-def quiz_format_winners(resultsdata, quizname,quizid):
+# fmt_string should take care of most of this
+def XXSEQ__quiz_format_winners(resultsdata, quizname,quizid):
     medals = ["🥇", "🥈", "🥉"]
     msgtpl = """🏁Конец!🏁
     *{qname}*
@@ -1556,7 +1576,8 @@ def quiz_format_winners(resultsdata, quizname,quizid):
     return msgtpl
 
 
-async def quiz_tick():
+# done with sequence events
+async def XXSEQ__quiz_tick():
     now = time.time()
     res = BotState.DBLink.execute("""
     SELECT quiz_session_id,chatid,time,quiz_name,ordinal

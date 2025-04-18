@@ -1,0 +1,161 @@
+{
+  "name": "quiz",
+  "display_name": "Викторина",
+  "description": "Позволяет проводить викторины.",
+  "version": [1,0,0,0],
+  "triggers": [
+    {
+      "type": "text_exact",
+      "params": ["бот это кто"],
+      "subseq": "main"
+    },
+    {
+      "type": "text_exact",
+      "params": ["бот кто это"],
+      "subseq": "main"
+    },
+    {
+      "type": "retval",
+      "params": [],
+      "subseq": "404"
+    }
+  ],
+  "subseqs": {
+    "quiz_get_plan": [
+      {
+        "action": "quiz_get_plan",
+        "params": ["quiz_plan"]
+      },
+      {
+        "action": "gosub",
+        "params": ["quiz_count_plan"]
+      }
+    ],
+    "quiz_count_plan": [
+      {
+        "action": "count",
+        "params": ["quiz_plan","quiz_plan_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": [0,"*quiz_plan_count","quiz_no_more_plan","quiz_tick"]
+      }
+    ],
+    "quiz_tick": [
+      {
+        "action": "quiz_do_plan",
+        "params": ["quiz_plan","quiz_next", "plan_param","quiz_session"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz_session","id","quiz_session_id"]
+      },
+      {
+        "action": "concat",
+        "params": ["quiz_plan_","*quiz_next","quiz_next"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*quiz_next"]
+      }
+    ],
+    "quiz_plan_start_animation": [
+      {
+        "action": "obj_read",
+        "params": ["quiz_session","start_message","quiz_msg_id"]
+      },
+      {
+        "action": "concat",
+        "params": ["start_msg_frame_","*plan_param","next_msg"]
+      },
+      {
+        "action": "edit_msg",
+        "params": ["*quiz_msg_id","*next_msg"]
+      },
+      {
+        "action": "gosub",
+        "params": ["quiz_count_plan"]
+      }
+    ],
+    "quiz_plan_quiz_finish": [
+      {
+        "action": "quiz_finish",
+        "params": ["*quiz_session_id","quiz_results"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["quiz_results","winner_line","quiz_board_list"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["finish_board"]
+      },
+      {
+        "action": "gosub",
+        "params": ["quiz_count_plan"]
+      }
+    ],
+    "quiz_plan_question": [
+      {
+        "action": "obj_read",
+        "params": ["quiz_session","quiz_id","quiz_id"]
+      },
+      {
+        "action": "quiz_fetch_question",
+        "params": ["*quiz_id","*plan_param","question"]
+      },
+      {
+        "action": "quiz_fetch_quiz",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["question","choices","choices"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["question","text","text"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["question","correct_answer","correct"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","question_time","timer"]
+      },
+      {
+        "action": "emit_poll",
+        "params": [
+          "*text",
+          "choices",
+          "*correct",
+          "*timer",
+          "quiz",
+          "",
+          "poll_id"
+        ]
+      },
+      {
+        "action": "quiz_register_poll",
+        "params": ["*quiz_session_id","*poll_id","*plan_param"]
+      },
+      {
+        "action": "gosub",
+        "params": ["quiz_count_plan"]
+      }
+    ],
+    "self": [
+      {
+        "action": "reply_text",
+        "params": ["self",-1]
+      }
+    ]
+  },
+  "stringpools": {
+    "ok": ["Пользователь {whois_usernick}\naka {usernicks}\nid {userid}\nпепяка: {userrep}{medals}\nпоследнее действие: {recent} назад\nпервое сообщение: {joindate}\n{isreturner}{quotes}\n    "],
+    "404": ["Да хуй знает, в первый раз вижу"],
+    "self": ["А я-то что? Я бот, отвали, противный."],
+    "nomessage": ["Ты про кого? Я тут всех знаю..."]
+  }
+}

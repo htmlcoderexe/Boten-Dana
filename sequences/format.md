@@ -87,9 +87,9 @@ Parameters:
 
 ### Responses
 
-### ``reply_text``
+### ``emit_text``
 
-Responds to the message using a string from an internal *String Pool*, substituting any ``{tags}`` with variables from var_store.
+Emits a string from an internal *String Pool*, substituting any ``{tags}`` with variables from var_store.
 
 Parameters:
 
@@ -97,9 +97,9 @@ Parameters:
 2. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
 3. A tag to apply to the sent message.
 
-### ``reply_pool``
+### ``emit_saved_message``
 
-Responds to the message using a saved message from a message pool.
+Emits a saved message from a message pool.
 
 Parameters:
 
