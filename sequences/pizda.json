@@ -20,8 +20,16 @@
   {
     "main": [
       {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
         "action": "check_userlist",
-        "params": ["pizda_unsubscribe","exit","subscribed"]
+        "params": ["*uid","pizda_unsubscribe","user_unsubscribed"]
+      },
+      {
+        "action": "if_eq",
+        "params": [true, "user_unsubscribed","exit","subscribed"]
       }
     ],
     "subscribed": [
@@ -36,14 +44,22 @@
     ],
     "pizda": [
       {
-        "action": "reply_pool",
-        "params": ["pizda_pool",-1,"pizda_message"]
+        "action": "fetch_from_pool",
+        "params": ["pizda_pool","pizda_message_id"]
+      },
+      {
+        "action": "emit_saved_message",
+        "params": ["pizda_message_id",-1,"pizda_message"]
       }
     ],
     "tvoya": [
       {
-        "action": "reply_pool",
-        "params": ["tvoya_pool",-1,"tvoya_message"]
+        "action": "fetch_from_pool",
+        "params": ["tvoya_pool","pizda_message_id"]
+      },
+      {
+        "action": "emit_saved_message",
+        "params": ["pizda_message_id",-1,"tvoya_message"]
       }
     ],
     "exit": []

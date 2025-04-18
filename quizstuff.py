@@ -385,7 +385,7 @@ class QuizPlaySession:
     def give_awards(self):
         """
         Processes the session's results and awards medal and other scores.
-        @return:
+        @return: Returns the results that were processed.
         """
         results = self.get_results()
         for i,result in enumerate(results):
@@ -394,6 +394,7 @@ class QuizPlaySession:
                 sh.add("quiz_medals_other")
             sh.add("quiz_medals_" + str(i))
             sh.add("quiz_participations")
+        return results
 
     def end(self):
         """
@@ -493,8 +494,81 @@ class ProcessEvent(TriggeredAction):
         return ""
 
 
-# TODO: "obj_read" "edit_msg" "quiz_finish" "quiz_fetch_question" "quiz_fetch_quiz" "quiz_register_poll" and some sort of a ticking trigger
-TriggeredAction.register("quiz_begin", RunQuiz)
+class FinishQuiz(TriggeredAction):
+    """
+    Finishes up a quiz session.
+    param 0: session ID
+    param 1: variable to store the results
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        sid = self.get_param(0)
+        out_var = self.get_param(1)
+        # load the session
+        session = QuizPlaySession.load(sid)
+        # fetch the results and award medals
+        quiz_results = session.give_awards()
+        self.varstore[out_var] = quiz_results
+        return ""
+
+
+class FetchQuestion(TriggeredAction):
+    """
+    Fetches a single question.
+    param 0: Quiz ID
+    param 1: Question number
+    param 2: Variable to store the retrieved question
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        qid = self.get_param(0)
+        idx = self.get_param(1)
+        out_var = self.get_param(2)
+        # get the question
+        question = Question.fetch(qid,idx)
+        self.varstore[out_var] = question
+        return ""
+
+
+class FetchQuiz(TriggeredAction):
+    """
+    Fetches a Quiz
+    param 0: Quiz ID
+    param 1: Variable to store the fetched Quiz in
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        qid = self.get_param(0)
+        out_var = self.get_param(1)
+        # get the quiz
+        quiz = Quiz.load(qid)
+        self.varstore[out_var] = quiz
+        return ""
+
+
+class RegisterPoll(TriggeredAction):
+    """
+    Associates a specific Poll with a specific Question in a Session.
+    param 0: session ID
+    param 1: poll ID
+    param 2: question number
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        sid = self.get_param(0)
+        poll_id = self.get_param(1)
+        idx = self.get_param(2)
+        session = QuizPlaySession.load(sid)
+        BotState.DBLink.execute("""
+            INSERT INTO quiz_replytracker
+            VALUES (?,?,?,?,?,?)""", (sid, poll_id, session.quiz_id, idx, time.time(), self.varstore["__last_msg"]))
+        BotState.write()
+        return ""
+
+
+# TODO: "obj_read" "edit_msg" and some sort of a ticking trigger
+# TODO: editing actions and commands
 TriggeredAction.register("quiz_check_clear", TryStartQuiz)
+TriggeredAction.register("quiz_begin", RunQuiz)
+TriggeredAction.register("quiz_finish", FinishQuiz)
+TriggeredAction.register("quiz_fetch_question", FetchQuestion)
+TriggeredAction.register("quiz_fetch_quiz", FetchQuiz)
 TriggeredAction.register("quiz_get_plan", FetchEvents)
 TriggeredAction.register("quiz_do_plan", ProcessEvent)
+TriggeredAction.register("quiz_register_poll", RegisterPoll)

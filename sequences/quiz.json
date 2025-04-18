@@ -122,6 +122,10 @@
       },
       {
         "action": "obj_read",
+        "params": ["question","attachment","question_extra"]
+      },
+      {
+        "action": "obj_read",
         "params": ["quiz","question_time","timer"]
       },
       {
@@ -139,6 +143,10 @@
       {
         "action": "quiz_register_poll",
         "params": ["*quiz_session_id","*poll_id","*plan_param"]
+      },
+      {
+        "action": "emit_saved_message",
+        "params": ["*question_extra","*timer"]
       },
       {
         "action": "gosub",

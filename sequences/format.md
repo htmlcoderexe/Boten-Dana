@@ -99,11 +99,11 @@ Parameters:
 
 ### ``emit_saved_message``
 
-Emits a saved message from a message pool.
+Emits a saved message the *Message Store*.
 
 Parameters:
 
-1. *Message Pool* name.
+1. Message name.
 2. The time to keep the message before deleting, in seconds. -1 keeps the message indefinitely.
 3. A tag to apply to the sent message.
 
@@ -238,6 +238,15 @@ Removes a message.
 Parameters:
 
 1. The delay before removing the message.
+
+### ``fetch_from_pool``
+
+Retrieves a random saved message ID from a pool.
+
+Parameters:
+
+1. *Message Pool* name.
+2. Variable to store the returned ID.
 
 ### ``save_msg``
 
