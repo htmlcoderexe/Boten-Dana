@@ -3,6 +3,7 @@ This module contains code dealing with actions the bot is able to perform based 
 """
 import random
 import json
+import time
 
 import telegram.constants
 from telegram import Message as TGMessage
@@ -119,6 +120,7 @@ class TriggerRetVal(Trigger):
     def match(self, data:str) -> str:
         return data if self.subseq == data else ""
 
+
 # id    | sequence  |   subseq  | type  | data          | data2
 # 1     | pizda     |   main    | rpool | pizda_pool    |
 # 11    | pizda     |   respond | rpool | pizda_pool    | -1
@@ -154,7 +156,7 @@ class TriggeredAction:
         """Sequence branch action belongs to"""
         self.target_reply = target_reply
         """Apply the TriggeredAction to the message replied to if true."""
-        self.param =""
+        self.trigger:Trigger = None
         """Dynamic parameter passed from trigger"""
         self.varstore = None
 
@@ -209,11 +211,14 @@ class TriggeredAction:
                 return "no_target"
             message = message.reply_to_message
 
+
 class TriggeredSequence:
     """Concerns sequences of actions that may be triggered."""
 
     running_sequences = {}
     """Contains currently loaded running sequences."""
+    timed_subseqs = []
+    """Contains subsequences registered to run on a timer"""
 
     def __init__(self, name:str, display_name:str, desc:str, version:tuple[int], triggers:list[Trigger], subseqs:dict[str,list[TriggeredAction]],
                  strings=None):
@@ -264,6 +269,10 @@ class TriggeredSequence:
             subseqs[subseq] = actionlist
         # load stringpools if any
         strings = None if 'stringpools' not in data else data['stringpools']
+        # register timers if any
+        if 'timers' in data:
+            for timer in data['timers']:
+                TriggeredSequence.register_timer(name, timer[0], timer[1])
         return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings)
 
     async def run(self, message: TGMessage):
@@ -275,7 +284,6 @@ class TriggeredSequence:
         cat_txt = ["text_exact","text_prefix","text_suffix","text_contains"]
         cat_filter = []
 
-        var_store = {}
         t_match = ""
         if message.text:
             cat_filter = cat_txt
@@ -286,18 +294,27 @@ class TriggeredSequence:
                 if t_match:
                     subseq = trig.subseq
                     print(f"matched{message.text}")
-        if not subseq:
-            return
+                    await self.run_subseq(subseq, trig, message)
+
+    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage):
+        """
+        Runs a specific subsequence.
+        @param subseq:
+        @param trigger:
+        @param message:
+        @return:
+        """
         if subseq not in self.subseqs:
             print('Argh, no subseq "' + subseq + '" found in sequence "'+self.name+'"')
             return
+        var_store = {}
         actions = self.subseqs[subseq][:]
         while actions:
             for action in actions[:]:
                 action.varstore = var_store
-                action.param = t_match
+                action.trigger = trigger
                 print(f"{action.sequence}/{action.subseq}:{action.action}")
-                result = "404" # await action.run_action(message)
+                result = await action.run_action(message)
                 if result and result in self.subseqs:
                     actions += self.subseqs[result]
                 actions.remove(action)
@@ -311,6 +328,49 @@ class TriggeredSequence:
         if pool_name not in self.strings:
             return "text.missing.error"
         return random.choice(self.strings[pool_name])
+
+    @staticmethod
+    def register_timer(sequence:str, subseq:str, period:float, run_once:bool = False):
+        """Registers a subsequence to run timed.
+        @param sequence:
+        @param subseq:
+        @param period:
+        @param run_once:
+        """
+        # set next trigger time in one <period> from now
+        time_next = time.time() + period
+        # check if registered already
+        for entry in TriggeredSequence.timed_subseqs[:]:
+            seq, sub, per, next_time, run_once = entry
+            if seq == sequence and subseq == sub:
+                # store next trigger time and remove the entry
+                time_next = next_time
+                TriggeredSequence.timed_subseqs.remove(entry)
+        # add new entry
+        TriggeredSequence.timed_subseqs.append((sequence,subseq,period,time_next, run_once))
+
+    @staticmethod
+    async def run_timers():
+        """
+        Runs registered timed sequences.
+        @return:
+        """
+        now = time.time()
+        # go through list
+        for entry in TriggeredSequence.timed_subseqs[:]:
+            seq, sub, per, next_time, run_once = entry
+            # if anything should be run
+            if next_time < now:
+                # check if valid reference
+                if seq in TriggeredSequence.running_sequences:
+                    sequence = TriggeredSequence.running_sequences[seq]
+                    await sequence.run_subseq(sub, None, None)
+                    # if it is not a one-off, append a copy at the end with updated timer
+                    if not run_once:
+                        TriggeredSequence.timed_subseqs.append((seq,sub,per,next_time + per, False))
+                else:
+                    print("timed <" + seq + "/" + sub + ">: missing sequence")
+                TriggeredSequence.timed_subseqs.remove(entry)
 
     @staticmethod
     def run_triggers(message: TGMessage, category: str = "", data: str = ""):

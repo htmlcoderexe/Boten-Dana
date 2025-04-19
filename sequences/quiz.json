@@ -20,6 +20,9 @@
       "subseq": "404"
     }
   ],
+  "timers": [
+    ["quiz_get_plan",5]
+  ],
   "subseqs": {
     "quiz_get_plan": [
       {
