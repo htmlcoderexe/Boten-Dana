@@ -1,7 +1,13 @@
 import time
 import random
 from telegram import Message,InputMediaPhoto
+
+import botutils
+import messagetagger
 from botstate import BotState
+from actions import TriggeredAction
+
+TGMessage = Message
 
 
 class StoredMessagePart:
@@ -240,7 +246,6 @@ class MessagePool:
         BotState.write()
         return True
 
-
     @staticmethod
     def get_messages(pool_id: str, chat_id: int) -> list:
         """
@@ -256,3 +261,80 @@ class MessagePool:
             """), (pool_id, chat_id))
         rows = res.fetchall()
         return rows
+
+
+class SaveMessage(TriggeredAction):
+    """Saves a message to the MessageStore
+    param 0: message name
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        if not message.reply_to_message:
+            return "nomessage"
+        msgname = ""
+        match self.data[0]:
+            case "var_store":
+                msgname = self.varstore[self.data[1]]
+            case "param":
+                msgname = self.param
+            case "prefixed":
+                msgname = self.data[1] + self.param
+        store = MessageStore(message.chat.id, message.from_user.id)
+        saved = await store.store_message(message.reply_to_message, msgname)
+        if saved:
+            self.varstore[self.data[2]] = msgname
+            return ""
+        return "savefail"
+
+
+class ReplaySavedMessage(TriggeredAction):
+    """Replays a saved message.
+    param 0: message name
+    param 1: message TTL, -1 to keep
+    param 2: tag this message
+    param 3: ID of the message to reply to. If not set (0), then this message won't be a reply.
+    If -1, the message passed through the trigger will be used.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "no_target"
+            message = message.reply_to_message
+        msgid = self.get_param(3)
+        if msgid == -1:
+            msgid = message.id
+        msg_name = self.get_param(0)
+        msg_ttl = float(self.get_param(1))
+        msg_tag = self.get_param(2)
+        store = MessageStore(chatid=message.chat_id, user=message.from_user.id, glob=True)
+        # put the message out
+        results = await store.replay_message(name=msg_name, reply_to=message.id)
+        if results:
+            for msgid in results:
+                self.varstore["__last_msg"] = msgid
+                # apply tags if specified
+                if msg_tag:
+                    messagetagger.MessageTagger.tag_message(message.chat_id, msgid, msg_tag)
+                # schedule kill if specified
+                if msg_ttl != -1:
+                    botutils.schedule_kill(message.chat.id, msgid, msg_ttl)
+        return ""
+
+
+class FetchFromPool(TriggeredAction):
+    """Fetches a message from a simple pool
+    param 0: pool name
+    param 1: Variable to store the fetched ID
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        # get a message out of the pool
+        pool_id = self.get_param(0)
+        out_var = self.get_param(1)
+        pool = MessagePool(pool_id=pool_id)
+        self.varstore[out_var] = pool.fetch()
+        return ""
+
+
+TriggeredAction.register("save_msg", SaveMessage)
+TriggeredAction.register("emit_saved_message", ReplaySavedMessage)
+TriggeredAction.register("fetch_pool", FetchFromPool)

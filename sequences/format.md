@@ -108,16 +108,6 @@ Parameters:
 3. A tag to apply to the sent message.
 
 
-### ``fmt_list``
-
-Formats a list using a template.
-
-Parameters:
-
-1. Variable containing the list.
-2. *String Pool* name for the single entry template
-3. Variable to receive the formatted output.
-
 ### Information actions
 
 ### ``check_message_type``
@@ -278,6 +268,16 @@ Parameters:
 
 1. Variable name to count the items from.
 2. Variable name to store the count into.
+
+### ``fmt_list``
+
+Formats a list using a template.
+
+Parameters:
+
+1. Variable containing the list.
+2. *String Pool* name for the single entry template
+3. Variable to receive the formatted output.
 
 ### ``load_env``
 

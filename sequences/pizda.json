@@ -38,7 +38,7 @@
         "params": ["pizda_chance","pizda_chance"]
       },
       {
-        "action": "roll_random",
+        "action": "roll_chance",
         "params": ["pizda_chance","pizda","exit"]
       }
     ],
@@ -49,7 +49,7 @@
       },
       {
         "action": "emit_saved_message",
-        "params": ["pizda_message_id",-1,"pizda_message"]
+        "params": ["pizda_message_id",-1,"pizda_message",-1]
       }
     ],
     "tvoya": [
@@ -59,7 +59,7 @@
       },
       {
         "action": "emit_saved_message",
-        "params": ["pizda_message_id",-1,"tvoya_message"]
+        "params": ["pizda_message_id",-1,"tvoya_message", -1]
       }
     ],
     "exit": []

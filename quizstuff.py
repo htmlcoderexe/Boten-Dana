@@ -562,7 +562,7 @@ class RegisterPoll(TriggeredAction):
         return ""
 
 
-# TODO: "obj_read" "edit_msg" and some sort of a ticking trigger
+# TODO: "edit_msg" and some sort of a ticking trigger
 # TODO: editing actions and commands
 TriggeredAction.register("quiz_check_clear", TryStartQuiz)
 TriggeredAction.register("quiz_begin", RunQuiz)
