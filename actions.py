@@ -692,4 +692,25 @@ class RemoveMessage(TriggeredAction):
         return ""
 
 
+class EditMessage(TriggeredAction):
+    """Edits a message using text from String Pools
+    param 0: StringPool name
+    param 1: MessageID, if not set (0), uses message from trigger.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        strpool = self.get_param(0)
+        msgid = self.get_param(1)
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "kill_no_target"
+            message = message.reply_to_message
+        if not msgid:
+            msgid = message.id
+        text = self.get_string(strpool)
+        await botstate.BotState.bot.edit_message_text(chat_id=message.chat_id, message_id=msgid, text=text,
+                                                      parse_mode="MarkdownV2")
+        return ""
+
+
+TriggeredAction.register("edit_msg",EditMessage)
 TriggeredAction.register("kill_msg", RemoveMessage)
