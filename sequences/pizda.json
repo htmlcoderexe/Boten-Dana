@@ -24,7 +24,7 @@
         "params": ["uid"]
       },
       {
-        "action": "check_userlist",
+        "action": "userlist_check",
         "params": ["*uid","pizda_unsubscribe","user_unsubscribed"]
       },
       {
@@ -44,7 +44,7 @@
     ],
     "pizda": [
       {
-        "action": "fetch_from_pool",
+        "action": "fetch_pool",
         "params": ["pizda_pool","pizda_message_id"]
       },
       {
@@ -54,7 +54,7 @@
     ],
     "tvoya": [
       {
-        "action": "fetch_from_pool",
+        "action": "fetch_pool",
         "params": ["tvoya_pool","pizda_message_id"]
       },
       {

@@ -57,7 +57,7 @@
         "params": ["*upvoter","upvotes_given",1,"dev_null"]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["upvote_success",15]
       }
     ]
@@ -73,7 +73,7 @@
         " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
         "У [{usertag}](tg://user?id={upvotee}) теперь {upvotee_new_rep} пепяки, и это круто \\(нет\\)",
         "Эй, [{usertag}](tg://user?id={upvotee}), у тебя уже {userrep} плюсов, можешь начинать гордиться",
-        "[{usertag}](tg://user?id={upvotee}) получает хуй в ро\\.\\.\\. плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
+        "[{usertag}](tg://user?id={upvotee}) получает хуй в ро\\.\\.\\. плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков"
     ]
   }
 }

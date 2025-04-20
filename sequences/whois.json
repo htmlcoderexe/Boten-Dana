@@ -28,7 +28,7 @@
         "target": "reply"
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["ok",60]
       },
       {
@@ -38,7 +38,7 @@
     ],
     "404": [
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["404",10]
       },
       {
@@ -48,7 +48,7 @@
     ],
     "self": [
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["self",-1]
       }
     ]

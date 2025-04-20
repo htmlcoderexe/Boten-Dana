@@ -8,13 +8,9 @@ import time
 import telegram.constants
 from telegram import Message as TGMessage
 
-import QDB
 import UserInfo
 import botstate
 import botutils
-import messagestore
-import messagetagger
-import scores
 
 
 # id    | name      |
@@ -164,7 +160,10 @@ class TriggeredAction:
         """Factory method to realise correct subtype"""
         data = (self.sequence,self.subseq,self.action,self.data,self.target_reply)
         if self.action in TriggeredAction.registry:
+            print(f"Spawned <{self.action}>")
+            print(f"Params: START>{self.data}<END")
             return TriggeredAction.registry[self.action](*data)
+        print(f"Failed to spawn <{self.action}>")
 
     def get_param(self, index: int) -> str:
         """
@@ -172,11 +171,19 @@ class TriggeredAction:
         @param index: the index at which to retrieve.
         @return: a string containing the value if found, empty string otherwise.
         """
-        value = "" if index not in self.data else self.data[index]
-        if value.startswith("*"):
+        if index >= len(self.data):
+            print(f"Param <{index}> out of bounds of <{len(self.data)}>")
+            value = ""
+        else:
+            value = self.data[index]
+            print(f"value <{value}> obtained from <{index}>")
+        if str(value).startswith("*"):
             var_name = value.removeprefix("*")
+            print(f"var_store pointer read at <{var_name}>")
             if var_name not in self.varstore:
+                print("bad pointer!")
                 return ""
+            print("good pointer.")
             return self.varstore[var_name]
         return value
 
@@ -293,7 +300,7 @@ class TriggeredSequence:
                 t_match = trig.match(message.text)
                 if t_match:
                     subseq = trig.subseq
-                    print(f"matched{message.text}")
+                    print(f"matched {message.text}")
                     await self.run_subseq(subseq, trig, message)
 
     async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage):
@@ -309,11 +316,12 @@ class TriggeredSequence:
             return
         var_store = {}
         actions = self.subseqs[subseq][:]
+        print(repr(actions))
         while actions:
             for action in actions[:]:
                 action.varstore = var_store
                 action.trigger = trigger
-                print(f"{action.sequence}/{action.subseq}:{action.action}")
+                print(f"{action.sequence}/{action.subseq}:{action.action} -> {action.data}")
                 result = await action.run_action(message)
                 if result and result in self.subseqs:
                     actions += self.subseqs[result]
@@ -373,7 +381,17 @@ class TriggeredSequence:
                 TriggeredSequence.timed_subseqs.remove(entry)
 
     @staticmethod
-    def run_triggers(message: TGMessage, category: str = "", data: str = ""):
+    async def run_triggers(message: TGMessage):
+        """
+
+        @param message:
+        @return:
+        """
+        for name, seq in TriggeredSequence.running_sequences.items():
+            await seq.run(message)
+
+    @staticmethod
+    def XX__run_triggers(message: TGMessage, category: str = "", data: str = ""):
         """
 
         @param data:
@@ -730,7 +748,7 @@ class Whois(TriggeredAction):
 
 
 TriggeredAction.register("check_message_type", CheckMessageType)
-TriggeredAction.register("qet_uid",GetUID)
+TriggeredAction.register("get_uid",GetUID)
 TriggeredAction.register("get_msgid", GetMessageID)
 TriggeredAction.register("whois",Whois)
 # ###############################################

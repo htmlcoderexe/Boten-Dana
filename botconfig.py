@@ -16,7 +16,7 @@ for seq in seqfiles:
     sdata = seq.read_text("UTF-8")
     sequence = actions.TriggeredSequence.load_from_json(sdata)
     actions.TriggeredSequence.running_sequences[sequence.name] = sequence
-exit()
+print(actions.TriggeredAction.registry)
 # default time to clean own/replied messages
 killdelay = 40.0
 # load the token from file

@@ -16,10 +16,10 @@ class BotState:
     talk = True
 
     def __init__(self, dblink, bot, pyroclient):
-        self.DB = dblink
-        self.DBLink = dblink.cursor()
-        self.bot = bot
-        self.pyroclient = pyroclient
+        BotState.DB = dblink
+        BotState.DBLink = dblink.cursor()
+        BotState.bot = bot
+        BotState.pyroclient = pyroclient
 
     @staticmethod
     def write():

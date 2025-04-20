@@ -41,7 +41,7 @@
         "params": ["*cleaner_uid","cleaner", "1", "dev_null"]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["removal_phrases", 15]
       }
     ],
@@ -57,7 +57,7 @@
         "params": ["*cleaner_uid","cleaner_human", "1", "dev_null"]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["not_a_bot", -1]
       }
     ],
@@ -67,7 +67,7 @@
         "params": [30]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["cleaner_help", 60]
       }
     ]

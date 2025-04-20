@@ -72,7 +72,7 @@ class ChatUserInfo:
 
         # get how many times user joined this particular chat
         res = BotState.DBLink.execute("""
-            SELECT event_data 
+            SELECT time
             FROM user_events
             WHERE userid=?
             AND chatid=?
@@ -170,23 +170,28 @@ class User:
         self.chatinfos[chat_id] = ChatUserInfo(uid=user_id, chatid=chat_id)
         # get nicknames
         res = BotState.DBLink.execute("""
-            SELECT DISTINCT event_data
+            SELECT event_data, time, MAX(time) maxtime
             FROM user_events
             WHERE userid = ?
             AND event_type = "renamed"
+            GROUP BY event_data
             ORDER BY time DESC
         """, (self.id,))
         rows = res.fetchall()
+        #if rows:
+        #    rows = sorted(rows, key=lambda row: row[1])
         self.nicknames = [] if not rows else [row[0] for row in rows]
         """List of known nicknames for this user"""
         self.current_nick = "MissingNo.&%!▮" if not self.nicknames else self.nicknames[0]
         """Most recent known nickname"""
+        print("'"+self.current_nick+"'")
+        print(repr(self.nicknames))
 
     def chatid_or_default(self, chat_id: int = -1) -> int:
         """Obtains the correct chatID for indexing into chat-specific functions
         to be used by functions which allow omitting the chatID for brevity."""
         # check if specific chat_id is set
-        if self.chatinfos[chat_id]:
+        if chat_id in self.chatinfos:
             return chat_id
         # else try default
         if chat_id == -1 and self.chatinfos:
@@ -220,7 +225,7 @@ class User:
         @param chat_id:
         @return:
         """
-        sh = scores.ScoreHelper(self.chatid_or_default())
+        sh = scores.ScoreHelper(self.id, self.chatid_or_default())
         sh.add(scorename, amount)
 
     def log_event(self, event_type: str, data: str, chat_id: int = -1):
@@ -235,7 +240,7 @@ class User:
     (?,?,?,?,?)
     """,(self.chatid_or_default(chat_id), self.id,time.time(), event_type, data))
         BotState.write()
-        print(f"Event of type <{event_type}> logged for user {self.id}@{self.chatid_or_default(chat_id)}.")
+        print(f"Event of type <{event_type}> logged for user {self.id}@{self.chatid_or_default(chat_id)} with data <{data}>.")
 
     def refresh_nick(self, nick: str) -> bool:
         """
@@ -243,6 +248,7 @@ class User:
         @param nick: new nickname
         @return: Whether a refresh happened or not.
         """
+        print("'"+nick+"'")
         # if user has no known names yet, update
         if not self.nicknames:
             self.log_event(event_type="renamed", data=nick)
@@ -251,6 +257,7 @@ class User:
             return True
         # if doesn't match current most recent name
         if self.current_nick != nick:
+            print(f"<{self.current_nick}> is not equal to <{nick}>.")
             self.log_event(event_type="renamed", data=nick)
             self.nicknames = [nick] + self.nicknames
             self.current_nick = nick
@@ -289,5 +296,5 @@ class User:
         uid = message.from_user.id
         if uid == telegram.constants.ChatID.ANONYMOUS_ADMIN:
             uid = message.sender_chat.id
-
+        print(f"The extracted uid was {uid}.")
         return uid

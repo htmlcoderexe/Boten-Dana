@@ -1,3 +1,5 @@
+import time
+
 from botstate import BotState
 from actions import TriggeredAction
 from telegram import Message as TGMessage
@@ -6,38 +8,39 @@ import UserInfo
 
 
 class Quote:
-    qid = 0
-    chatid = 0
-    text_raw = ""
-    message_id = 0
-    user_id = 0
-    reply_to_msg = 0
-    reply_to_user = 0
-    reply_to_text = ""
-    saved_by = 0
-    rating = 0
-
     db_query = """
-        SELECT  qid,quote,author,messageid,
-                reply_text,reply_user,reply_id,
-                chatid,userid,
+        SELECT  qid, quote, author, messageid, save_date,
+                reply_text, reply_user, reply_id,
+                chatid, userid,
                 rating
         FROM    qdb"""
 
-    def __init__(self,qid: int,text: str, userid: int, msgid: int,
+    def __init__(self,qid: int,text: str, userid: int, msgid: int, save_date: float,
                  reply_text:str = "", reply_user: int = 0, reply_id: int = 0,
                  chatid: int = 0, saver: int = 0,
                  rating: int = 0):
-        self.id = qid
-        self.text_raw = text
-        self.user_id = userid
-        self.message_id = msgid
-        self.reply_to_text = reply_text
-        self.reply_to_msg = reply_id
-        self.reply_to_user = reply_user
-        self.chatid = chatid
-        self.saved_by = saver
-        self.rating = rating
+        self.id:int = qid
+        """Unique ID of this quote."""
+        self.text_raw:str = text
+        """Text of the quote."""
+        self.user_id:int = userid
+        """UserID of the quote's author."""
+        self.message_id:int = msgid
+        """ID of the original message."""
+        self.save_date:float = save_date
+        """Datetime of the saving."""
+        self.reply_to_text:str = reply_text
+        """Text of a message this message is responding to, may be empty even if there is a parent message."""
+        self.reply_to_msg:int = reply_id
+        """ID of the message the quote is replying to. If 0, then the quote is standalone."""
+        self.reply_to_user:int = reply_user
+        """UserID of the replied message's author."""
+        self.chatid:int = chatid
+        """Chat ID where the quote was saved."""
+        self.saved_by:int = saver
+        """UserID of the user who saved the quote."""
+        self.rating:int = rating
+        """Amount of upvotes given to the quote."""
 
     def upvote(self, amount:int = 1):
         """
@@ -140,14 +143,15 @@ class Database:
         q = self.exists(msgid=msg_id)
         if q:
             return q
+        now = time.time()
         query = """
         INSERT INTO     qdb
-        VALUES          (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES          (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING RowId
         """
-        res = BotState.DBLink.execute(query,(self.chatid, self.writing_user,
-                                      user_id,msg_id,text,
+        res = BotState.DBLink.execute(query,(text,user_id,msg_id,now,
                                       reply_id, reply_text, reply_user,
+                                      self.chatid, self.writing_user,
                                       0))
         row = res.fetchone()
         BotState.write()

@@ -38,7 +38,7 @@
         "params": [10]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["save_success",10]
       }
     ],
@@ -48,7 +48,7 @@
         "params": [10]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["nothing_to_save",10]
       }
     ],
@@ -58,7 +58,7 @@
         "params": ["*saved_quote_id", 1, "dev_null"]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["quote exists",10]
       }
     ],
@@ -70,7 +70,7 @@
       },
       {
         "action": "qdb_get_user",
-        "params": ["*uid_to_fetch",-1, "global", 0, "oldest","user_quotes"]
+        "params": ["*uid_to_fetch","user_quotes",-1, "global", 0, "oldest"]
       },
       {
         "action": "count",
@@ -87,7 +87,7 @@
     ],
     "no_quotes_yet": [
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["no_quotes", 10]
       }
     ],
@@ -97,13 +97,13 @@
         "params": ["user_quotes","user_quotes_format","quote_list"]
       },
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["user_quotes_template",60]
       }
     ],
     "qdb_save_no_target": [
       {
-        "action": "reply_text",
+        "action": "emit_text",
         "params": ["no_target",10]
       }
     ]
@@ -125,10 +125,10 @@
       "На этого человека компромата ещё нет."
     ],
     "user_quotes_template": [
-      "За пользователем **{usernick}** были записаны следующие цитаты:{quote_list}"
+      "За пользователем **{uid_to_fetch}** были записаны следующие цитаты:{quote_list}"
     ],
     "user_quotes_format": [
-      "\n**№{0.id}**\n<=============\n{0.text_raw}\n=============>"
+      "\n*№{0.id}*\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
     ]
   }
 }

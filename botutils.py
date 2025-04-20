@@ -1,4 +1,6 @@
 ﻿import io
+import time
+
 import botstate
 from telegram.helpers import escape_markdown
 
@@ -36,13 +38,20 @@ def md_safe_int(number: int) -> str:
 
 
 def schedule_kill(chatid: int, msgid: int, expiration: float):
+    """
+    Schedules a message to be deleted.
+    @param chatid: Chat ID where to delete the message.
+    @param msgid: Message ID to delete.
+    @param expiration: Time in seconds from current moment when the message is to be deleted.
+    @return:
+    """
     if expiration == -1:
         return
     botstate.BotState.DBLink.execute("""
     INSERT INTO msgkills
     VALUES (?,?,?)
     """,
-                            (chatid, msgid, expiration)
+                            (chatid, msgid, time.time() + expiration)
                             )
     botstate.BotState.write()
     print("scheduled to kill message")

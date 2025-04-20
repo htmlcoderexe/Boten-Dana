@@ -7,6 +7,7 @@ from datetime import datetime
 # from turtle import update
 from typing import Optional, Tuple, Any
 
+import telegram.helpers
 from pyrogram import Client
 from telegram import Poll, Update, ChatMember, ChatMemberUpdated, Message
 from telegram.ext import CallbackContext
@@ -15,6 +16,11 @@ from telegram.ext import filters, PollAnswerHandler, PollHandler, MessageHandler
 
 import UserInfo
 import actions
+import userlists
+import quizstuff
+import messagestore
+import messagetagger
+import QDB
 import antimat
 import botconfig
 import scores
@@ -23,7 +29,7 @@ import changelogs
 import datastuff
 import strings
 from botutils import MD, S, md_safe_int, print_to_string
-import botstartup
+# import botstartup
 import console_commands
 
 
@@ -624,6 +630,7 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ########################datastuff.upcountmessage(userid=userid, chatid=chatid)
     ################datastuff.score_add(userid=userid, chatid=chatid, scorename="msgcount", delta=1)
     usr = UserInfo.User(userid,chatid)
+    print(repr(usr))
     usr.msg_uptick()
     usr.refresh_nick(update.message.from_user.full_name)
     # upcount voice seconds if there's a voice message
@@ -643,7 +650,7 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         usr.score_add("mat",len(antimat.get_mats("тест " + rawtext + " тест")))
 
 
-    actions.TriggeredSequence.run_triggers(update.message)
+    await actions.TriggeredSequence.run_triggers(update.message)
 
     # get user's name and check if it changed since last
 ###    newnick = update.message.from_user.full_name
@@ -670,7 +677,7 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         output = ("Это кто еще, блядь", -1, -1)
     elif update.message.left_chat_member:
         output = ("Куда, блядь", -1, -1)
-    else:
+    #else:
 
     # if the message is a reply to something, handle with reply
     #    if replyis is not None:
@@ -758,11 +765,11 @@ async def everyminute(context: CallbackContext):
     if kills is not None:
         for (chat, msg) in kills:
             datastuff.kill_message(chatid=chat, msgid=msg)
-    await datastuff.quiz_tick()
-    for chat in BotState.current_chats:
-        if str(chat)[0] != "-":
-            continue
-        await random_chatter(chatid=chat)
+    #await actions.TriggeredSequence.run_timers()
+    #for chat in BotState.current_chats:
+    #    if str(chat)[0] != "-":
+    #        continue
+    #    await random_chatter(chatid=chat)
 
 
 async def actually_every_minute(context: CallbackContext):
@@ -805,6 +812,19 @@ async def chat_load():
     print("DONE LOADING----------")
 
 
+def one_off_updateMDV2():
+    quotes_r = BotState.DBLink.execute("SELECT qid, quote FROM qdb")
+    quotes = quotes_r.fetchall()
+    for line in quotes:
+        qid,quote = line
+        if not quote:
+            quote =" "
+        escaped_quote = telegram.helpers.escape_markdown(quote,2)
+        BotState.DBLink.execute("UPDATE qdb SET quote = ? WHERE qid = ?",(escaped_quote,qid))
+    BotState.write()
+
+
+
 # #launch the thing
 if __name__ == '__main__':
     # init links to Telegram
@@ -812,6 +832,7 @@ if __name__ == '__main__':
     BotState.bot = application.bot
     BotState.DB = botconfig.DB
     BotState.DBLink = botconfig.DB.cursor()
+    # one_off_updateMDV2()
     BotState.pyroclient = Client("BotenDana")
     # create handlers
     start_handler = CommandHandler('start', start)
