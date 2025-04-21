@@ -168,6 +168,8 @@ class User:
         self.chatinfos = {}
         """Contains user's information indexed by chatID"""
         self.chatinfos[chat_id] = ChatUserInfo(uid=user_id, chatid=chat_id)
+        self.current_chat = self.chatinfos[chat_id]
+        """Contains 'current' chat info"""
         # get nicknames
         res = BotState.DBLink.execute("""
             SELECT event_data, time, MAX(time) maxtime

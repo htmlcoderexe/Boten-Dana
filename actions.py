@@ -56,6 +56,8 @@ class Trigger:
         """Trigger type"""
         self.tag = tag
         """Tag to constrain the trigger"""
+        self.orig_data = ""
+        """Used to smuggle in the original string, as a heck."""
 
     def construct(self):
         match self.t_type:
@@ -187,6 +189,32 @@ class TriggeredAction:
             return self.varstore[var_name]
         return value
 
+    def get_int(self, index: int) -> int:
+        """
+        Fetches a single param at a specific index, and attempts to get an int out of it.
+        @param index: param index.
+        @return: int if possible, 0 otherwise.
+        """
+        if index >= len(self.data):
+            print(f"Param <{index}> out of bounds of <{len(self.data)}>")
+            value = ""
+        else:
+            value = self.data[index]
+            print(f"value <{value}> obtained from <{index}>")
+        if str(value).startswith("*"):
+            var_name = value.removeprefix("*")
+            print(f"var_store pointer read at <{var_name}>")
+            if var_name not in self.varstore:
+                print("bad pointer!")
+                return ""
+            print("good pointer.")
+            value = self.varstore[var_name]
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            value = 0
+        return value
+
     def get_params_rest(self, start_from:int) -> list[str]:
         """
         Fetches all remaining params starting from an index
@@ -294,13 +322,20 @@ class TriggeredSequence:
         t_match = ""
         if message.text:
             cat_filter = cat_txt
+            orig_text = message.text
+        elif message.caption:
+            orig_text = message.caption
+        else:
+            orig_text = ""
+        prepped_text = botutils.S(orig_text).lower()
         subseq = ""
         for trig in self.triggers:
             if trig.t_type in cat_filter:
-                t_match = trig.match(message.text)
+                t_match = trig.match(prepped_text)
                 if t_match:
+                    trig.orig_data = orig_text
                     subseq = trig.subseq
-                    print(f"matched {message.text}")
+                    print(f"matched {orig_text}")
                     await self.run_subseq(subseq, trig, message)
 
     async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage):
@@ -687,6 +722,19 @@ class GetUID(TriggeredAction):
         self.varstore[outvar] = UserInfo.User.extract_uid(message)
 
 
+class GetUserInfo(TriggeredAction):
+    """Gets the complete UserInfo object and stores it.
+    param 0: userID
+    param 1: variable to store the user object.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        uid = self.get_int(0)
+        out_var = self.get_param(1)
+        usr = UserInfo.User(uid, message.chat_id)
+        self.varstore[out_var] = usr
+        return ""
+
+
 class CheckMessageType(TriggeredAction):
     """Checks if a message comes from a regular user, a bot,
     a channel or is a service message
@@ -697,7 +745,8 @@ class CheckMessageType(TriggeredAction):
         var_name = self.data[0]
         if self.target_reply:
             if not message.reply_to_message:
-                return "error_no_target"
+                self.varstore[var_name] = "message_is_missing"
+                return "no_target"
             message = message.reply_to_message
         if message.from_user.is_bot:
             if message.from_user.id == telegram.constants.ChatID.ANONYMOUS_ADMIN:
@@ -749,6 +798,7 @@ class Whois(TriggeredAction):
 
 TriggeredAction.register("check_message_type", CheckMessageType)
 TriggeredAction.register("get_uid",GetUID)
+TriggeredAction.register("get_user",GetUserInfo)
 TriggeredAction.register("get_msgid", GetMessageID)
 TriggeredAction.register("whois",Whois)
 # ###############################################
