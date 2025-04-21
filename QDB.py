@@ -180,7 +180,7 @@ class ActionQDBSave(TriggeredAction):
             self.varstore[resultvar] = "no_text"
             return ""
         text = message.text_markdown_v2 if message.text else message.caption_markdown_v2
-
+        author = UserInfo.User.extract_uid(message)
         msgid = message.id
         chatid = message.chat.id
         replyid = 0
@@ -201,7 +201,7 @@ class ActionQDBSave(TriggeredAction):
                 replytext = fullmsg.reply_to_message.text if fullmsg.reply_to_message.text else replytext
                 replytext = fullmsg.reply_to_message.caption if fullmsg.reply_to_message.caption else replytext
             # save the quote
-            q = qdb.save_quote(text=text, msg_id=msgid, user_id=uid, reply_text=replytext, reply_user=replyuser, reply_id=replyid)
+            q = qdb.save_quote(text=text, msg_id=msgid, user_id=author, reply_text=replytext, reply_user=replyuser, reply_id=replyid)
             self.varstore[resultvar] = "ok"
         self.varstore[idvar] = q.id
         return ""
