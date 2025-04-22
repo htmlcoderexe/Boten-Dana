@@ -178,7 +178,7 @@ class MessageStore:
                     captions.append(part.data)
                 # plain text message, send as is
                 case "text":
-                    msgsent = await BotState.bot.send_message(chatid=dest_chat,text=part.data,reply_to=reply_to_msg)
+                    msgsent = await BotState.bot.send_message(chat_id=dest_chat,text=part.data,reply_to_message_id=reply_to_msg)
                 # if any of those, fire off the message with the previously set caption (blank if not set)
                 case "voice":
                     msgsent = (await BotState.bot.send_voice(chat_id=dest_chat, voice=part.data, caption=caption,reply_to_message_id=reply_to_msg))
@@ -198,7 +198,8 @@ class MessageStore:
             # if we're still here, try to send a media group
         if len(photos) > 0:
             media_group = []
-            for caption, photo in zip(captions, photos):
+            for idx, photo in enumerate(photos):
+                caption = "" if idx >= len(captions) else captions[idx]
                 media_group.append(InputMediaPhoto(caption=caption, media=photo))
             messages = await BotState.bot.send_media_group(chat_id=dest_chat,media=media_group,reply_to_message_id=reply_to_msg)
             return [message.id for message in messages]
