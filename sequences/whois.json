@@ -41,12 +41,20 @@
         "params": ["userinfo","current_chat","usermeta"]
       },
       {
+        "action": "obj_read",
+        "params": ["userinfo","nicknames","nickname_list"]
+      },
+      {
         "action": "qdb_get_user",
         "params": ["*uid","quote_list",4, "global", 0, "random"]
       },
       {
         "action": "fmt_list",
         "params": ["quote_list","user_quotes_format","quotes"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["nickname_list","nickname_list_format","usernicks"]
       },
       {
         "action": "emit_text",
@@ -85,10 +93,11 @@
     ]
   },
   "stringpools": {
-    "ok": ["Пользователь {userinfo.current_nick}\naka {userinfo.nicknames}\nid {userinfo.id}\nпепяка: {usermeta.reputation}\n%medals%\nпоследнее действие: %recent% назад\nпервое сообщение: %joindate%\n%isreturner%{quotes}\n    "],
+    "ok": ["Пользователь {userinfo.current_nick}\naka {usernicks}\nid {userinfo.id}\nпепяка: {usermeta.reputation}\n%medals%\nпоследнее действие: %recent% назад\nпервое сообщение: %joindate%\n%isreturner%{quotes}\n    "],
     "404": ["Да хуй знает\\, в первый раз вижу"],
     "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
     "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],
+    "nickname_list_format": ["{0}\n"],
     "user_quotes_format": [
       "\n*№{0.id}*\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
     ]
