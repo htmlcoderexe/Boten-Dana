@@ -45,6 +45,10 @@
         ]
       },
       {
+        "action": "concat",
+        "params": ["\\","*upvotee_new_rep","upvotee_new_rep"]
+      },
+      {
         "action": "score_up",
         "params": ["*upvotee","*upvoteescore",1,"dev_null"]
       },
@@ -55,6 +59,14 @@
       {
         "action": "score_up",
         "params": ["*upvoter","upvotes_given",1,"dev_null"]
+      },
+      {
+        "action": "get_user",
+        "params": ["*upvotee","upvotee_info"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["upvotee_info","current_nick","usertag"]
       },
       {
         "action": "emit_text",
@@ -72,7 +84,7 @@
         " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
         " [{usertag}](tg://user?id={upvotee}) получает плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков",
         "У [{usertag}](tg://user?id={upvotee}) теперь {upvotee_new_rep} пепяки, и это круто \\(нет\\)",
-        "Эй, [{usertag}](tg://user?id={upvotee}), у тебя уже {userrep} плюсов, можешь начинать гордиться",
+        "Эй\\, [{usertag}](tg://user?id={upvotee})\\, у тебя уже {upvotee_new_rep} плюсов\\, можешь начинать гордиться",
         "[{usertag}](tg://user?id={upvotee}) получает хуй в ро\\.\\.\\. плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков"
     ]
   }

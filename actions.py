@@ -11,6 +11,7 @@ from telegram import Message as TGMessage
 import UserInfo
 import botstate
 import botutils
+from env_vars import EnvVar
 
 
 # id    | name      |
@@ -167,7 +168,7 @@ class TriggeredAction:
             return TriggeredAction.registry[self.action](*data)
         print(f"Failed to spawn <{self.action}>")
 
-    def get_param(self, index: int) -> str:
+    def get_param(self, index: int):
         """
         Fetches a single param at a specific index.
         @param index: the index at which to retrieve.
@@ -186,8 +187,17 @@ class TriggeredAction:
                 print("bad pointer!")
                 return ""
             print("good pointer.")
+            print(f"value <{self.varstore[var_name]}> was fetched from <{var_name}>")
             return self.varstore[var_name]
         return value
+
+    def get_pstr(self, index: int) -> str:
+        """
+
+        @param index:
+        @return:
+        """
+        return str(self.get_param(index))
 
     def get_int(self, index: int) -> int:
         """
@@ -350,6 +360,7 @@ class TriggeredSequence:
             print('Argh, no subseq "' + subseq + '" found in sequence "'+self.name+'"')
             return
         var_store = {}
+        var_store['__bot_uid'] = botstate.BotState.botuid
         actions = self.subseqs[subseq][:]
         print(repr(actions))
         while actions:
@@ -358,8 +369,10 @@ class TriggeredSequence:
                 action.trigger = trigger
                 print(f"{action.sequence}/{action.subseq}:{action.action} -> {action.data}")
                 result = await action.run_action(message)
+                # immediately shift to the new seq
                 if result and result in self.subseqs:
-                    actions += self.subseqs[result]
+                    actions = self.subseqs[result][:]
+                    break
                 actions.remove(action)
 
     def get_string(self, pool_name:str):
@@ -542,10 +555,12 @@ class EmitText(TriggeredAction):
             message = message.reply_to_message
         text = self.get_string(pool_name)
         text = text.format_map(self.varstore)
+        print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
         msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=text,
                                                        parse_mode='MarkdownV2',
                                                        reply_to_message_id=message.id)
         if msg:
+
             self.varstore["__last_msg"] = msg
             botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
         return ""
@@ -627,9 +642,9 @@ class Concat(TriggeredAction):
     param 2: variable to write
     """
     async def run_action(self, message: TGMessage) -> str:
-        a = self.get_param(0)
-        b = self.get_param(1)
-        x = self.get_param(2)
+        a = self.get_pstr(0)
+        b = self.get_pstr(1)
+        x = self.get_pstr(2)
         self.varstore[x] = a + b
         return ""
 
@@ -693,11 +708,28 @@ class RollPercent(TriggeredAction):
     param 1: variable to write True or False to
     """
     async def run_action(self, message: TGMessage) -> str:
-        env_value = float(self.data[0])  # TODO: properly get env_var
+        chance_val = self.get_param(0)
+        out_var = self.get_pstr(1)
+        env_value = float(chance_val)
         roll = random.random()
-        return self.data[1] if roll < env_value else self.data[2]
+        self.varstore[out_var] = roll < env_value
+        return ""
 
 
+class GetEnv(TriggeredAction):
+    """
+
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        env_name = self.get_pstr(0)
+        out_var = self.get_pstr(1)
+        value = EnvVar.get(env_name, message.chat_id)
+        self.varstore[out_var] = value
+        print(f"Obtained <{value}> from <{env_name}> and stored in <{out_var}>")
+        return ""
+
+
+TriggeredAction.register("load_env",GetEnv)
 TriggeredAction.register("concat", Concat)
 TriggeredAction.register("count", Count)
 TriggeredAction.register("obj_read", ReadAttribute)
@@ -718,7 +750,7 @@ class GetUID(TriggeredAction):
             if not message.reply_to_message:
                 self.varstore[outvar] = 0
                 return "no_target"
-        message = message.reply_to_message
+            message = message.reply_to_message
         self.varstore[outvar] = UserInfo.User.extract_uid(message)
 
 

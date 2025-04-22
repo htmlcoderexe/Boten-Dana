@@ -2,6 +2,7 @@ import time
 
 import telegram
 
+import botutils
 import scores
 from botstate import  BotState
 
@@ -182,9 +183,9 @@ class User:
         rows = res.fetchall()
         #if rows:
         #    rows = sorted(rows, key=lambda row: row[1])
-        self.nicknames = [] if not rows else [row[0] for row in rows]
+        self.nicknames = [] if not rows else [botutils.MD(row[0],2) for row in rows]
         """List of known nicknames for this user"""
-        self.current_nick = "MissingNo.&%!▮" if not self.nicknames else self.nicknames[0]
+        self.current_nick = botutils.MD("MissingNo.&%!▮",2) if not self.nicknames else self.nicknames[0]
         """Most recent known nickname"""
         print("'"+self.current_nick+"'")
         print(repr(self.nicknames))
@@ -258,7 +259,7 @@ class User:
             self.current_nick = nick
             return True
         # if doesn't match current most recent name
-        if self.current_nick != nick:
+        if self.current_nick != botutils.MD(nick,2):
             print(f"<{self.current_nick}> is not equal to <{nick}>.")
             self.log_event(event_type="renamed", data=nick)
             self.nicknames = [nick] + self.nicknames

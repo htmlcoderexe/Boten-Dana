@@ -824,7 +824,7 @@ def console_get_mode(session: console_session_info) -> str:
     return sessions[0]
 
 
-def console_get_env_scope(env_name:string,scopeid:int) -> str | None:
+def XX__console_get_env_scope(env_name:string,scopeid:int) -> str | None:
     results = BotState.DBLink.execute(("""
         SELECT var_value FROM env_vars
         WHERE var_scope = ?

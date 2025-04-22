@@ -6,12 +6,7 @@
   "triggers": [
     {
       "type": "text_exact",
-      "params": ["бот это кто"],
-      "subseq": "main"
-    },
-    {
-      "type": "text_exact",
-      "params": ["бот кто это"],
+      "params": ["ник незнакомый","ты кто такой сука","ковальски анализ","анализ ковальски","а это кто вообще","whois", "бот это кто", "бот кто это", "хуйс", "бот сканируй","ты ктоооааа", "бот фас"],
       "subseq": "main"
     },
     {
@@ -27,6 +22,16 @@
         "params": ["uid"],
         "target": "reply"
       },
+      {
+        "action": "if_eq",
+        "params": ["*uid","*__bot_uid","self",""]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*uid","0","whois_help","user_whois"]
+      }
+    ],
+    "user_whois": [
       {
         "action": "get_user",
         "params": ["*uid","userinfo"]
@@ -52,6 +57,16 @@
         "params": [0]
       }
     ],
+    "whois_help": [
+      {
+        "action": "emit_text",
+        "params": ["nomessage",60]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0]
+      }
+    ],
     "404": [
       {
         "action": "emit_text",
@@ -71,9 +86,9 @@
   },
   "stringpools": {
     "ok": ["Пользователь {userinfo.current_nick}\naka {userinfo.nicknames}\nid {userinfo.id}\nпепяка: {usermeta.reputation}\n%medals%\nпоследнее действие: %recent% назад\nпервое сообщение: %joindate%\n%isreturner%{quotes}\n    "],
-    "404": ["Да хуй знает, в первый раз вижу"],
-    "self": ["А я-то что? Я бот, отвали, противный."],
-    "nomessage": ["Ты про кого? Я тут всех знаю..."],
+    "404": ["Да хуй знает\\, в первый раз вижу"],
+    "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
+    "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],
     "user_quotes_format": [
       "\n*№{0.id}*\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
     ]

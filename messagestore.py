@@ -64,6 +64,9 @@ class MessageStore:
         @return: A List (empty if nothing is found) of StoredMessagePart
         """
         chatid = 0 if self.glob_mode else self.owner_chat
+        print(name)
+        print(chatid)
+        print("getting parts---------------")
         res = BotState.DBLink.execute("""
             SELECT type,data FROM saved_messages
             WHERE name = ?
@@ -149,6 +152,7 @@ class MessageStore:
         dest_chat = self.owner_chat if target_chat == 0 else target_chat
         reply_to_msg = None if reply_to == 0 else reply_to
         msgsent = None
+        print(f"Retrieving message with NAME<{name}>")
         parts = self.read_parts(name=name)
         if not parts:
             if self.glob_mode:
@@ -226,7 +230,7 @@ class MessagePool:
 
     def fetch(self):
         """Picks out a random messageID from the pool"""
-        return random.choices(population=self.messages, weights=self.weights, k=1)
+        return random.choices(population=self.messages, weights=self.weights, k=1)[0]
 
     def add(self, message_id: str, weight: float = 1.0) -> bool:
         """Adds a message to this pool"""
