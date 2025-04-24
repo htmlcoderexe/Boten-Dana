@@ -1,0 +1,78 @@
+{
+  "name": "messagestore",
+  "display_name": "Сохранение сообщений",
+  "description": "Позволяет сохранять и вызывать сообщения.",
+  "version": [1,0,0,0],
+  "triggers": [
+    {
+      "type": "text_prefix",
+      "params": ["бот держи"],
+      "subseq": "save_message"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["бот дай"],
+      "subseq": "retrieve_message"
+    }
+  ],
+  "subseqs":
+  {
+    "main": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "userlist_check",
+        "params": ["*uid","pizda_unsubscribe","user_unsubscribed"]
+      },
+      {
+        "action": "if_eq",
+        "params": [true, "user_unsubscribed","exit","subscribed"]
+      }
+    ],
+    "subscribed": [
+      {
+        "action": "load_env",
+        "params": ["pizda_frequency","pizda_chance"]
+      },
+      {
+        "action": "load_env",
+        "params": ["pizda_pool_id","pizda_pool"]
+      },
+      {
+        "action": "roll_chance",
+        "params": ["*pizda_chance","pizda"]
+      } ,
+      {
+        "action": "if_eq",
+        "params": ["*pizda",true,"pizda",""]
+      }
+    ],
+    "pizda": [
+      {
+        "action": "fetch_pool",
+        "params": ["*pizda_pool","pizda_message_id"]
+      },
+      {
+        "action": "emit_saved_message",
+        "params": ["*pizda_message_id",-1,"pizda_message",-1]
+      }
+    ],
+    "tvoya": [
+      {
+        "action": "fetch_pool",
+        "params": ["tvoya_pool","pizda_message_id"]
+      },
+      {
+        "action": "emit_saved_message",
+        "params": ["*pizda_message_id",-1,"tvoya_message", -1]
+      }
+    ],
+    "exit": []
+  },
+  "config_vars": {
+    "name": "pizda_frequency",
+    "display_name": "Шанс срабатывания пизды"
+  }
+}

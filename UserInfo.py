@@ -296,6 +296,10 @@ class User:
         @param message:
         @return:
         """
+        if not message.from_user:
+            if not message.sender_chat:
+                return 0
+            return message.sender_chat.id
         uid = message.from_user.id
         if uid == telegram.constants.ChatID.ANONYMOUS_ADMIN:
             uid = message.sender_chat.id

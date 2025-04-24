@@ -85,7 +85,7 @@ class MessageStore:
         @param name: The name to
         @return: Tuple used by timed bot responses - str response, int user message remove delay, int bot message remove delay
         """
-        success_msg = "Сообщение \"" + MD(name) + "\" сохранено\\!", 5, 10
+        success_msg = "Сообщение \"" + botutils.MD(name) + "\" сохранено\\!", 5, 10
         chatid = 0 if self.glob_mode else self.owner_chat
         rows = self.read_parts(name=name)
         if rows:

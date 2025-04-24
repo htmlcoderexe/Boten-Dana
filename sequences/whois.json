@@ -28,7 +28,7 @@
       },
       {
         "action": "if_eq",
-        "params": ["*uid","0","whois_help","user_whois"]
+        "params": ["*uid",0,"whois_help","user_whois"]
       }
     ],
     "user_whois": [
