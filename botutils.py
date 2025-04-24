@@ -55,3 +55,14 @@ def schedule_kill(chatid: int, msgid: int, expiration: float):
                             )
     botstate.BotState.write()
     print("scheduled to kill message")
+
+
+def cancel_kill(chatid: int, msgid: int):
+    """
+    Cancels a scheduled message deletion.
+    @param chatid: Chat ID
+    @param msgid: Message ID to cancel deletion of.
+    @return:
+    """
+    botstate.BotState.DBLink.execute("DELETE from msgkills WHERE chatid=? AND msgid = ?", (chatid, msgid))
+    botstate.BotState.write()

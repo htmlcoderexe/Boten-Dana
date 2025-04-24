@@ -8,9 +8,51 @@
       "type": "text_exact",
       "params": ["+"],
       "subseq": "upvote_user"
+    },
+    {
+      "type": "text_exact",
+      "params": ["бот придержи","бот оставь","бот не удаляй"],
+      "subseq": "cancel_kill"
     }
   ],
   "subseqs": {
+    "cancel_kill": [
+      {
+        "action": "keep_msg",
+        "params": [""],
+        "target": "reply"
+      },
+      {
+        "action": "gosub",
+        "params": ["cancel_kill_success"]
+      }
+    ],
+    "cancel_kill_success": [
+      {
+        "action": "kill_msg",
+        "params": [5],
+        "target": "reply"
+      },
+      {
+        "action": "emit_text",
+        "params": ["cancel_kill_success",15]
+      }
+    ],
+    "cancel_no_target": [
+      {
+        "action": "kill_msg",
+        "params": [5],
+        "target": "reply"
+      },
+      {
+        "action": "emit_text",
+        "params": ["cancel_kill_no_target",15]
+      }
+
+    ],
+    "cancel_no_kill": [
+
+    ],
     "upvote_user": [
       {
         "action": "get_uid",
@@ -86,6 +128,12 @@
         "У [{usertag}](tg://user?id={upvotee}) теперь {upvotee_new_rep} пепяки, и это круто \\(нет\\)",
         "Эй\\, [{usertag}](tg://user?id={upvotee})\\, у тебя уже {upvotee_new_rep} плюсов\\, можешь начинать гордиться",
         "[{usertag}](tg://user?id={upvotee}) получает хуй в ро\\.\\.\\. плюс и теперь имеет {upvotee_new_rep} совершенно бесполезных очков"
+    ],
+    "cancel_kill_success": [
+      "Ок\\!"
+    ],
+    "cancel_kill_no_target": [
+      "Нужно писать это в ответ на сообщение\\, которое боту нужно не удалять\\."
     ]
   }
 }

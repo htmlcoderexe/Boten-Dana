@@ -11,6 +11,7 @@ from telegram import Message as TGMessage
 import UserInfo
 import botstate
 import botutils
+import messagetagger
 from env_vars import EnvVar
 
 
@@ -322,7 +323,7 @@ class TriggeredSequence:
 
     async def run(self, message: TGMessage):
         """
-
+        Runs this specific Sequence given message
         @param message:
         @return:
         """
@@ -338,9 +339,12 @@ class TriggeredSequence:
         else:
             orig_text = ""
         prepped_text = botutils.S(orig_text).lower()
+        tags = []
+        if message.reply_to_message:
+            tags = messagetagger.MessageTagger.get_tags(message.chat_id, message.reply_to_message.id)
         subseq = ""
         for trig in self.triggers:
-            if trig.t_type in cat_filter:
+            if trig.t_type in cat_filter and (trig.tag == "" or trig.tag in tags):
                 t_match = trig.match(prepped_text)
                 if t_match:
                     trig.orig_data = orig_text
@@ -437,98 +441,6 @@ class TriggeredSequence:
         """
         for name, seq in TriggeredSequence.running_sequences.items():
             await seq.run(message)
-
-    @staticmethod
-    def XX__run_triggers(message: TGMessage, category: str = "", data: str = ""):
-        """
-
-        @param data:
-        @param category:
-        @param message: Message to check
-        @return:
-        """
-        tags = ["none"]
-        if message.reply_to_message:
-            tags = TriggeredSequence.get_tags(message.reply_to_message.id, message.chat.id)
-        if not category:
-            if message.text:
-                category = "text"
-                data = botutils.S(message.text.lower())
-            if message.caption:
-                category = "text"
-                data = botutils.S(message.caption.lower())
-        triggers = TriggeredSequence.get_triggers(category, tags)
-        actions = []
-        if triggers:
-            for trigger in triggers:
-                if trigger.match(data):
-                    actions += TriggeredSequence.load_actions(trigger.sequence,trigger.subseq, trigger.match(data))
-        while actions:
-            for action in actions:
-                result = action.run_action(message)
-                if result:
-                    triggers = TriggeredSequence.get_triggers("retval", tags)
-                    if triggers:
-                        for trigger in triggers:
-                            if trigger.match(result):
-                                actions += TriggeredSequence.load_actions(trigger.sequence, trigger.subseq, trigger.match(result))
-
-    @staticmethod
-    def get_triggers(caterogy: str, tags: list[str]) -> list[Trigger]:
-        type_text = "('t_full', 't_pre', 't_post', 't_wild'"
-        type_ret = "('retval')"
-        subst_type = "('')"
-        match caterogy:
-            case "text":
-                subst_type = type_text
-            case "retval":
-                subst_type = type_ret
-        q = f"""
-        SELECT sequence, subseq, type, data
-        FROM action_triggers
-        WHERE type IN {subst_type}
-        """
-        if tags:
-            q += "AND TAGS IN (" + ",".join(tags) + ")"
-        res = botstate.BotState.DBLink.execute(q)
-        rows = res.fetchall()
-        triggers = []
-        if not rows:
-            return []
-        for row in rows:
-            trg = Trigger(*row).construct()
-            triggers.append(trg)
-        return triggers
-
-    @staticmethod
-    def get_tags(msgid: int, chatid:int) -> list[str]:
-        res = botstate.BotState.DBLink.execute("""
-                    SELECT tag
-                    FROM sequence_tags
-                    WHERE msgid = ?
-                    AND chatid =?""", (msgid,chatid))
-        rows = res.fetchall()
-        if rows:
-            return [row[0] for row in rows]
-        return ["none"]
-
-    @staticmethod
-    def load_actions(sequence: str, subseq: str, param: str):
-        """Loads the action set"""
-        res = botstate.BotState.DBLink.execute("""
-        SELECT sequence,subseq,type,data
-        FROM triggered_actions
-        WHERE sequence = ?
-        AND subseq = ?""",(sequence,subseq))
-        rows = res.fetchall()
-        actions = []
-        if not rows:
-            return []
-        for row in rows:
-            act = TriggeredAction(*row).construct()
-            act.param = param
-            actions.append(act)
-        return actions
 
 
 class MockMessage:
@@ -852,6 +764,18 @@ class RemoveMessage(TriggeredAction):
         return ""
 
 
+class KeepMessage(TriggeredAction):
+    """Instructs the bot to not remove a message
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "cancel_no_target"
+            message = message.reply_to_message
+        botutils.cancel_kill(message.chat.id, message.id)
+        return ""
+
+
 class EditMessage(TriggeredAction):
     """Edits a message using text from String Pools
     param 0: StringPool name
@@ -874,3 +798,4 @@ class EditMessage(TriggeredAction):
 
 TriggeredAction.register("edit_msg",EditMessage)
 TriggeredAction.register("kill_msg", RemoveMessage)
+TriggeredAction.register("keep_msg", KeepMessage)
