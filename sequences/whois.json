@@ -61,6 +61,10 @@
         "params": ["ok",60]
       },
       {
+        "action": "tag_msg",
+        "params": ["quotes_list",-1]
+      },
+      {
         "action": "kill_msg",
         "params": [0]
       }

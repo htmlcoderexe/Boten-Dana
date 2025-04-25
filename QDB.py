@@ -48,6 +48,18 @@ class Quote:
         @return:
         """
 
+        query = """
+                UPDATE     qdb
+                SET        rating = rating + ?
+                WHERE qid = ?          
+                RETURNING rating
+                """
+        res = BotState.DBLink.execute(query, (amount, self.id))
+        row = res.fetchone()
+        BotState.write()
+        self.rating += amount
+        return self.rating
+
 
 class Database:
     chatid = 0
@@ -220,8 +232,8 @@ class ActionQDBUpvote(TriggeredAction):
         if not q:
             self.varstore[outvar] = -1
             return ""
-        q.upvote(delta)
-        self.varstore[outvar] = q.rating
+
+        self.varstore[outvar] = q.upvote(delta)
         return ""
 
 

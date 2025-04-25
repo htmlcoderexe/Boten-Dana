@@ -156,9 +156,12 @@ class TriggeredAction:
         """Sequence branch action belongs to"""
         self.target_reply = target_reply
         """Apply the TriggeredAction to the message replied to if true."""
-        self.trigger:Trigger = None
+        self.trigger:Trigger
         """Dynamic parameter passed from trigger"""
         self.varstore = None
+        """refers to common store"""
+        self.matchdata =""
+        """trigger match data"""
 
     def construct(self):
         """Factory method to realise correct subtype"""
@@ -350,14 +353,15 @@ class TriggeredSequence:
                     trig.orig_data = orig_text
                     subseq = trig.subseq
                     print(f"matched {orig_text}")
-                    await self.run_subseq(subseq, trig, message)
+                    await self.run_subseq(subseq, trig, message, t_match)
 
-    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage):
+    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = ""):
         """
         Runs a specific subsequence.
         @param subseq:
         @param trigger:
         @param message:
+        @param matchdata
         @return:
         """
         if subseq not in self.subseqs:
@@ -371,6 +375,7 @@ class TriggeredSequence:
             for action in actions[:]:
                 action.varstore = var_store
                 action.trigger = trigger
+                action.matchdata = matchdata
                 print(f"{action.sequence}/{action.subseq}:{action.action} -> {action.data}")
                 result = await action.run_action(message)
                 # immediately shift to the new seq
@@ -473,7 +478,7 @@ class EmitText(TriggeredAction):
                                                        reply_to_message_id=message.id)
         if msg:
 
-            self.varstore["__last_msg"] = msg
+            self.varstore["__last_msg"] = msg.id
             botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
         return ""
 
@@ -593,6 +598,17 @@ class ReadAttribute(TriggeredAction):
         return ""
 
 
+class LoadTriggerData(TriggeredAction):
+    """Loads trigger data into a var.
+    param 0: Var to store to.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        out_var = self.get_pstr(0)
+        trig_data = self.matchdata
+        self.varstore[out_var] = trig_data
+        return ""
+
+
 class FormatList(TriggeredAction):
     """Takes a list and a format string, outputs formatted list into a variable.
     param 0: variable to take the list from
@@ -647,6 +663,7 @@ TriggeredAction.register("count", Count)
 TriggeredAction.register("obj_read", ReadAttribute)
 TriggeredAction.register("fmt_list", FormatList)
 TriggeredAction.register("roll_chance", RollPercent)
+TriggeredAction.register("get_match", LoadTriggerData)
 # ###############################################
 #     Message information Actions
 # ###############################################
@@ -762,6 +779,30 @@ class RemoveMessage(TriggeredAction):
             message = message.reply_to_message
         botutils.schedule_kill(message.chat.id, message.id, float(delay))
         return ""
+
+
+class TagMessage(TriggeredAction):
+    """
+    Tags a message
+    param 0: tag to use
+    param 1: message ID, if 0 is used, will use message object, if -1, will tag __last_msg
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "tag_no_target"
+            message = message.reply_to_message
+        tag = self.get_pstr(0)
+        msgid = self.get_int(1)
+        if msgid == -1:
+            msgid = self.varstore["__last_msg"]
+        if msgid == 0:
+            msgid = message.id
+        messagetagger.MessageTagger.tag_message(message.chat_id, msgid, tag)
+        return ""
+
+
+TriggeredAction.register("tag_msg",TagMessage)
 
 
 class KeepMessage(TriggeredAction):

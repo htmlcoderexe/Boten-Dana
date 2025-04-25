@@ -13,6 +13,12 @@
       "type": "text_exact",
       "params": ["показать цитаты","есть компромат"],
       "subseq": "show_all_quotes"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["плюсую "],
+      "subseq": "quote_upvote",
+      "tag": "quotes_list"
     }
   ],
   "subseqs":
@@ -62,6 +68,45 @@
         "params": ["quote_exists",10]
       }
     ],
+    "quote_upvote": [
+      {
+        "action": "get_match",
+        "params": ["quote_id"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5],
+        "target": "reply"
+      },
+      {
+        "action": "qdb_upvote",
+        "params": ["*quote_id", 1, "new_rating"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*new_rating", -1, "quote_upvote_fail","quote_upvote_ok"]
+      }
+    ],
+    "quote_upvote_ok": [
+      {
+        "action": "emit_text",
+        "params": ["quote_upvoted",10]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      }
+    ],
+    "quote_upvote_fail": [
+      {
+        "action": "emit_text",
+        "params": ["quote_not_upvoted",10]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      }
+    ],
     "show_all_quotes": [
       {
         "action": "get_uid",
@@ -103,6 +148,10 @@
       {
         "action": "emit_text",
         "params": ["user_quotes_template",60]
+      },
+      {
+        "action": "tag_msg",
+        "params": ["quotes_list",-1]
       }
     ],
     "qdb_save_no_target": [
@@ -123,7 +172,14 @@
       "Эту команду нужно писать в ответ на сообщение, которое нужно сохранить\\."
     ],
     "quote_exists": [
-      "Эту цитату уже сохранили. Цитата №{saved_quote_id} получает \\+1 к рейтингу\\."
+      "Эту цитату уже сохранили\\. Цитата №{saved_quote_id} получает \\+1 к рейтингу\\."
+    ],
+    "quote_upvoted": [
+      " Цитата №{quote_id} получает \\+1 к рейтингу\\. Теперь у цитаты {new_rating} плюсов\\."
+    ],
+    "quote_not_upvoted": [
+      "Цитаты под номером №{quote_id} не существует\\.",
+      "А вот хуй тебе\\, а не цитата\\."
     ],
     "no_quotes": [
       "На этого человека компромата ещё нет\\."
