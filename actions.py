@@ -60,6 +60,8 @@ class Trigger:
         """Tag to constrain the trigger"""
         self.orig_data = ""
         """Used to smuggle in the original string, as a heck."""
+        self.tagdata:tuple[str]
+        """Any additional tag-related data"""
 
     def construct(self):
         match self.t_type:
@@ -330,30 +332,47 @@ class TriggeredSequence:
         @param message:
         @return:
         """
+        # set a list of trigger filters, TODO: fix hardcoding text type
         cat_txt = ["text_exact","text_prefix","text_suffix","text_contains"]
         cat_filter = []
 
         t_match = ""
+        # get text out
         if message.text:
             cat_filter = cat_txt
             orig_text = message.text
         elif message.caption:
+            cat_filter = cat_txt
             orig_text = message.caption
         else:
             orig_text = ""
+        # normalise to make matching easier
         prepped_text = botutils.S(orig_text).lower()
         tags = []
+        # if replying to something, check if that has any additional data we saved earlier
         if message.reply_to_message:
             tags = messagetagger.MessageTagger.get_tags(message.chat_id, message.reply_to_message.id)
         subseq = ""
+        # go thru triggers
         for trig in self.triggers:
-            if trig.t_type in cat_filter and (trig.tag == "" or trig.tag in tags):
+            t_match = ""
+            # for now this is redundant, used to filter by a specific trigger category
+            if trig.t_type in cat_filter:
+                # matching is cheap enough to to regardless
                 t_match = trig.match(prepped_text)
                 if t_match:
-                    trig.orig_data = orig_text
-                    subseq = trig.subseq
-                    print(f"matched {orig_text}")
-                    await self.run_subseq(subseq, trig, message, t_match)
+                    # the trigger applies as long as 1) it has no tag or 2) it matches the current tag
+                    if trig.tag == "" or trig.tag in tags:
+                        # set the entire matched text
+                        trig.orig_data = orig_text
+                        # set the correct subseq to run
+                        subseq = trig.subseq
+                        print(f"matched <{orig_text}>")
+                        # set extra info if actually found
+                        if trig.tag in tags:
+                            trig.tagdata = tags[trig.tag]
+                        # go
+                        await self.run_subseq(subseq, trig, message, t_match)
 
     async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = ""):
         """
@@ -364,24 +383,37 @@ class TriggeredSequence:
         @param matchdata
         @return:
         """
+        # not found!
         if subseq not in self.subseqs:
             print('Argh, no subseq "' + subseq + '" found in sequence "'+self.name+'"')
             return
-        var_store = {}
-        var_store['__bot_uid'] = botstate.BotState.botuid
+        print(f"--- entering <{subseq}> ---")
+        # init local variable store
+        var_store = {'__bot_uid': botstate.BotState.botuid}
+        # get a copy of the actions list
         actions = self.subseqs[subseq][:]
         print(repr(actions))
+        # keep going as long as there are any actions left
         while actions:
+            # go through a copy of the current list until exhausted
             for action in actions[:]:
+                # provide reference to variable store
                 action.varstore = var_store
+                # original trigger and its data
                 action.trigger = trigger
+                # whatever the trigger returned as the match
                 action.matchdata = matchdata
+                # execute
                 print(f"{action.sequence}/{action.subseq}:{action.action} -> {action.data}")
                 result = await action.run_action(message)
-                # immediately shift to the new seq
+                # if non-empty result, try to run this as the new subseq
+                # immediately shift to the new subseq
                 if result and result in self.subseqs:
+                    # copy the new subseq and exit the iteration
+                    # this drops any remaining actions
                     actions = self.subseqs[result][:]
                     break
+                # otherwise just remove this action from the original copy and keep going
                 actions.remove(action)
 
     def get_string(self, pool_name:str):
@@ -786,6 +818,7 @@ class TagMessage(TriggeredAction):
     Tags a message
     param 0: tag to use
     param 1: message ID, if 0 is used, will use message object, if -1, will tag __last_msg
+    params X: any extra data up to 7 items
     """
     async def run_action(self, message: TGMessage) -> str:
         if self.target_reply:
@@ -794,11 +827,12 @@ class TagMessage(TriggeredAction):
             message = message.reply_to_message
         tag = self.get_pstr(0)
         msgid = self.get_int(1)
+        extras = self.get_params_rest(2)
         if msgid == -1:
             msgid = self.varstore["__last_msg"]
         if msgid == 0:
             msgid = message.id
-        messagetagger.MessageTagger.tag_message(message.chat_id, msgid, tag)
+        messagetagger.MessageTagger.tag_message(message.chat_id, msgid, tag, *extras)
         return ""
 
 

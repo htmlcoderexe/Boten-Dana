@@ -12,7 +12,8 @@
     {
       "type": "text_exact",
       "params": ["бот придержи","бот оставь","бот не удаляй"],
-      "subseq": "cancel_kill"
+      "subseq": "cancel_kill",
+      "target": "reply"
     }
   ],
   "subseqs": {
@@ -30,8 +31,7 @@
     "cancel_kill_success": [
       {
         "action": "kill_msg",
-        "params": [5],
-        "target": "reply"
+        "params": [5]
       },
       {
         "action": "emit_text",
@@ -41,8 +41,7 @@
     "cancel_no_target": [
       {
         "action": "kill_msg",
-        "params": [5],
-        "target": "reply"
+        "params": [5]
       },
       {
         "action": "emit_text",

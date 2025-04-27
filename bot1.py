@@ -608,9 +608,9 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # global botuid
     BotState.botuid = context.bot.id
     BotState.bot = context.bot
-    print(context)
-    print(BotState.botuid)
-    print(update)
+    # print(context)
+    # print(BotState.botuid)
+    # print(update)
     # check for weird updates and bail
     if update.message is None:
         # it could be something else!!
@@ -791,14 +791,16 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     uid = update.poll_answer.user.id
     pollid = update.poll_answer.poll_id
     print("user " + str(uid) + " answered #" + str(answer) + " on poll " + str(pollid))
-    datastuff.quiz_verify_answer(poll=int(pollid), user=uid, answer=answer)
+    # TODO: triggers based on poll responses
+    # datastuff.quiz_verify_answer(poll=int(pollid), user=uid, answer=answer)
 
 
 async def receive_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    print(update)
+    # print(update)
     msg = await BotState.pyroclient.get_messages(update.effective_chat.id,update.message_reaction.message_id)
-    print(msg)
-    await console_capture_message(userid=update.effective_user.id,chatid=update.effective_chat.id,msg=msg)
+    # print(msg)
+    # TODO: triggers based on reactions
+    # await console_capture_message(userid=update.effective_user.id,chatid=update.effective_chat.id,msg=msg)
     pass
 
 
