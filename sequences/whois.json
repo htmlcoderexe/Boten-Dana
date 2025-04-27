@@ -62,7 +62,7 @@
       },
       {
         "action": "tag_msg",
-        "params": ["quotes_list",-1,"*uid"]
+        "params": ["whois_list",-1,"*uid"]
       },
       {
         "action": "kill_msg",

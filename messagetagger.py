@@ -20,6 +20,7 @@ class MessageTagger:
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (chat_id,message_id,tag) + exact7)
         botstate.BotState.write()
+        print(f"wrote <{chat_id}/{message_id}>, tag: <{tag}> data:<{exact7}>")
 
     @staticmethod
     def get_tags(chat_id:int, message_id:int) -> dict[str,tuple[str]]:
@@ -42,4 +43,5 @@ class MessageTagger:
         for row in rows:
             tag,*data = row
             tags[tag] = data
+            print(f"Found: <{chat_id}/{message_id}>, tag: <{tag}> data:<{data}>")
         return tags

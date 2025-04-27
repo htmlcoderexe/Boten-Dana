@@ -47,7 +47,7 @@ from env_vars import EnvVar
 # 11    | msgstore  | save_ok   | retval    |           | 0
 class Trigger:
     """A trigger that can be matched against"""
-    def __init__(self, seq: str, subseq: str, t_type:str, data: list[str], tag:str = ""):
+    def __init__(self, seq: str, subseq: str, t_type:str, data: list[str], tag:str = "", raw_mode:bool = False):
         self.sequence = seq
         """Sequence activated by trigger"""
         self.subseq = subseq
@@ -58,23 +58,26 @@ class Trigger:
         """Trigger type"""
         self.tag = tag
         """Tag to constrain the trigger"""
+        self.raw_mode:bool = raw_mode
+        """Whether the trigger consumes sanitised string or raw string."""
         self.orig_data = ""
         """Used to smuggle in the original string, as a heck."""
         self.tagdata:tuple[str]
         """Any additional tag-related data"""
 
     def construct(self):
+        itemdata = (self.sequence,self.subseq,self.t_type,self.trigger,self.tag, self.raw_mode)
         match self.t_type:
             case "text_exact":
-                return TriggerTextExact(self.sequence,self.subseq,self.t_type,self.trigger,self.tag)
+                return TriggerTextExact(*itemdata)
             case "retval":
-                return TriggerRetVal(self.sequence,self.subseq,self.t_type,self.trigger,self.tag)
+                return TriggerRetVal(*itemdata)
             case "text_contains":
-                return TriggerTextContains(self.sequence,self.subseq,self.t_type,self.trigger,self.tag)
+                return TriggerTextContains(*itemdata)
             case "text_prefix":
-                return TriggerTextPre(self.sequence,self.subseq,self.t_type,self.trigger,self.tag)
+                return TriggerTextPre(*itemdata)
             case "text_suffix":
-                return TriggerTextPost(self.sequence,self.subseq,self.t_type,self.trigger,self.tag)
+                return TriggerTextPost(*itemdata)
 
     def match(self, data:str) -> str:
         """Checks if the message matches the trigger"""
@@ -142,6 +145,8 @@ class TriggeredAction:
     """An action that may be triggered"""
     registry = {}
     """registry containing strings mapping to corresponding trigger actions"""
+    action_name:str = "nop"
+    """Action names used in the registry."""
 
     @staticmethod
     def register(name:str, cls):
@@ -174,6 +179,23 @@ class TriggeredAction:
             return TriggeredAction.registry[self.action](*data)
         print(f"Failed to spawn <{self.action}>")
 
+    def resolve_pointer(self, value:str):
+        """
+
+        @param value:
+        @return:
+        """
+        if str(value).startswith("*"):
+            var_name = value.removeprefix("*")
+            print(f"var_store pointer read at <{var_name}>")
+            if var_name not in self.varstore:
+                print("bad pointer!")
+                return ""
+            print("good pointer.")
+            print(f"value <{self.varstore[var_name]}> was fetched from <{var_name}>")
+            return self.varstore[var_name]
+        return value
+
     def get_param(self, index: int):
         """
         Fetches a single param at a specific index.
@@ -186,16 +208,7 @@ class TriggeredAction:
         else:
             value = self.data[index]
             print(f"value <{value}> obtained from <{index}>")
-        if str(value).startswith("*"):
-            var_name = value.removeprefix("*")
-            print(f"var_store pointer read at <{var_name}>")
-            if var_name not in self.varstore:
-                print("bad pointer!")
-                return ""
-            print("good pointer.")
-            print(f"value <{self.varstore[var_name]}> was fetched from <{var_name}>")
-            return self.varstore[var_name]
-        return value
+        return self.resolve_pointer(value)
 
     def get_pstr(self, index: int) -> str:
         """
@@ -211,23 +224,11 @@ class TriggeredAction:
         @param index: param index.
         @return: int if possible, 0 otherwise.
         """
-        if index >= len(self.data):
-            print(f"Param <{index}> out of bounds of <{len(self.data)}>")
-            value = ""
-        else:
-            value = self.data[index]
-            print(f"value <{value}> obtained from <{index}>")
-        if str(value).startswith("*"):
-            var_name = value.removeprefix("*")
-            print(f"var_store pointer read at <{var_name}>")
-            if var_name not in self.varstore:
-                print("bad pointer!")
-                return ""
-            print("good pointer.")
-            value = self.varstore[var_name]
+        value = self.get_param(index)
         try:
             value = int(value)
         except (ValueError, TypeError):
+            print(f"Unable to get int from <{value}>, casting 0")
             value = 0
         return value
 
@@ -237,20 +238,15 @@ class TriggeredAction:
         @param start_from: the index to start from
         @return: a list containing any params retrieved
         """
-        if start_from not in self.data:
+        if start_from >= len(self.data):
+            print(f"No more params after {start_from}. Returning empty list.")
             return []
         result = []
-        for param in self.data[start_from:]:
-            value = ""
-            if param.startswith("*"):
-                param = param.removeprefix("*")
-                if param in self.varstore:
-                    value = self.varstore[param]
-            else:
-                value = param
+        for i in range(start_from, len(self.data)):
+            value = self.get_param(i)
             result.append(value)
+        print(f"Obtained following params: <{result}>")
         return result
-
 
     def get_string(self, poolname: str):
         return TriggeredSequence.running_sequences[self.sequence].get_string(poolname)
@@ -302,7 +298,8 @@ class TriggeredSequence:
             tsubseq = trig['subseq']
             tparams = trig['params']
             ttag = "" if 'tag' not in trig else trig['tag']
-            seq_triggers.append(Trigger(tseq,tsubseq,ttype,tparams,ttag).construct())
+            rawmode = False if 'raw' not in trig else True
+            seq_triggers.append(Trigger(tseq,tsubseq,ttype,tparams,ttag, rawmode).construct())
         print(triggerlist)
         print(seq_triggers)
         # load subseqs
@@ -359,12 +356,12 @@ class TriggeredSequence:
             # for now this is redundant, used to filter by a specific trigger category
             if trig.t_type in cat_filter:
                 # matching is cheap enough to to regardless
-                t_match = trig.match(prepped_text)
+                t_match = trig.match(orig_text if trig.raw_mode else prepped_text)
+                # set the entire matched text
+                trig.orig_data = orig_text
                 if t_match:
                     # the trigger applies as long as 1) it has no tag or 2) it matches the current tag
                     if trig.tag == "" or trig.tag in tags:
-                        # set the entire matched text
-                        trig.orig_data = orig_text
                         # set the correct subseq to run
                         subseq = trig.subseq
                         print(f"matched <{orig_text}>")
@@ -598,6 +595,22 @@ class Concat(TriggeredAction):
         return ""
 
 
+class Add(TriggeredAction):
+    """Adds two values and stores the result
+    param 0: first value
+    param 1: second value
+    param 2: variable to write
+    """
+    action_name = "add"
+
+    async def run_action(self, message: TGMessage) -> str:
+        a = self.get_int(0)
+        b = self.get_int(1)
+        x = self.get_pstr(2)
+        self.varstore[x] = a + b
+        return ""
+
+
 class Count(TriggeredAction):
     """Counts items in a given variable, then stores the results into a variable.
     param 0: Variable containing items to count.
@@ -692,6 +705,7 @@ class GetEnv(TriggeredAction):
 TriggeredAction.register("load_env",GetEnv)
 TriggeredAction.register("concat", Concat)
 TriggeredAction.register("count", Count)
+TriggeredAction.register("add", Add)
 TriggeredAction.register("obj_read", ReadAttribute)
 TriggeredAction.register("fmt_list", FormatList)
 TriggeredAction.register("roll_chance", RollPercent)

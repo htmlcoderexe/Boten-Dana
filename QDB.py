@@ -41,6 +41,8 @@ class Quote:
         """UserID of the user who saved the quote."""
         self.rating:int = rating
         """Amount of upvotes given to the quote."""
+        self.user_nick:str = ""
+        """User's nickname, must be loaded separately"""
 
     def upvote(self, amount:int = 1):
         """
@@ -59,6 +61,11 @@ class Quote:
         BotState.write()
         self.rating += amount
         return self.rating
+
+    def load_nick(self):
+        """Loads the nickname for display."""
+        usr = UserInfo.User(self.user_id, self.chatid)
+        self.user_nick = usr.current_nick
 
 
 class Database:
@@ -236,6 +243,53 @@ class ActionQDBUpvote(TriggeredAction):
         self.varstore[outvar] = q.upvote(delta)
         return ""
 
+class GetChatQuotes(TriggeredAction):
+    """
+    Gets quotes for a chat
+    param 0: variable to store the quotes in
+    param 1: amount to get, -1 to get all
+    param 2: page number, from 1
+    param 3: score threshold
+    param 4: sort mode
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        chatid = message.chat_id
+        outvar = self.get_param(0)
+        amount = int(self.get_param(1))
+        page = max(0, self.get_int(2) - 1)
+        min_score = int(self.get_param(3))
+        sortby = self.get_param(5)
+        # constrain the options
+        if sortby not in ("score","newest","oldest","random"):
+            sortby = "oldest"
+        qdb = Database(chatid, 0)
+        quotes = qdb.get_chat_quotes(min_score)
+        # quotes are fetched with oldest first at the top so this is the default sort
+        match sortby:
+            case "newest":
+                # reverse the list to get newest first
+                quotes.reverse()
+            case "random":
+                # shuffle the list for random order
+                random.shuffle(quotes)
+            case "score":
+                # sort by rating then reverse (higher scores first)
+                quotes = sorted(quotes, key=lambda q: q.rating)
+                quotes.reverse()
+        # filter by score
+        filtered_quotes = [q for q in quotes if q.rating >= min_score]
+        # if -1 is specified, return everything so far, else only the first <amount>
+        if amount == -1:
+            quotes = filtered_quotes
+        else:
+            start = page * amount
+            finish = start + amount
+            quotes = filtered_quotes[start:finish]
+        for quote in quotes:
+            quote.load_nick()
+        self.varstore[outvar] = quotes
+        return ""
+
 
 class ActionQDBGetUserQuotes(TriggeredAction):
     """
@@ -289,3 +343,4 @@ class ActionQDBGetUserQuotes(TriggeredAction):
 TriggeredAction.register("qdb_save",ActionQDBSave)
 TriggeredAction.register("qdb_upvote",ActionQDBUpvote)
 TriggeredAction.register("qdb_get_user", ActionQDBGetUserQuotes)
+TriggeredAction.register("qdb_get_chat", GetChatQuotes)

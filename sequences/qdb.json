@@ -15,10 +15,21 @@
       "subseq": "show_all_quotes"
     },
     {
+      "type": "text_exact",
+      "params": ["показать цитатник","цитатник чата"],
+      "subseq": "show_chat_quotes_page"
+    },
+    {
       "type": "text_prefix",
       "params": ["плюсую "],
       "subseq": "quote_upvote",
       "tag": "quotes_list"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["плюсую "],
+      "subseq": "quote_upvote",
+      "tag": "whois_list"
     }
   ],
   "subseqs":
@@ -72,11 +83,6 @@
       {
         "action": "get_match",
         "params": ["quote_id"]
-      },
-      {
-        "action": "kill_msg",
-        "params": [5],
-        "target": "reply"
       },
       {
         "action": "qdb_upvote",
@@ -154,6 +160,30 @@
         "params": ["quotes_list",-1]
       }
     ],
+    "show_chat_quotes": [
+      {
+        "action": "emit_text",
+        "params": ["no_quotes", 10]
+      }
+    ],
+    "show_chat_quotes_page": [
+      {
+        "action": "qdb_get_chat",
+        "params": ["chat_quotes",10, 1, 1, "score"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["chat_quotes","chat_quotes_format","chat_quote_list"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["chat_quotes_template",60]
+      },
+      {
+        "action": "tag_msg",
+        "params": ["quotes_list",-1,1]
+      }
+    ],
     "qdb_save_no_target": [
       {
         "action": "emit_text",
@@ -187,8 +217,14 @@
     "user_quotes_template": [
       "За пользователем **{userinfo.current_nick}** были записаны следующие цитаты:{quote_list}"
     ],
+    "chat_quotes_template": [
+      "{chat_quote_list}"
+    ],
     "user_quotes_format": [
       "\n*№{0.id}*    \\| {0.rating} \\+\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
+    ],
+    "chat_quotes_format": [
+      "\n*№{0.id}* {0.user_nick}    \\| {0.rating} \\+\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
     ]
   }
 }

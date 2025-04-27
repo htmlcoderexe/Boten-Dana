@@ -10,6 +10,12 @@
       "subseq": "upvote_user"
     },
     {
+      "type": "text_prefix",
+      "params": ["/"],
+      "subseq": "clean_command",
+      "raw": "yes"
+    },
+    {
       "type": "text_exact",
       "params": ["бот придержи","бот оставь","бот не удаляй"],
       "subseq": "cancel_kill",
@@ -17,6 +23,13 @@
     }
   ],
   "subseqs": {
+    "clean_command": [
+      {
+        "action": "kill_msg",
+        "params": [60]
+      }
+
+    ],
     "cancel_kill": [
       {
         "action": "keep_msg",
