@@ -850,6 +850,15 @@ if __name__ == '__main__':
     start_handler = CommandHandler('start', start)
     data_handler = CommandHandler('dump', dumpdb)
     reboot_handler = CommandHandler('reboot', reboot)
+
+    commands = []
+    handlers = []
+    for seqname, seq in actions.TriggeredSequence.running_sequences.items():
+        for cmd,info in seq.commands.items():
+            #commands.append((cmd,info[0],info[1]))
+            handlers.append(CommandHandler(cmd,seq.get_command_handler(cmd)))
+    for handler in handlers:
+        application.add_handler(handler)
     allmsg_handler = MessageHandler(filters.ALL, chat_message)  # & (~filters.COMMAND), chat_message)
     phandler = PollHandler(receive_quiz_answer)
     # joinleave_handler = ChatMemberHandler(member_change, ChatMemberHandler.CHAT_MEMBER)

@@ -8,6 +8,7 @@ import time
 
 import telegram.constants
 from telegram import Message as TGMessage
+from telegram.ext import ContextTypes
 
 import UserInfo
 import botstate
@@ -84,6 +85,10 @@ class Trigger:
     def match(self, data:str) -> str:
         """Checks if the message matches the trigger"""
         pass
+
+    @classmethod
+    def Empty(cls):
+        return cls("","","",[""],"",False)
 
 
 class TriggerTextExact(Trigger):
@@ -417,6 +422,12 @@ class TriggeredSequence:
                             trig.tagdata = tags[trig.tag]
                         # go
                         await self.run_subseq(subseq, trig, message, t_match)
+
+    def get_command_handler(self, command:str):
+        async def handler(update:telegram.Update, context: ContextTypes.DEFAULT_TYPE):
+            subseq = self.commands[command][1]
+            await self.run_subseq(subseq, Trigger.Empty(),update.message,"")
+        return handler
 
     async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = ""):
         """

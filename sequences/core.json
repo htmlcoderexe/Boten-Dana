@@ -20,12 +20,6 @@
       "params": ["бот придержи","бот оставь","бот не удаляй"],
       "subseq": "cancel_kill",
       "target": "reply"
-    },
-    {
-      "type": "text_exact",
-      "params": ["/status"],
-      "subseq": "show_status",
-      "raw": "yes"
     }
   ],
   "commands":
