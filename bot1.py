@@ -813,10 +813,15 @@ async def chat_load():
     await datastuff.load_chats()
     print("DONE LOADING----------")
 
-async def reg_commands():
+
+async def reg_commands(context: CallbackContext):
+    print("registering commands...")
+    commands = [("start","initiate the bot"),("settings","configure stuff"),("help","no help")]
     for seqname, seq in actions.TriggeredSequence.running_sequences.items():
         for cmd,info in seq.commands.items():
-            await BotState.bot.set_my_commands((cmd,info[0]))
+            commands.append((cmd,info[0]))
+    await BotState.bot.set_my_commands(commands)
+    print(f"registered {len(commands)} commands.")
 
 
 def one_off_updateMDV2():
@@ -860,12 +865,16 @@ if __name__ == '__main__':
     application.add_handler(MessageReactionHandler(receive_reaction))
     application.add_handler(ChatMemberHandler(join_leave))
     # state inits
-    datastuff.load_chats()
+    #datastuff.load_chats()
     # datastuff.quiz_refresh_stats()
     BotState.q = application.job_queue
-    BotState.q.run_once(callback=reg_commands,when=0)
+    print("registering one-run")
+    BotState.q.run_once(reg_commands, 0.0)
+    print("registering onceasecond")
     BotState.q.run_repeating(callback=everyminute, interval=1, first=1)
+    print("registering onceaminute")
     BotState.q.run_repeating(callback=everyminute, interval=60, first=1)
+    # BotState.q.run_repeating(callback=reg_commands, interval=6, first=1)
 
     # startup messages
     # #datastuff.blast("перезагрузка успешна!!11")
@@ -873,6 +882,7 @@ if __name__ == '__main__':
 
     # start the main bot
     BotState.pyroclient.start()
+    application.job_queue.run_once(reg_commands, 1.0)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
     # botstate.pyroclient.stop()
     # anything to do before shutting down

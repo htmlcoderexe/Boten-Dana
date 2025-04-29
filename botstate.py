@@ -1,3 +1,4 @@
+import telegram.ext
 from pyrogram import Client
 from sqlite3.dbapi2 import Cursor
 from telegram import Bot
@@ -8,7 +9,7 @@ class BotState:
     DBLink: Cursor = None
     DB = None
     current_chats = []
-    q = None
+    q:telegram.ext.JobQueue = None
     bot:Bot = None
     bc = None
     botuid = 0
