@@ -20,6 +20,12 @@
       "params": ["бот придержи","бот оставь","бот не удаляй"],
       "subseq": "cancel_kill",
       "target": "reply"
+    },
+    {
+      "type": "text_exact",
+      "params": ["/status"],
+      "subseq": "show_status",
+      "raw": "yes"
     }
   ],
   "commands":
@@ -32,6 +38,24 @@
     }
   ,
   "subseqs": {
+    "show_status": [
+      {
+        "action": "kill_msg",
+        "params": [60]
+      },
+      {
+        "action": "get_seqs",
+        "params": ["loaded_seqs"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["loaded_seqs","seq_short_fmt","seqlist"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["seqlist",60]
+      }
+    ],
     "clean_command": [
       {
         "action": "kill_msg",
@@ -155,6 +179,12 @@
     ],
     "cancel_kill_no_target": [
       "Нужно писать это в ответ на сообщение\\, которое боту нужно не удалять\\."
+    ],
+    "seqlist": [
+      "Загружены следующие модули\\:\n{seqlist}"
+    ],
+    "seq_short_fmt": [
+      "*{0.display_name}* v{0.version} \n\"_{0.description}_\"\n"
     ]
   },
     "config_vars": [

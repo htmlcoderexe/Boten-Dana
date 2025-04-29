@@ -1,6 +1,7 @@
 """
 This module contains code dealing with actions the bot is able to perform based on things happening in the chat.
 """
+import copy
 import random
 import json
 import time
@@ -260,6 +261,14 @@ class TriggeredAction:
             message = message.reply_to_message
 
 
+class SequenceMd2Info:
+    def __init__(self, name:str,display_name:str,description:str,version:str):
+        self.name = name
+        self.display_name = display_name
+        self.description = description
+        self.version = version
+
+
 class TriggeredSequence:
     """Concerns sequences of actions that may be triggered."""
 
@@ -291,6 +300,11 @@ class TriggeredSequence:
         self.commands = commands
         """Commands registered for this sequence."""
 
+    def md2info(self) -> SequenceMd2Info:
+        info = SequenceMd2Info(botutils.MD(self.name), botutils.MD(self.display_name),botutils.MD(self.description),botutils.MD(f"{self.version[0]}.{self.version[1]}.{self.version[2]}"))
+        print(info.__dict__)
+        return info
+
     @classmethod
     def load_from_json(cls, json_data:str):
         """"""
@@ -299,6 +313,7 @@ class TriggeredSequence:
         name = data['name']
         disp_name = data['display_name']
         desc = data['description']
+        print(f"Module <{name}> <{disp_name}> has description <{desc}>")
         version = data['version']
         # load triggers
         triggerlist = data['triggers']
@@ -339,9 +354,9 @@ class TriggeredSequence:
             print(data['config_vars'])
             for cfgvar in data['config_vars']:
                 var = cfgvar['name']
-                desc = cfgvar['display_name']
+                cfg_desc = cfgvar['display_name']
                 default = cfgvar['default']
-                config_vars[var] = (desc, default)
+                config_vars[var] = (cfg_desc, default)
                 # set a default value if the var hasn't been set before
                 #if env_vars.EnvVar.get_scope(var, 0) is None:
                 #    env_vars.EnvVar.set_scope(var, 0, default)
@@ -349,9 +364,9 @@ class TriggeredSequence:
         commands = {}
         if 'commands' in data:
             for cmd, info in data['commands'].items():
-                desc= info['description']
+                cmd_desc = info['description']
                 subseq= info['subseq']
-                commands[cmd] = (desc, subseq)
+                commands[cmd] = (cmd_desc, subseq)
 
         return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings,config_vars,commands)
 
@@ -811,6 +826,23 @@ class GetMessageID(TriggeredAction):
         out_var = self.get_param(0)
         self.varstore[out_var] = message.id
         return ""
+
+
+class GetLoadedSequences(TriggeredAction):
+    """
+
+    param 0: variable to store the information
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        out_var = self.get_param(0)
+        seq_info = []
+        for seq_name, seq_data in TriggeredSequence.running_sequences.items():
+            seq_info.append(seq_data.md2info())
+        self.varstore[out_var] = seq_info
+        return ""
+
+
+TriggeredAction.register("get_seqs",GetLoadedSequences)
 
 
 class Whois(TriggeredAction):

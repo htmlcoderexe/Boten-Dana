@@ -1,8 +1,8 @@
 {
   "name": "scoreboards",
   "display_name": "Доски почёта",
-  "description": "Доски почётные и не очень.",
-  "version": [1,0,0,0],
+  "description": "Пока не работает. Доски почётные и не очень.",
+  "version": [0,0,0,0],
   "triggers": [
     {
       "type": "text_exact",

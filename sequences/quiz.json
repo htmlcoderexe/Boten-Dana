@@ -1,8 +1,8 @@
 {
   "name": "quiz",
   "display_name": "Викторина",
-  "description": "Позволяет проводить викторины.",
-  "version": [1,0,0,0],
+  "description": "Пока не работает. Позволяет проводить викторины.",
+  "version": [0,0,0,0],
   "triggers": [
     {
       "type": "text_exact",
