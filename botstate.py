@@ -1,5 +1,6 @@
 from pyrogram import Client
 from sqlite3.dbapi2 import Cursor
+from telegram import Bot
 botstate = None
 
 
@@ -8,7 +9,7 @@ class BotState:
     DB = None
     current_chats = []
     q = None
-    bot = None
+    bot:Bot = None
     bc = None
     botuid = 0
     pyroclient: Client = None

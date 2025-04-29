@@ -11,6 +11,7 @@ from telegram import Message as TGMessage
 import UserInfo
 import botstate
 import botutils
+import env_vars
 import messagetagger
 from env_vars import EnvVar
 
@@ -268,16 +269,27 @@ class TriggeredSequence:
     """Contains subsequences registered to run on a timer"""
 
     def __init__(self, name:str, display_name:str, desc:str, version:tuple[int], triggers:list[Trigger], subseqs:dict[str,list[TriggeredAction]],
-                 strings=None):
+                 strings=None, config_vars:dict[str,tuple[str,str]] = None, commands:dict[str,tuple[str,str]] = None):
         if strings is None:
             strings = {}
         self.name = name
+        """Name of this sequence."""
         self.display_name = display_name
+        """Display name of this sequence."""
         self.description = desc
+        """Description of this sequence."""
         self.version = version
+        """Version, standard version convention."""
         self.triggers = triggers
+        """Triggers defined for this sequence."""
         self.subseqs = subseqs
+        """Subsequences defined in this sequence."""
         self.strings = strings
+        """String pools defined in this sequence."""
+        self.env_vars = config_vars
+        """Environment variables used for configuring this sequence."""
+        self.commands = commands
+        """Commands registered for this sequence."""
 
     @classmethod
     def load_from_json(cls, json_data:str):
@@ -321,7 +333,27 @@ class TriggeredSequence:
         if 'timers' in data:
             for timer in data['timers']:
                 TriggeredSequence.register_timer(name, timer[0], timer[1])
-        return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings)
+        # load and init declared config vars
+        config_vars = {}
+        if 'config_vars' in data:
+            print(data['config_vars'])
+            for cfgvar in data['config_vars']:
+                var = cfgvar['name']
+                desc = cfgvar['display_name']
+                default = cfgvar['default']
+                config_vars[var] = (desc, default)
+                # set a default value if the var hasn't been set before
+                #if env_vars.EnvVar.get_scope(var, 0) is None:
+                #    env_vars.EnvVar.set_scope(var, 0, default)
+        # load and init declared config vars
+        commands = {}
+        if 'commands' in data:
+            for cmd, info in data['commands'].items():
+                desc= info['description']
+                subseq= info['subseq']
+                commands[cmd] = (desc, subseq)
+
+        return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings,config_vars,commands)
 
     async def run(self, message: TGMessage):
         """

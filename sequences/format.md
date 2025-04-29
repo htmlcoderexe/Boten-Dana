@@ -28,7 +28,8 @@ Each *Trigger* must have the following attributes:
 
 Additionally, the following attributes may also be present:
 
-* ``tag``: if present, the *Trigger* is only evaluated if the message is tagged with a matching *tag* (in the ``message_tags`` table).
+* ``tag``: if present, the *Trigger* is only evaluated if the message is tagged with a matching *tag* (in the ``message_events`` table).
+* ``raw``: if set, the raw string before processing such as removing punctuation is matched against.
 
 ## Subsequences
 
@@ -44,7 +45,6 @@ Each *Action* must have the following attributes:
 Additionally, the following attributes may also be present:
 
 * ``target``: if set, the *Action* will act upon the message the current message is a reply to. If the current message doesn't have a message it is replying to, the *Action* will return a value equal to its type with ``_no_target`` appended. Currently any value Python evaluates to ``True`` has this effect, but for the sake of forward compatibility, using the exact value of ``reply`` is recommended
-* ``raw``: if set, the raw string before processing such as removing punctuation is matched against.
 
 ## List of Trigger types
 

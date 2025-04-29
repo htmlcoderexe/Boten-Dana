@@ -813,6 +813,11 @@ async def chat_load():
     await datastuff.load_chats()
     print("DONE LOADING----------")
 
+async def reg_commands():
+    for seqname, seq in actions.TriggeredSequence.running_sequences.items():
+        for cmd,info in seq.commands.items():
+            await BotState.bot.set_my_commands((cmd,info[0]))
+
 
 def one_off_updateMDV2():
     quotes_r = BotState.DBLink.execute("SELECT qid, quote FROM qdb")
@@ -858,7 +863,7 @@ if __name__ == '__main__':
     datastuff.load_chats()
     # datastuff.quiz_refresh_stats()
     BotState.q = application.job_queue
-    # botstate.q.run_once(callback=chat_load,when=0)
+    BotState.q.run_once(callback=reg_commands,when=0)
     BotState.q.run_repeating(callback=everyminute, interval=1, first=1)
     BotState.q.run_repeating(callback=everyminute, interval=60, first=1)
 

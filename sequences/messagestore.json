@@ -71,8 +71,11 @@
     ],
     "exit": []
   },
-  "config_vars": {
-    "name": "pizda_frequency",
-    "display_name": "Шанс срабатывания пизды"
-  }
+  "config_vars": [
+    {
+      "name": "pizda_frequency",
+      "display_name": "Шанс срабатывания пизды1",
+      "default": "0.2"
+    }
+  ]
 }

@@ -22,6 +22,15 @@
       "target": "reply"
     }
   ],
+  "commands":
+    {
+      "status":
+      {
+        "description": "Показать статус бота.",
+        "subseq": "show_status"
+      }
+    }
+  ,
   "subseqs": {
     "clean_command": [
       {
@@ -147,5 +156,17 @@
     "cancel_kill_no_target": [
       "Нужно писать это в ответ на сообщение\\, которое боту нужно не удалять\\."
     ]
-  }
+  },
+    "config_vars": [
+    {
+      "name": "pizda_frequency",
+      "display_name": "Шанс срабатывания пизды2",
+      "default": "0.2"
+    },
+    {
+      "name": "std_delay",
+      "display_name": "Шанс срабатывания пизды3",
+      "default": "0.2"
+    }
+  ]
 }
