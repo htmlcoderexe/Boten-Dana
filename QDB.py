@@ -177,7 +177,7 @@ class Database:
         return Database.get_by_id(row[0])
 
 
-class ActionQDBSave(TriggeredAction):
+class ActionQDBSave(TriggeredAction, action_name="qdb_save"):
     """
     Saves to QDB
     param 0: variable to store the resulting ID in
@@ -226,7 +226,7 @@ class ActionQDBSave(TriggeredAction):
         return ""
 
 
-class ActionQDBUpvote(TriggeredAction):
+class ActionQDBUpvote(TriggeredAction, action_name="qdb_upvote"):
     """Modifies a given quote's score.
     param 0: quote ID
     param 1: delta
@@ -243,7 +243,8 @@ class ActionQDBUpvote(TriggeredAction):
         self.varstore[outvar] = q.upvote(delta)
         return ""
 
-class GetChatQuotes(TriggeredAction):
+
+class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
     """
     Gets quotes for a chat
     param 0: variable to store the quotes in
@@ -291,7 +292,7 @@ class GetChatQuotes(TriggeredAction):
         return ""
 
 
-class ActionQDBGetUserQuotes(TriggeredAction):
+class ActionQDBGetUserQuotes(TriggeredAction, action_name="qdb_get_user"):
     """
     Gets quotes for user
     param 0: userID
@@ -338,9 +339,3 @@ class ActionQDBGetUserQuotes(TriggeredAction):
             quotes = filtered_quotes[:amount]
         self.varstore[outvar] = quotes
         return ""
-
-
-TriggeredAction.register("qdb_save",ActionQDBSave)
-TriggeredAction.register("qdb_upvote",ActionQDBUpvote)
-TriggeredAction.register("qdb_get_user", ActionQDBGetUserQuotes)
-TriggeredAction.register("qdb_get_chat", GetChatQuotes)

@@ -39,7 +39,7 @@ class UserList:
         return False
 
 
-class ActionCheckUserList(TriggeredAction):
+class ActionCheckUserList(TriggeredAction, action_name="userlist_check"):
     """ Checks if a user is on a given list
     param 0: uid
     param 1: userlist name
@@ -53,7 +53,7 @@ class ActionCheckUserList(TriggeredAction):
         return ""
 
 
-class ActionUserListAdd(TriggeredAction):
+class ActionUserListAdd(TriggeredAction, action_name="userlist_add"):
     """ Adds a user to a given list
     param 0: uid
     param 1: userlist name
@@ -67,7 +67,7 @@ class ActionUserListAdd(TriggeredAction):
         return ""
 
 
-class ActionUserListRemove(TriggeredAction):
+class ActionUserListRemove(TriggeredAction, action_name="userlist_remove"):
     """ Removes a user from a given list
     param 0: uid
     param 1: userlist name
@@ -79,8 +79,3 @@ class ActionUserListRemove(TriggeredAction):
         outvar = self.get_param(2)
         self.varstore[outvar] = UserList.remove_user(uid, ulist)
         return ""
-
-
-TriggeredAction.register("userlist_check", ActionCheckUserList)
-TriggeredAction.register("userlist_add", ActionUserListAdd)
-TriggeredAction.register("userlist_remove", ActionUserListRemove)

@@ -92,7 +92,7 @@ class ScoreHelper:
         return res.fetchall()
 
 
-class ActionScoreBoard(TriggeredAction):
+class ActionScoreBoard(TriggeredAction, action_name="score_board"):
     """Shows a top scoreboard
     param 0: score to show
     param 1: number of winners
@@ -110,7 +110,7 @@ class ActionScoreBoard(TriggeredAction):
         return ""
 
 
-class ActionScoreUp(TriggeredAction):
+class ActionScoreUp(TriggeredAction, action_name="score_up"):
     """Ups a score
     param 0: uid
     param 1: score name
@@ -129,7 +129,7 @@ class ActionScoreUp(TriggeredAction):
         return ""
 
 
-class ActionScoreGet(TriggeredAction):
+class ActionScoreGet(TriggeredAction, action_name="score_get"):
     """Gets a score
     param 0: uid
     param 1: score name
@@ -143,8 +143,3 @@ class ActionScoreGet(TriggeredAction):
         score = ss.get(scorename)
         self.varstore[outvar] = score
         return ""
-
-
-TriggeredAction.register("score_up", ActionScoreUp)
-TriggeredAction.register("score_get", ActionScoreGet)
-TriggeredAction.register("score_board", ActionScoreBoard)

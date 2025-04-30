@@ -268,7 +268,7 @@ class MessagePool:
         return rows
 
 
-class SaveMessage(TriggeredAction):
+class SaveMessage(TriggeredAction, action_name="save_msg"):
     """Saves a message to the MessageStore
     param 0: message name
     """
@@ -292,7 +292,7 @@ class SaveMessage(TriggeredAction):
         return "savefail"
 
 
-class ReplaySavedMessage(TriggeredAction):
+class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
     """Replays a saved message.
     param 0: message name
     param 1: message TTL, -1 to keep
@@ -326,7 +326,7 @@ class ReplaySavedMessage(TriggeredAction):
         return ""
 
 
-class FetchFromPool(TriggeredAction):
+class FetchFromPool(TriggeredAction, action_name="fetch_pool"):
     """Fetches a message from a simple pool
     param 0: pool name
     param 1: Variable to store the fetched ID
@@ -338,8 +338,3 @@ class FetchFromPool(TriggeredAction):
         pool = MessagePool(pool_id=pool_id)
         self.varstore[out_var] = pool.fetch()
         return ""
-
-
-TriggeredAction.register("save_msg", SaveMessage)
-TriggeredAction.register("emit_saved_message", ReplaySavedMessage)
-TriggeredAction.register("fetch_pool", FetchFromPool)

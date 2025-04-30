@@ -408,7 +408,7 @@ class QuizPlaySession:
         botutils.schedule_kill(self.chat_id, self.start_message, 0)
 
 
-class RunQuiz(TriggeredAction):
+class RunQuiz(TriggeredAction, action_name="quiz_begin"):
     """Begins a quiz.
     """
 
@@ -423,7 +423,7 @@ class RunQuiz(TriggeredAction):
         return ""
 
 
-class TryStartQuiz(TriggeredAction):
+class TryStartQuiz(TriggeredAction, action_name="quiz_check_clear"):
     """Checks if a quiz may be launched
     """
 
@@ -443,7 +443,7 @@ class TryStartQuiz(TriggeredAction):
         return ""
 
 
-class FetchEvents(TriggeredAction):
+class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
     """Fetches quiz runner commands.
     param 0: variable to store the events in.
     """
@@ -460,7 +460,7 @@ class FetchEvents(TriggeredAction):
         return ""
 
 
-class ProcessEvent(TriggeredAction):
+class ProcessEvent(TriggeredAction, action_name="quiz_do_plan"):
     """Processes a single event.
     param 0: variable storing the events.
     param 1: variable to store the command type
@@ -494,7 +494,7 @@ class ProcessEvent(TriggeredAction):
         return ""
 
 
-class FinishQuiz(TriggeredAction):
+class FinishQuiz(TriggeredAction, action_name="quiz_finish"):
     """
     Finishes up a quiz session.
     param 0: session ID
@@ -511,7 +511,7 @@ class FinishQuiz(TriggeredAction):
         return ""
 
 
-class FetchQuestion(TriggeredAction):
+class FetchQuestion(TriggeredAction, action_name="quiz_fetch_question"):
     """
     Fetches a single question.
     param 0: Quiz ID
@@ -528,7 +528,7 @@ class FetchQuestion(TriggeredAction):
         return ""
 
 
-class FetchQuiz(TriggeredAction):
+class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
     """
     Fetches a Quiz
     param 0: Quiz ID
@@ -543,7 +543,7 @@ class FetchQuiz(TriggeredAction):
         return ""
 
 
-class RegisterPoll(TriggeredAction):
+class RegisterPoll(TriggeredAction, action_name="quiz_register_poll"):
     """
     Associates a specific Poll with a specific Question in a Session.
     param 0: session ID
@@ -564,11 +564,3 @@ class RegisterPoll(TriggeredAction):
 
 # TODO:  some sort of a ticking trigger
 # TODO: editing actions and commands
-TriggeredAction.register("quiz_check_clear", TryStartQuiz)
-TriggeredAction.register("quiz_begin", RunQuiz)
-TriggeredAction.register("quiz_finish", FinishQuiz)
-TriggeredAction.register("quiz_fetch_question", FetchQuestion)
-TriggeredAction.register("quiz_fetch_quiz", FetchQuiz)
-TriggeredAction.register("quiz_get_plan", FetchEvents)
-TriggeredAction.register("quiz_do_plan", ProcessEvent)
-TriggeredAction.register("quiz_register_poll", RegisterPoll)

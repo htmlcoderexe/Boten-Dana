@@ -159,6 +159,13 @@ class TriggeredAction:
     def register(name:str, cls):
         TriggeredAction.registry[name] = cls
 
+    # noinspection PyMethodOverriding
+    def __init_subclass__(cls, action_name:str, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.action_name = action_name
+        print(f"Registered <{cls.__name__}> as <{action_name}>.")
+        TriggeredAction.register(action_name, cls)
+
     def __init__(self,seq:str, subseq:str,a_type:str, data:list[str], target_reply:bool):
         self.data = data
         """Action param"""
@@ -307,14 +314,14 @@ class TriggeredSequence:
 
     def md2info(self) -> SequenceMd2Info:
         info = SequenceMd2Info(botutils.MD(self.name), botutils.MD(self.display_name),botutils.MD(self.description),botutils.MD(f"{self.version[0]}.{self.version[1]}.{self.version[2]}"))
-        print(info.__dict__)
+        # print(info.__dict__)
         return info
 
     @classmethod
     def load_from_json(cls, json_data:str):
         """"""
         data = json.loads(json_data)
-        print(data)
+        # print(data)
         name = data['name']
         disp_name = data['display_name']
         desc = data['description']
@@ -324,7 +331,7 @@ class TriggeredSequence:
         triggerlist = data['triggers']
         seq_triggers = []
         for trig in triggerlist:
-            print(trig)
+            # print(trig)
             tseq = name
             ttype = trig['type']
             tsubseq = trig['subseq']
@@ -332,8 +339,8 @@ class TriggeredSequence:
             ttag = "" if 'tag' not in trig else trig['tag']
             rawmode = False if 'raw' not in trig else True
             seq_triggers.append(Trigger(tseq,tsubseq,ttype,tparams,ttag, rawmode).construct())
-        print(triggerlist)
-        print(seq_triggers)
+        # print(triggerlist)
+        # print(seq_triggers)
         # load subseqs
         subseqs = {}
         subseqlist = data['subseqs'].items()
@@ -356,7 +363,7 @@ class TriggeredSequence:
         # load and init declared config vars
         config_vars = {}
         if 'config_vars' in data:
-            print(data['config_vars'])
+            # print(data['config_vars'])
             for cfgvar in data['config_vars']:
                 var = cfgvar['name']
                 cfg_desc = cfgvar['display_name']
@@ -545,7 +552,7 @@ class MockMessage:
 #     Output Actions
 # ###############################################
 
-class EmitText(TriggeredAction):
+class EmitText(TriggeredAction, action_name="emit_text"):
     """Responds from an internal pool
     param 0: pool to use, can be *pointer
     param 1: message TTL, -1 to keep
@@ -570,7 +577,7 @@ class EmitText(TriggeredAction):
         return ""
 
 
-class EmitPoll(TriggeredAction):
+class EmitPoll(TriggeredAction, action_name="emit_poll"):
     """Posts a poll.
     param 0: text of the poll.
     param 1: variable containing answer options (list of string!)
@@ -600,15 +607,12 @@ class EmitPoll(TriggeredAction):
             self.varstore["__last_msg"] = poll.id
         return ""
 
-
-TriggeredAction.register("emit_text", EmitText)
-TriggeredAction.register("emit_poll", EmitPoll)
 # ###############################################
 #     Flow Control Actions
 # ###############################################
 
 
-class GoSub(TriggeredAction):
+class GoSub(TriggeredAction, action_name="gosub"):
     """Sets a Subsequence to follow next.
     param 0: Subsequence name or *pointer to one.
     """
@@ -616,7 +620,7 @@ class GoSub(TriggeredAction):
         return self.get_param(0)
 
 
-class BranchIfEquals(TriggeredAction):
+class BranchIfEquals(TriggeredAction, action_name="if_eq"):
     """
     Compares two values, then triggers one of the specified Subsequences depending on whether the values are equaol or not.
     param 0: first value
@@ -632,14 +636,12 @@ class BranchIfEquals(TriggeredAction):
         return equal if a == b else not_equal
 
 
-TriggeredAction.register("gosub", GoSub)
-TriggeredAction.register("if_eq", BranchIfEquals)
 # ###############################################
 #     Variable manipulation Actions
 # ###############################################
 
 
-class Concat(TriggeredAction):
+class Concat(TriggeredAction, action_name="concat"):
     """Concatenates two values and stores the result
     param 0: first value
     param 1: second value
@@ -653,14 +655,12 @@ class Concat(TriggeredAction):
         return ""
 
 
-class Add(TriggeredAction):
+class Add(TriggeredAction, action_name="add"):
     """Adds two values and stores the result
     param 0: first value
     param 1: second value
     param 2: variable to write
     """
-    action_name = "add"
-
     async def run_action(self, message: TGMessage) -> str:
         a = self.get_int(0)
         b = self.get_int(1)
@@ -669,7 +669,7 @@ class Add(TriggeredAction):
         return ""
 
 
-class Count(TriggeredAction):
+class Count(TriggeredAction, action_name="count"):
     """Counts items in a given variable, then stores the results into a variable.
     param 0: Variable containing items to count.
     param 1: Variable to store the result into."""
@@ -684,7 +684,7 @@ class Count(TriggeredAction):
         return ""
 
 
-class ReadAttribute(TriggeredAction):
+class ReadAttribute(TriggeredAction, action_name="obj_read"):
     """Reads an attribute from an object stored in a variable and puts the result into another variable.
     param 0: Variable containing the object.
     param 1: Attribute to be read.
@@ -701,7 +701,7 @@ class ReadAttribute(TriggeredAction):
         return ""
 
 
-class LoadTriggerData(TriggeredAction):
+class LoadTriggerData(TriggeredAction, action_name="get_match"):
     """Loads trigger data into a var.
     param 0: Var to store to.
     """
@@ -712,7 +712,7 @@ class LoadTriggerData(TriggeredAction):
         return ""
 
 
-class FormatList(TriggeredAction):
+class FormatList(TriggeredAction, action_name="fmt_list"):
     """Takes a list and a format string, outputs formatted list into a variable.
     param 0: variable to take the list from
     param 1: format string pool
@@ -733,7 +733,7 @@ class FormatList(TriggeredAction):
         return ""
 
 
-class RollPercent(TriggeredAction):
+class RollPercent(TriggeredAction, action_name="roll_chance"):
     """Rolls a chance expressed as a fraction of 1
     param 0: chance as a float between 0 and 1
     param 1: variable to write True or False to
@@ -747,7 +747,7 @@ class RollPercent(TriggeredAction):
         return ""
 
 
-class GetEnv(TriggeredAction):
+class GetEnv(TriggeredAction, action_name="load_env"):
     """
 
     """
@@ -760,20 +760,12 @@ class GetEnv(TriggeredAction):
         return ""
 
 
-TriggeredAction.register("load_env",GetEnv)
-TriggeredAction.register("concat", Concat)
-TriggeredAction.register("count", Count)
-TriggeredAction.register("add", Add)
-TriggeredAction.register("obj_read", ReadAttribute)
-TriggeredAction.register("fmt_list", FormatList)
-TriggeredAction.register("roll_chance", RollPercent)
-TriggeredAction.register("get_match", LoadTriggerData)
 # ###############################################
 #     Message information Actions
 # ###############################################
 
 
-class GetUID(TriggeredAction):
+class GetUID(TriggeredAction, action_name="get_uid"):
     """Gets the userID out of the message
     param 0: variable to store the extracted userID
     """
@@ -787,7 +779,7 @@ class GetUID(TriggeredAction):
         self.varstore[outvar] = UserInfo.User.extract_uid(message)
 
 
-class GetUserInfo(TriggeredAction):
+class GetUserInfo(TriggeredAction, action_name="get_user"):
     """Gets the complete UserInfo object and stores it.
     param 0: userID
     param 1: variable to store the user object.
@@ -800,7 +792,7 @@ class GetUserInfo(TriggeredAction):
         return ""
 
 
-class CheckMessageType(TriggeredAction):
+class CheckMessageType(TriggeredAction, action_name="check_message_type"):
     """Checks if a message comes from a regular user, a bot,
     a channel or is a service message
     param 0: var_store variable to store the result in
@@ -825,7 +817,7 @@ class CheckMessageType(TriggeredAction):
         return ""
 
 
-class GetMessageID(TriggeredAction):
+class GetMessageID(TriggeredAction, action_name="get_msgid"):
     """Gets the message's ID.
     param 0: Variable to store the message ID.
     """
@@ -839,7 +831,7 @@ class GetMessageID(TriggeredAction):
         return ""
 
 
-class GetLoadedSequences(TriggeredAction):
+class GetLoadedSequences(TriggeredAction, action_name="get_seqs"):
     """
 
     param 0: variable to store the information
@@ -853,10 +845,7 @@ class GetLoadedSequences(TriggeredAction):
         return ""
 
 
-TriggeredAction.register("get_seqs",GetLoadedSequences)
-
-
-class Whois(TriggeredAction):
+class Whois(TriggeredAction, action_name="whois"):
     """Does a whois and responds one way or another
     param 0: variable prefix for the whois data
     """
@@ -878,17 +867,12 @@ class Whois(TriggeredAction):
         return ""
 
 
-TriggeredAction.register("check_message_type", CheckMessageType)
-TriggeredAction.register("get_uid",GetUID)
-TriggeredAction.register("get_user",GetUserInfo)
-TriggeredAction.register("get_msgid", GetMessageID)
-TriggeredAction.register("whois",Whois)
 # ###############################################
 #     Message manipulation Actions
 # ###############################################
 
 
-class RemoveMessage(TriggeredAction):
+class RemoveMessage(TriggeredAction, action_name="kill_msg"):
     """Erases a message
     param 0: time delay before removal
     """
@@ -902,7 +886,7 @@ class RemoveMessage(TriggeredAction):
         return ""
 
 
-class TagMessage(TriggeredAction):
+class TagMessage(TriggeredAction, action_name="tag_msg"):
     """
     Tags a message
     param 0: tag to use
@@ -925,10 +909,7 @@ class TagMessage(TriggeredAction):
         return ""
 
 
-TriggeredAction.register("tag_msg",TagMessage)
-
-
-class KeepMessage(TriggeredAction):
+class KeepMessage(TriggeredAction, action_name="keep_msg"):
     """Instructs the bot to not remove a message
     """
     async def run_action(self, message: TGMessage) -> str:
@@ -940,7 +921,7 @@ class KeepMessage(TriggeredAction):
         return ""
 
 
-class EditMessage(TriggeredAction):
+class EditMessage(TriggeredAction, action_name="edit_msg"):
     """Edits a message using text from String Pools
     param 0: StringPool name
     param 1: MessageID, if not set (0), uses message from trigger.
@@ -958,8 +939,3 @@ class EditMessage(TriggeredAction):
         await botstate.BotState.bot.edit_message_text(chat_id=message.chat_id, message_id=msgid, text=text,
                                                       parse_mode="MarkdownV2")
         return ""
-
-
-TriggeredAction.register("edit_msg",EditMessage)
-TriggeredAction.register("kill_msg", RemoveMessage)
-TriggeredAction.register("keep_msg", KeepMessage)
