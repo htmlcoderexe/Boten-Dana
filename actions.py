@@ -464,7 +464,7 @@ class TriggeredSequence:
         if subseq not in self.subseqs:
             print('Argh, no subseq "' + subseq + '" found in sequence "'+self.name+'"')
             return
-        print(f"--- entering <{subseq}> ---")
+        print(f"--- ENTRY POINT <{subseq}> ---")
         # init local variable store
         var_store = {'__bot_uid': botstate.BotState.botuid}
         # get a copy of the actions list
@@ -482,14 +482,24 @@ class TriggeredSequence:
                 action.matchdata = matchdata
                 # execute
                 print(f"{action.sequence}/{action.subseq}:{action.action} -> {action.data}")
-                result = await action.run_action(message)
+                result = str(await action.run_action(message))
                 # if non-empty result, try to run this as the new subseq
                 # immediately shift to the new subseq
-                if result and result in self.subseqs:
-                    # copy the new subseq and exit the iteration
-                    # this drops any remaining actions
-                    actions = self.subseqs[result][:]
-                    break
+                if result:
+                    if result in self.subseqs:
+                        # copy the new subseq and exit the iteration
+                        # this drops any remaining actions
+                        actions = self.subseqs[result][:]
+                        print(f"--- GOTO <{result}> ---")
+                        break
+                    elif result.startswith("*") and result.removeprefix("*") in self.subseqs:
+                        # put new subseq at the front, followed by the rest of current subseq
+                        # that way you get a CALL that returns
+                        result = result.removeprefix("*")
+                        actions.remove(action)
+                        actions = self.subseqs[result][:] + actions
+                        print(f"--- CALL <{result}> ---")
+                        break
                 # otherwise just remove this action from the original copy and keep going
                 actions.remove(action)
 
@@ -632,7 +642,15 @@ class GoSub(TriggeredAction, action_name="gosub"):
     param 0: Subsequence name or *pointer to one.
     """
     async def run_action(self, message: TGMessage) -> str:
-        return self.read_param(0)
+        return self.read_string(0)
+
+
+class Call(TriggeredAction, action_name="call"):
+    """Sets a Subsequence to call, returning once finished.
+    param 0: Subsequence name or *pointer to one.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        return "*" + self.read_string(0)
 
 
 class BranchIfEquals(TriggeredAction, action_name="if_eq"):
