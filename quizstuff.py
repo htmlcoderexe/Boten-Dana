@@ -1,10 +1,12 @@
 import time
 
+import UserInfo
 import botutils
 import scores
 from actions import TriggeredAction
 from telegram import Message as TGMessage
 from botstate import BotState
+from edit_sessions import EditSession
 
 
 class Question:
@@ -167,11 +169,6 @@ class Quiz:
             BotState.write()
             self.questions.append(question)
             return
-        # insert the question
-        BotState.DBLink.execute("""
-                        INSERT INTO quiz_questions
-                        VALUES (?,?,?,?,?,?)
-                        """, (self.id, question.text, index, "|".join(question.choices), question.correct_answer,question.attachment))
         # update the question indices in the DB
         BotState.DBLink.execute("""
         UPDATE quiz_questions
@@ -180,6 +177,11 @@ class Quiz:
         AND ordinal >= ?
         """,(self.id, index))
         BotState.write()
+        # insert the question
+        BotState.DBLink.execute("""
+                                INSERT INTO quiz_questions
+                                VALUES (?,?,?,?,?,?)
+                                """, (self.id, question.text, index, "|".join(question.choices), question.correct_answer, question.attachment))
         # update this object
         self.questions.insert(index,question)
         # update question indices in this object
@@ -596,6 +598,91 @@ class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
 #######################################
 #   Operator commands
 #######################################
+#######################################
+#   Sessions
+#######################################
+
+class BeginQuizEditSession(TriggeredAction, action_name="quiz_begin_edit"):
+    """
+    Tries to start an edit session for a quiz, stores results.
+    param 0: quiz_id to edit
+    param 1: variable to store success/fail
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.get_pstr(0)
+        out_var = self.get_pstr(1)
+        uid = UserInfo.User.extract_uid(message)
+        EditSession.clear_old_sessions()
+        self.varstore[out_var] = EditSession.begin("quiz_edit", uid, quiz_id)
+        return ""
+
+
+class EndQuizEditSession(TriggeredAction, action_name="quiz_finish_edit"):
+    """
+    Tries to end an editing session for a quiz, stores results.
+    param 0: quiz_id to edit
+    param 1: variable to store success/fail
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        uid = UserInfo.User.extract_uid(message)
+        quiz_id = self.get_pstr(0)
+        out_var = self.get_pstr(1)
+        EditSession.clear_old_sessions()
+        self.varstore[out_var] = EditSession.end("quiz_edit", uid, quiz_id)
+        return ""
+
+
+class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
+    """
+    Checks session state and stores "none" if no ongoing sessions,
+    "active" if session matching quiz ID exists,
+    "busy" if there are ongoing sessions but noen match this ID.
+    param 0: quiz_id to edit
+    param 1: variable to store result
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.get_pstr(0)
+        out_var = self.get_pstr(1)
+        uid = UserInfo.User.extract_uid(message)
+        EditSession.clear_old_sessions()
+        sessions = EditSession.find_sessions("quiz_edit", uid)
+        result = ""
+        if len(sessions) == 0:
+            result = "none"
+        elif quiz_id in sessions:
+            EditSession.refresh("quiz_edit",uid, quiz_id)
+            result = "active"
+        else:
+            result = "busy"
+        self.varstore[out_var] = result
+        return ""
+
+
+class FindQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
+    """
+    Checks session state and stores num
+    param 0: variable to store result
+    param 1: variable to store quiz id if found
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        out_var = self.get_pstr(0)
+        out_var_quiz = self.get_pstr(1)
+        uid = UserInfo.User.extract_uid(message)
+        EditSession.clear_old_sessions()
+        # find any sessions by user
+        sessions = EditSession.find_sessions("quiz_edit", uid)
+        # if exactly one found, return it
+        if len(sessions) == 1:
+            EditSession.refresh("quiz_edit",uid, sessions[0])
+            self.varstore[out_var_quiz] = sessions[0]
+        self.varstore[out_var] = len(sessions)
+        return ""
+
+
+#######################################
+#   Quiz manipulation
+#######################################
+
 
 class CreateQuiz(TriggeredAction, action_name="quiz_create"):
     """
@@ -608,34 +695,22 @@ class CreateQuiz(TriggeredAction, action_name="quiz_create"):
         out_var = self.get_pstr(1)
         quiz = Quiz.create(uid,quiz_id,"(Без названия)",45)
         self.varstore[out_var] = quiz
+        if quiz is not None:
+            EditSession.begin("quiz_edit",uid,quiz.id)
         return ""
-
-
-
-class BeginEditSession(TriggeredAction, action_name="quiz_begin_edit"):
-    """
-
-    """
-    async def run_action(self, message: TGMessage) -> str:
-        pass
-
-
-class EndEditSession(TriggeredAction, action_name="quiz_finish_edit"):
-    """
-
-    """
-
-    async def run_action(self, message: TGMessage) -> str:
-        pass
 
 
 class RenameQuiz(TriggeredAction, action_name="quiz_rename"):
     """
-
+    Renames a given quiz.
+    param 0: quiz_id
     """
-
     async def run_action(self, message: TGMessage) -> str:
-        pass
+        newname = self.matchdata
+        quiz_id = self.get_pstr(0)
+        # more error checking not needed at this point
+        Quiz.load(quiz_id).rename(newname)
+        return ""
 
 
 class SetDefaultQuestionTime(TriggeredAction, action_name="quiz_set_default_time"):
@@ -650,6 +725,44 @@ class SetDefaultQuestionTime(TriggeredAction, action_name="quiz_set_default_time
 ##########################################
 #   Question editing
 ##########################################
+
+
+class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
+    """
+    param 0: quiz ID to add to
+    param 1: variable to store function outcome
+    param 2: variable to store question number (-1 if failed)
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.get_pstr(0)
+        uid = message.from_user.id
+        out_var = self.get_pstr(1)
+        out_var_question = self.get_pstr(2)
+        self.varstore[out_var_question] = -1
+        result =""
+        if message.reply_to_message is None:
+            self.varstore[out_var] = "must_reply"
+            return ""
+        if message.reply_to_message.poll is None:
+            self.varstore[out_var] = "no_poll"
+            return ""
+        poll = message.reply_to_message.poll
+        if poll.correct_option_id is None:
+            self.varstore[out_var] = "wrong_poll"
+            return ""
+        quiz = Quiz.load(quiz_id)
+        if quiz is None:
+            self.varstore[out_var] = "quiz_not_found"
+            return ""
+        q = Question(quiz_id, -1, poll.question, [option.text for option in poll.options], poll.correct_option_id,"")
+        quiz.add_question(q, -1)
+        self.varstore[out_var_question] = len(quiz.questions) -1
+        self.varstore[out_var] = "ok"
+        return ""
+
+
+
+
 
 
 class SetSpecificQuestionTime(TriggeredAction, action_name="quiz_question_time"):
