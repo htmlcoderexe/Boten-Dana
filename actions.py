@@ -210,6 +210,21 @@ class TriggeredAction:
             return self.varstore[var_name]
         return value
 
+    def write_param(self, index: int, value):
+        """
+        Writes to var_store given variable
+        @param index: param containing the variable name
+        @param value: value to write
+        @return:
+        """
+        print("Attempting to write to var_store")
+        var_name = self.read_string(index)
+        if not var_name == "":
+            self.varstore[var_name] = value
+            print(f"Wrote to <{var_name}> in var_store.")
+        else:
+            print(f"Failed to write: string issue, probably.")
+
     def read_param(self, index: int):
         """
         Fetches a single param at a specific index.
