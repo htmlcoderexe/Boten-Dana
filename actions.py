@@ -648,7 +648,11 @@ class BranchIfEquals(TriggeredAction, action_name="if_eq"):
         b = self.read_param(1)
         equal = self.read_param(2)
         not_equal = self.read_param(3)
-        return equal if a == b else not_equal
+        if a == b:
+            print(f"Values are equal, taking branch <{equal}>.")
+            return equal
+        print(f"Values are not equal, taking branch <{not_equal}>.")
+        return not_equal
 
 
 # ###############################################

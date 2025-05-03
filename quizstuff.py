@@ -85,10 +85,10 @@ class Quiz:
         question_time = float(row[3])
         # fetch the questions
         res = BotState.DBLink.execute("""
-            SELECT quiz_name, ordinal, question, options, correct, extraid
+            SELECT quiz_name, ordinal, question, options, correct_option, extraid
             FROM quiz_questions
             WHERE quiz_name = ?
-            SORT BY ordinal ASC
+            ORDER BY ordinal ASC
             """, (quizid,))
         rows = res.fetchall()
         qlist = []
@@ -632,7 +632,7 @@ class EndQuizEditSession(TriggeredAction, action_name="quiz_finish_edit"):
         return ""
 
 
-class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
+class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_sessions"):
     """
     Checks session state and stores "none" if no ongoing sessions,
     "active" if session matching quiz ID exists,
@@ -658,7 +658,7 @@ class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
         return ""
 
 
-class FindQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
+class FindQuizEditSession(TriggeredAction, action_name="quiz_find_session"):
     """
     Checks session state and stores num
     param 0: variable to store result

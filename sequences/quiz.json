@@ -15,15 +15,75 @@
       "subseq": "main"
     },
     {
-      "type": "retval",
-      "params": [],
-      "subseq": "404"
+      "type": "text_prefix",
+      "params": ["викторина редактировать"],
+      "subseq": "quiz_edit"
     }
   ],
   "timers": [
     ["quiz_get_plan",5]
   ],
   "subseqs": {
+    "quiz_edit": [
+      {
+        "action": "get_match",
+        "params": ["quiz_id"]
+      },
+      {
+        "action": "quiz_find_session",
+        "params": ["session_count","session_id"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*session_count",0,"begin_editing",""]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*session_count",1,"check_if_current_is_same",""]
+      },
+      {
+        "action": "gosub",
+        "params": ["editing_in_progress"]
+      }
+    ],
+    "check_if_current_is_same": [
+      {
+        "action": "if_eq",
+        "params": ["*session_id","*quiz_id","","editing_in_progress"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["already_editing",-1]
+      },
+      {
+        "action": "gosub",
+        "params": ["begin_edit"]
+      }
+    ],
+    "editing_in_progress": [
+      {
+        "action": "emit_text",
+        "params": ["session_in_progress",-1]
+      }
+    ],
+    "begin_editing": [
+      {
+        "action": "quiz_fetch_quiz",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*quiz", null, "quiz_not_found",""]
+      },
+      {
+        "action": "quiz_begin_edit",
+        "params": ["*quiz_id", "session_started"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["session_started",-1]
+      }
+    ],
     "quiz_get_plan": [
       {
         "action": "quiz_get_plan",
@@ -165,8 +225,8 @@
   },
   "stringpools": {
     "ok": ["Пользователь {whois_usernick}\naka {usernicks}\nid {userid}\nпепяка: {userrep}{medals}\nпоследнее действие: {recent} назад\nпервое сообщение: {joindate}\n{isreturner}{quotes}\n    "],
-    "404": ["Да хуй знает, в первый раз вижу"],
-    "self": ["А я-то что? Я бот, отвали, противный."],
-    "nomessage": ["Ты про кого? Я тут всех знаю..."]
+    "session_in_progress": ["Невозможно начать \\- уже редактируются другие викторины\\."],
+    "session_started": ["Отлично\\, начинаем редактировать \\\"{quiz.title}\\\" \\."],
+    "already_editing": ["Уже и так редактируется эта викторина\\."]
   }
 }
