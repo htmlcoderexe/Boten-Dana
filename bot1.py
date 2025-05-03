@@ -123,7 +123,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                 msgbox = "а не знаю чё показывать, команда \"*викторина редактировать* _ID викторины_\" в помощь"
                 await context.bot.send_message(chat_id=chatid, text=msgbox, parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
-        case "редактировать": # --------- ACTION ADDED
+        case "редактировать": # --------- SEQUENCE ADDED ACTION ADDED
             if editing:
                 await context.bot.send_message(chat_id=chatid,
                                                text="Уже редактируется quiz \"{0}\", сначала завершите работу: `викторина завершить`".format(

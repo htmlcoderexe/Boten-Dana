@@ -17,13 +17,50 @@
     {
       "type": "text_prefix",
       "params": ["викторина редактировать"],
-      "subseq": "quiz_edit"
+      "subseq": "quiz_edit",
+      "raw": true
+    },
+    {
+      "type": "text_exact",
+      "params": ["викторина завершить работу"],
+      "subseq": "quiz_stop_edit"
     }
   ],
   "timers": [
     ["quiz_get_plan",5]
   ],
   "subseqs": {
+    "quiz_end_edit": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "quiz_finish_edit",
+        "params": ["quiz_id","nobodycares"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["done_editing", -1]
+      }
+    ],
+    "require_edit_session": [
+      {
+        "action": "quiz_find_session",
+        "params": ["session_count","quiz_id"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*session_count",1,"","must_have_session"]
+      }
+    ],
+    "must_have_session": [
+      {
+        "action": "emit_text",
+        "params": ["must_have_session",-1]
+      }
+
+    ],
     "quiz_edit": [
       {
         "action": "get_match",
@@ -54,10 +91,6 @@
       {
         "action": "emit_text",
         "params": ["already_editing",-1]
-      },
-      {
-        "action": "gosub",
-        "params": ["begin_edit"]
       }
     ],
     "editing_in_progress": [
@@ -227,6 +260,8 @@
     "ok": ["Пользователь {whois_usernick}\naka {usernicks}\nid {userid}\nпепяка: {userrep}{medals}\nпоследнее действие: {recent} назад\nпервое сообщение: {joindate}\n{isreturner}{quotes}\n    "],
     "session_in_progress": ["Невозможно начать \\- уже редактируются другие викторины\\."],
     "session_started": ["Отлично\\, начинаем редактировать \\\"{quiz.title}\\\" \\."],
-    "already_editing": ["Уже и так редактируется эта викторина\\."]
+    "already_editing": ["Уже и так редактируется эта викторина\\."],
+    "must_have_session": ["Необходимо выбрать викторину для редактирования\\."],
+    "done_editing": ["Редактирование завершено\\."]
   }
 }
