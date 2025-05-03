@@ -155,7 +155,7 @@ class Quiz:
         BotState.write()
         self.question_time = newtime
 
-    def add_question(self, question:Question, index:int = -1):
+    def add_question(self, question:Question, index:int = -1) -> int:
         """Adds a Question to the Quiz
         @param question: The Question to be added.
         @param index: Optional index to insert the question at. This will renumber the questions after it.
@@ -165,10 +165,12 @@ class Quiz:
             BotState.DBLink.execute("""
                 INSERT INTO quiz_questions
                 VALUES (?,?,?,?,?,?)
-                """, (self.id, question.text, len(self.questions), "|".join(question.choices), question.correct_answer, question.attachment))
+                """, (self.id, question.text,
+                      len(self.questions), "|".join(question.choices),
+                      question.correct_answer, question.attachment))
             BotState.write()
             self.questions.append(question)
-            return
+            return len(self.questions) - 1
         # update the question indices in the DB
         BotState.DBLink.execute("""
         UPDATE quiz_questions
@@ -179,14 +181,39 @@ class Quiz:
         BotState.write()
         # insert the question
         BotState.DBLink.execute("""
-                                INSERT INTO quiz_questions
-                                VALUES (?,?,?,?,?,?)
-                                """, (self.id, question.text, index, "|".join(question.choices), question.correct_answer, question.attachment))
+            INSERT INTO quiz_questions
+            VALUES (?,?,?,?,?,?)
+            """, (self.id, question.text,
+                  index, "|".join(question.choices),
+                  question.correct_answer, question.attachment))
         # update this object
         self.questions.insert(index,question)
         # update question indices in this object
         for ordinal, question in enumerate(self.questions):
             question.index = ordinal
+        return index
+
+    def replace_question(self, question:Question, index:int) -> bool:
+        """
+        Replaces a specific question.
+        @param question: Replacement
+        @param index: Index to replace
+        @return: True on success, False on failure
+        """
+        if index >= len(self.questions):
+            return False
+        BotState.DBLink.execute("""
+            DELETE FROM quiz_questions
+            WHERE quiz_name = ?
+            AND ordinal = ?""", (self.id, index))
+        BotState.DBLink.execute("""
+            INSERT INTO quiz_questions
+            VALUES (?,?,?,?,?,?)
+            """, (self.id, question.text,
+                  index, "|".join(question.choices),
+                  question.correct_answer, question.attachment))
+        self.questions[index] = question
+        return True
 
     def remove_question(self, index:int):
         """
@@ -201,11 +228,11 @@ class Quiz:
         AND ordinal = ?""",(self.id, index))
         # update indices in DB
         BotState.DBLink.execute("""
-                UPDATE quiz_questions
-                SET ordinal = ordinal - 1
-                WHERE quiz_name = ?
-                AND ordinal > ?
-                """, (self.id, index))
+            UPDATE quiz_questions
+            SET ordinal = ordinal - 1
+            WHERE quiz_name = ?
+            AND ordinal > ?
+            """, (self.id, index))
         # update this object
         self.questions.pop(index)
         # update question indices in this object
@@ -731,11 +758,18 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
     """
     param 0: quiz ID to add to
     param 1: variable to store function outcome
-    param 2: variable to store question number (-1 if failed)
+    param 2: in, out variable to store question number,
+        in: -1 to add the question at the end, else the question is added under that number
+        out: -1 if the question was not added, else the number actually assigned to the question
+    param 3: true if the question replaces an existing one, false if it is inserted.
     """
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
         uid = message.from_user.id
+        replace = bool(self.read_int(3))
+        # get desired index
+        question_index = self.read_int(2)
+        # pre-load failure
         self.write_param(2, -1)
         result =""
         if message.reply_to_message is None:
@@ -752,9 +786,20 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
         if quiz is None:
             self.write_param(1,"quiz_not_found")
             return ""
+        # prepare the question
         q = Question(quiz_id, -1, poll.question, [option.text for option in poll.options], poll.correct_option_id,"")
-        quiz.add_question(q, -1)
-        self.write_param(2,len(quiz.questions) -1)
+        # if set to replace try to do it
+        if replace:
+            if quiz.replace_question(q, question_index):
+                self.write_param(2, question_index)
+                self.write_param(1,"ok")
+                return ""
+            # write error on fail
+            self.write_param(1, "replace_out_of_range")
+            return ""
+        # else insert question as needed and get the resulting number
+        question_index = quiz.add_question(q, question_index)
+        self.write_param(2,question_index)
         self.write_param(1,"ok")
         return ""
 
