@@ -147,7 +147,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                     await context.bot.send_message(chat_id=chatid, text="НЕТУ ТАКОЙ!!11один", parse_mode='Markdown',
                                                    reply_to_message_id=upd.message.id)
 
-        case "создать": # ---------------- ACTION ADDED
+        case "создать": # ---------------- SEQUENCE ADDED ACTION ADDED
             datastuff.create_quiz(userid=userid, quizid=trail2)
             datastuff.begin_edit_session(userid=userid, name="quiz_edit " + trail2)
             await context.bot.send_message(chat_id=chatid, text="quiz \"" + trail2 + "\" был created!!",
@@ -223,7 +223,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
         case "запустить":
             print("starting quiz")
             await datastuff.quiz_start(chatid=chatid, context=context, quizid=trail2)
-        case "завершить": # ---------- ACTION ADDED
+        case "завершить": # ---------- SEQUENCE ADDED ACTION ADDED
             sessions = datastuff.find_edit_sessions(userid)
             for session in sessions:
                 sesstype, params = session.split(" ", 1)

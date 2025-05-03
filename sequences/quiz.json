@@ -21,6 +21,18 @@
       "raw": true
     },
     {
+      "type": "text_prefix",
+      "params": ["викторина создать"],
+      "subseq": "quiz_create",
+      "raw": true
+    },
+    {
+      "type": "text_prefix",
+      "params": ["викторина назвать"],
+      "subseq": "quiz_rename",
+      "raw": true
+    },
+    {
       "type": "text_exact",
       "params": ["викторина завершить работу"],
       "subseq": "quiz_end_edit"
@@ -30,6 +42,32 @@
     ["quiz_get_plan",5]
   ],
   "subseqs": {
+    "quiz_create": [
+      {
+        "action": "if_eq",
+        "params": ["*session_count",0,"","editing_in_progress"]
+      },
+      {
+        "action": "get_match",
+        "params": ["quiz_id"]
+      },
+      {
+        "action": "quiz_create",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*quiz", null, "quiz_already_exists",""]
+      },
+      {
+        "action": "emit_text",
+        "params": ["quiz_created"]
+      },
+      {
+        "action": "quiz_begin_edit",
+        "params": ["*quiz_id","edit_session"]
+      }
+    ],
     "quiz_end_edit": [
       {
         "action": "call",
@@ -43,6 +81,39 @@
         "action": "emit_text",
         "params": ["done_editing", -1]
       }
+    ],
+    "quiz_rename": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "get_match",
+        "params": ["new_name"]
+      },
+      {
+        "action": "count",
+        "params": ["new_name", "name_length"]
+      },
+      {
+        "action": "if_gte",
+        "params": ["*name_length",4,"","name_too_short"]
+      },
+      {
+        "action": "quiz_rename",
+        "params": ["*quiz_id","*new_name"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["quiz_renamed",-1]
+      }
+    ],
+    "name_too_short": [
+      {
+        "action": "emit_text",
+        "params": ["name_too_short",-1]
+      }
+
     ],
     "require_edit_session": [
       {
@@ -262,6 +333,9 @@
     "session_started": ["Отлично\\, начинаем редактировать \\\"{quiz.title}\\\" \\."],
     "already_editing": ["Уже и так редактируется эта викторина\\."],
     "must_have_session": ["Необходимо выбрать викторину для редактирования\\."],
-    "done_editing": ["Редактирование завершено\\."]
+    "done_editing": ["Редактирование завершено\\."],
+    "quiz_created": ["Викторина создана\\."],
+    "name_too_short": ["Название \\\"{new_name}\\\" слишком короткое\\, требуется минимум 4 знаков\\."],
+    "quiz_renamed": ["Викторина теперь называется __\\\"{new_name}\\\"__\\."]
   }
 }
