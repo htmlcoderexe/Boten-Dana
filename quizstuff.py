@@ -736,28 +736,26 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
         uid = message.from_user.id
-        out_var = self.read_string(1)
-        out_var_question = self.read_string(2)
-        self.varstore[out_var_question] = -1
+        self.write_param(2, -1)
         result =""
         if message.reply_to_message is None:
-            self.varstore[out_var] = "must_reply"
+            self.write_param(1,"must_reply")
             return ""
         if message.reply_to_message.poll is None:
-            self.varstore[out_var] = "no_poll"
+            self.write_param(1,"no_poll")
             return ""
         poll = message.reply_to_message.poll
         if poll.correct_option_id is None:
-            self.varstore[out_var] = "wrong_poll"
+            self.write_param(1,"wrong_poll")
             return ""
         quiz = Quiz.load(quiz_id)
         if quiz is None:
-            self.varstore[out_var] = "quiz_not_found"
+            self.write_param(1,"quiz_not_found")
             return ""
         q = Question(quiz_id, -1, poll.question, [option.text for option in poll.options], poll.correct_option_id,"")
         quiz.add_question(q, -1)
-        self.varstore[out_var_question] = len(quiz.questions) -1
-        self.varstore[out_var] = "ok"
+        self.write_param(2,len(quiz.questions) -1)
+        self.write_param(1,"ok")
         return ""
 
 
