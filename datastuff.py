@@ -1166,7 +1166,7 @@ def begin_edit_session(userid: int, name: string):
 
 # QUIZ STUFF:QUIZZES
 
-def create_quiz(userid: int, quizid: string):
+def XX__create_quiz(userid: int, quizid: string):
     BotState.DBLink.execute("""
     INSERT INTO quizzes
     VALUES (?,?,?,?,?)

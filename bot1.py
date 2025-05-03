@@ -205,6 +205,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
             if upd.message.reply_to_message and upd.message.reply_to_message.poll:
                 poll = upd.message.reply_to_message.poll
                 print(poll)
+
                 options = [o['text'] for o in poll.options]
                 question = poll.question
                 if commands[2]:

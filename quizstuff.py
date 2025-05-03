@@ -98,6 +98,26 @@ class Quiz:
                 qlist.append(Question(*qdata))
         return cls(quizid,owner_id,creation_time,title,question_time,qlist)
 
+    @classmethod
+    def create(cls, creator:int, quiz_id:str, title:str, timeout:int):
+        """
+        The quiz will be created.
+        @param creator:
+        @param quiz_id:
+        @param title:
+        @param timeout:
+        @return:
+        """
+        quiz = cls.load(quiz_id)
+        if quiz:
+            return None
+        BotState.DBLink.execute("""
+        INSERT INTO quizzes
+        VALUES (?,?,?,?,?)
+        """, (creator, time.time(), title, timeout, quiz_id))
+        BotState.write()
+        return cls.load(quiz_id)
+
     @staticmethod
     def find_by_owner(owner_id:int) -> list[str]:
         """
@@ -407,20 +427,9 @@ class QuizPlaySession:
             WHERE quiz_session_id = ?""", (1, self.id))
         botutils.schedule_kill(self.chat_id, self.start_message, 0)
 
-
-class RunQuiz(TriggeredAction, action_name="quiz_begin"):
-    """Begins a quiz.
-    """
-
-    async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_param(0)
-        starting_message = int(self.get_param(1))
-
-        chat_id = message.chat_id
-        quiz = Quiz(quiz_id)
-        session = QuizPlaySession.start(quiz_id, chat_id, starting_message)
-        session.write_plan(len(quiz.questions), quiz.question_time)
-        return ""
+##############################
+#   Running
+##############################
 
 
 class TryStartQuiz(TriggeredAction, action_name="quiz_check_clear"):
@@ -443,6 +452,21 @@ class TryStartQuiz(TriggeredAction, action_name="quiz_check_clear"):
         return ""
 
 
+class RunQuiz(TriggeredAction, action_name="quiz_begin"):
+    """Begins a quiz.
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.get_param(0)
+        starting_message = int(self.get_param(1))
+
+        chat_id = message.chat_id
+        quiz = Quiz(quiz_id)
+        session = QuizPlaySession.start(quiz_id, chat_id, starting_message)
+        session.write_plan(len(quiz.questions), quiz.question_time)
+        return ""
+
+
 class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
     """Fetches quiz runner commands.
     param 0: variable to store the events in.
@@ -457,6 +481,25 @@ class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
             WHERE time < ?""", (now,))
         events = res.fetchall()
         self.varstore[outvar] = events
+        return ""
+
+
+class RegisterPoll(TriggeredAction, action_name="quiz_register_poll"):
+    """
+    Associates a specific Poll with a specific Question in a Session.
+    param 0: session ID
+    param 1: poll ID
+    param 2: question number
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        sid = self.get_param(0)
+        poll_id = self.get_param(1)
+        idx = self.get_param(2)
+        session = QuizPlaySession.load(sid)
+        BotState.DBLink.execute("""
+            INSERT INTO quiz_replytracker
+            VALUES (?,?,?,?,?,?)""", (sid, poll_id, session.quiz_id, idx, time.time(), self.varstore["__last_msg"]))
+        BotState.write()
         return ""
 
 
@@ -510,6 +553,10 @@ class FinishQuiz(TriggeredAction, action_name="quiz_finish"):
         self.varstore[out_var] = quiz_results
         return ""
 
+##################################
+#   Access methods
+##################################
+
 
 class FetchQuestion(TriggeredAction, action_name="quiz_fetch_question"):
     """
@@ -543,24 +590,82 @@ class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
         return ""
 
 
-class RegisterPoll(TriggeredAction, action_name="quiz_register_poll"):
+# TODO:  some sort of a ticking trigger
+# TODO: editing actions and commands
+
+#######################################
+#   Operator commands
+#######################################
+
+class CreateQuiz(TriggeredAction, action_name="quiz_create"):
     """
-    Associates a specific Poll with a specific Question in a Session.
-    param 0: session ID
-    param 1: poll ID
-    param 2: question number
+    param 0: quiz ID
+    param 1: variable to store results
     """
     async def run_action(self, message: TGMessage) -> str:
-        sid = self.get_param(0)
-        poll_id = self.get_param(1)
-        idx = self.get_param(2)
-        session = QuizPlaySession.load(sid)
-        BotState.DBLink.execute("""
-            INSERT INTO quiz_replytracker
-            VALUES (?,?,?,?,?,?)""", (sid, poll_id, session.quiz_id, idx, time.time(), self.varstore["__last_msg"]))
-        BotState.write()
+        quiz_id = self.get_pstr(0)
+        uid = message.from_user.id
+        out_var = self.get_pstr(1)
+        quiz = Quiz.create(uid,quiz_id,"(Без названия)",45)
+        self.varstore[out_var] = quiz
         return ""
 
 
-# TODO:  some sort of a ticking trigger
-# TODO: editing actions and commands
+
+class BeginEditSession(TriggeredAction, action_name="quiz_begin_edit"):
+    """
+
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        pass
+
+
+class EndEditSession(TriggeredAction, action_name="quiz_finish_edit"):
+    """
+
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        pass
+
+
+class RenameQuiz(TriggeredAction, action_name="quiz_rename"):
+    """
+
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        pass
+
+
+class SetDefaultQuestionTime(TriggeredAction, action_name="quiz_set_default_time"):
+    """
+
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        pass
+
+
+##########################################
+#   Question editing
+##########################################
+
+
+class SetSpecificQuestionTime(TriggeredAction, action_name="quiz_question_time"):
+    """
+
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        pass
+
+
+class QuestionAttach(TriggeredAction, action_name="quiz_question_attach"):
+    """
+
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        pass
+
