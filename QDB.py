@@ -184,8 +184,8 @@ class ActionQDBSave(TriggeredAction, action_name="qdb_save"):
     param 1: variable to store the outcome
     """
     async def run_action(self, message: TGMessage) -> str:
-        idvar = self.get_param(0)
-        resultvar = self.get_param(1)
+        idvar = self.read_param(0)
+        resultvar = self.read_param(1)
         uid = UserInfo.User.extract_uid(message)
         if self.target_reply:
             if not message.reply_to_message:
@@ -232,9 +232,9 @@ class ActionQDBUpvote(TriggeredAction, action_name="qdb_upvote"):
     param 1: delta
     param 2: variable to store the new score of the quote"""
     async def run_action(self, message: TGMessage) -> str:
-        qid = int(self.get_param(0))
-        delta = int(self.get_param(1))
-        outvar = self.get_param(2)
+        qid = int(self.read_param(0))
+        delta = int(self.read_param(1))
+        outvar = self.read_param(2)
         q = Database.get_by_id(qid)
         if not q:
             self.varstore[outvar] = -1
@@ -255,11 +255,11 @@ class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
     """
     async def run_action(self, message: TGMessage) -> str:
         chatid = message.chat_id
-        outvar = self.get_param(0)
-        amount = int(self.get_param(1))
-        page = max(0, self.get_int(2) - 1)
-        min_score = int(self.get_param(3))
-        sortby = self.get_param(5)
+        outvar = self.read_param(0)
+        amount = int(self.read_param(1))
+        page = max(0, self.read_int(2) - 1)
+        min_score = int(self.read_param(3))
+        sortby = self.read_param(5)
         # constrain the options
         if sortby not in ("score","newest","oldest","random"):
             sortby = "oldest"
@@ -303,15 +303,15 @@ class ActionQDBGetUserQuotes(TriggeredAction, action_name="qdb_get_user"):
     param 5: sorting mode: "score", "newest", "oldest", random
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = int(self.get_param(0))
-        outvar = self.get_param(1)
-        amount = int(self.get_param(2))
-        scope = self.get_param(3)
+        uid = int(self.read_param(0))
+        outvar = self.read_param(1)
+        amount = int(self.read_param(2))
+        scope = self.read_param(3)
         # ensure scope is fixed
         if scope not in ("global", "local"):
             scope = "global"
-        min_score = int(self.get_param(4))
-        sortby = self.get_param(5)
+        min_score = int(self.read_param(4))
+        sortby = self.read_param(5)
         # constrain the options
         if sortby not in ("score","newest","oldest","random"):
             sortby = "oldest"

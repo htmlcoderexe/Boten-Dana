@@ -439,8 +439,8 @@ class TryStartQuiz(TriggeredAction, action_name="quiz_check_clear"):
     """
 
     async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_param(0)
-        outvar = self.get_param(1)
+        quiz_id = self.read_param(0)
+        outvar = self.read_param(1)
 
         chat_id = message.chat_id
         if QuizPlaySession.check_ongoing(chat_id):
@@ -459,8 +459,8 @@ class RunQuiz(TriggeredAction, action_name="quiz_begin"):
     """
 
     async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_param(0)
-        starting_message = int(self.get_param(1))
+        quiz_id = self.read_param(0)
+        starting_message = int(self.read_param(1))
 
         chat_id = message.chat_id
         quiz = Quiz(quiz_id)
@@ -474,7 +474,7 @@ class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
     param 0: variable to store the events in.
     """
     async def run_action(self, message: TGMessage) -> str:
-        outvar = self.get_param(0)
+        outvar = self.read_param(0)
         events = []
         now = time.time()
         res = BotState.DBLink.execute("""
@@ -494,9 +494,9 @@ class RegisterPoll(TriggeredAction, action_name="quiz_register_poll"):
     param 2: question number
     """
     async def run_action(self, message: TGMessage) -> str:
-        sid = self.get_param(0)
-        poll_id = self.get_param(1)
-        idx = self.get_param(2)
+        sid = self.read_param(0)
+        poll_id = self.read_param(1)
+        idx = self.read_param(2)
         session = QuizPlaySession.load(sid)
         BotState.DBLink.execute("""
             INSERT INTO quiz_replytracker
@@ -513,10 +513,10 @@ class ProcessEvent(TriggeredAction, action_name="quiz_do_plan"):
     param 3: variable to store session ID
     """
     async def run_action(self, message: TGMessage) -> str:
-        events = self.varstore[self.get_param(0)]
-        out_type = self.get_param(1)
-        out_param = self.get_param(2)
-        out_session = self.get_param(3)
+        events = self.varstore[self.read_param(0)]
+        out_type = self.read_param(1)
+        out_param = self.read_param(2)
+        out_session = self.read_param(3)
 
         event = events.pop(0)
         sid, chat, time_stamp, quiz, cmd = event
@@ -546,8 +546,8 @@ class FinishQuiz(TriggeredAction, action_name="quiz_finish"):
     param 1: variable to store the results
     """
     async def run_action(self, message: TGMessage) -> str:
-        sid = self.get_param(0)
-        out_var = self.get_param(1)
+        sid = self.read_param(0)
+        out_var = self.read_param(1)
         # load the session
         session = QuizPlaySession.load(sid)
         # fetch the results and award medals
@@ -568,9 +568,9 @@ class FetchQuestion(TriggeredAction, action_name="quiz_fetch_question"):
     param 2: Variable to store the retrieved question
     """
     async def run_action(self, message: TGMessage) -> str:
-        qid = self.get_param(0)
-        idx = self.get_param(1)
-        out_var = self.get_param(2)
+        qid = self.read_param(0)
+        idx = self.read_param(1)
+        out_var = self.read_param(2)
         # get the question
         question = Question.fetch(qid,idx)
         self.varstore[out_var] = question
@@ -584,8 +584,8 @@ class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
     param 1: Variable to store the fetched Quiz in
     """
     async def run_action(self, message: TGMessage) -> str:
-        qid = self.get_param(0)
-        out_var = self.get_param(1)
+        qid = self.read_param(0)
+        out_var = self.read_param(1)
         # get the quiz
         quiz = Quiz.load(qid)
         self.varstore[out_var] = quiz
@@ -609,8 +609,8 @@ class BeginQuizEditSession(TriggeredAction, action_name="quiz_begin_edit"):
     param 1: variable to store success/fail
     """
     async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_pstr(0)
-        out_var = self.get_pstr(1)
+        quiz_id = self.read_string(0)
+        out_var = self.read_string(1)
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
         self.varstore[out_var] = EditSession.begin("quiz_edit", uid, quiz_id)
@@ -625,8 +625,8 @@ class EndQuizEditSession(TriggeredAction, action_name="quiz_finish_edit"):
     """
     async def run_action(self, message: TGMessage) -> str:
         uid = UserInfo.User.extract_uid(message)
-        quiz_id = self.get_pstr(0)
-        out_var = self.get_pstr(1)
+        quiz_id = self.read_string(0)
+        out_var = self.read_string(1)
         EditSession.clear_old_sessions()
         self.varstore[out_var] = EditSession.end("quiz_edit", uid, quiz_id)
         return ""
@@ -641,8 +641,8 @@ class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
     param 1: variable to store result
     """
     async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_pstr(0)
-        out_var = self.get_pstr(1)
+        quiz_id = self.read_string(0)
+        out_var = self.read_string(1)
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
         sessions = EditSession.find_sessions("quiz_edit", uid)
@@ -665,8 +665,8 @@ class FindQuizEditSession(TriggeredAction, action_name="quiz_check_edit"):
     param 1: variable to store quiz id if found
     """
     async def run_action(self, message: TGMessage) -> str:
-        out_var = self.get_pstr(0)
-        out_var_quiz = self.get_pstr(1)
+        out_var = self.read_string(0)
+        out_var_quiz = self.read_string(1)
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
         # find any sessions by user
@@ -690,9 +690,9 @@ class CreateQuiz(TriggeredAction, action_name="quiz_create"):
     param 1: variable to store results
     """
     async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_pstr(0)
+        quiz_id = self.read_string(0)
         uid = message.from_user.id
-        out_var = self.get_pstr(1)
+        out_var = self.read_string(1)
         quiz = Quiz.create(uid,quiz_id,"(Без названия)",45)
         self.varstore[out_var] = quiz
         if quiz is not None:
@@ -707,7 +707,7 @@ class RenameQuiz(TriggeredAction, action_name="quiz_rename"):
     """
     async def run_action(self, message: TGMessage) -> str:
         newname = self.matchdata
-        quiz_id = self.get_pstr(0)
+        quiz_id = self.read_string(0)
         # more error checking not needed at this point
         Quiz.load(quiz_id).rename(newname)
         return ""
@@ -734,10 +734,10 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
     param 2: variable to store question number (-1 if failed)
     """
     async def run_action(self, message: TGMessage) -> str:
-        quiz_id = self.get_pstr(0)
+        quiz_id = self.read_string(0)
         uid = message.from_user.id
-        out_var = self.get_pstr(1)
-        out_var_question = self.get_pstr(2)
+        out_var = self.read_string(1)
+        out_var_question = self.read_string(2)
         self.varstore[out_var_question] = -1
         result =""
         if message.reply_to_message is None:

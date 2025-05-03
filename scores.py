@@ -118,10 +118,10 @@ class ActionScoreUp(TriggeredAction, action_name="score_up"):
     param 3: variable to store into
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = self.get_param(0)
-        scorename = self.get_param(1)
-        scoreamount = self.get_param(2)
-        outvar = self.get_param(3)
+        uid = self.read_param(0)
+        scorename = self.read_param(1)
+        scoreamount = self.read_param(2)
+        outvar = self.read_param(3)
         ss = ScoreHelper(uid, message.chat.id)
         amount = int(scoreamount)
         score = ss.add(scorename, amount)
@@ -136,9 +136,9 @@ class ActionScoreGet(TriggeredAction, action_name="score_get"):
     param 2: variable to store into
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = self.get_param(0)
-        scorename = self.get_param(1)
-        outvar = self.get_param(2)
+        uid = self.read_param(0)
+        scorename = self.read_param(1)
+        outvar = self.read_param(2)
         ss = ScoreHelper(uid, message.chat.id)
         score = ss.get(scorename)
         self.varstore[outvar] = score

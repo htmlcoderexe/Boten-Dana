@@ -305,12 +305,12 @@ class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
             if not message.reply_to_message:
                 return "no_target"
             message = message.reply_to_message
-        msgid = self.get_param(3)
+        msgid = self.read_param(3)
         if msgid == -1:
             msgid = message.id
-        msg_name = self.get_param(0)
-        msg_ttl = float(self.get_param(1))
-        msg_tag = self.get_param(2)
+        msg_name = self.read_param(0)
+        msg_ttl = float(self.read_param(1))
+        msg_tag = self.read_param(2)
         store = MessageStore(chatid=message.chat_id, user=message.from_user.id, glob=True)
         # put the message out
         results = await store.replay_message(name=msg_name, reply_to=message.id)
@@ -333,8 +333,8 @@ class FetchFromPool(TriggeredAction, action_name="fetch_pool"):
     """
     async def run_action(self, message: TGMessage) -> str:
         # get a message out of the pool
-        pool_id = self.get_param(0)
-        out_var = self.get_param(1)
+        pool_id = self.read_param(0)
+        out_var = self.read_param(1)
         pool = MessagePool(pool_id=pool_id)
         self.varstore[out_var] = pool.fetch()
         return ""

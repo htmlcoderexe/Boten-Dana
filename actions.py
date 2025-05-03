@@ -210,7 +210,7 @@ class TriggeredAction:
             return self.varstore[var_name]
         return value
 
-    def get_param(self, index: int):
+    def read_param(self, index: int):
         """
         Fetches a single param at a specific index.
         @param index: the index at which to retrieve.
@@ -224,21 +224,21 @@ class TriggeredAction:
             print(f"value <{value}> obtained from <{index}>")
         return self.resolve_pointer(value)
 
-    def get_pstr(self, index: int) -> str:
+    def read_string(self, index: int) -> str:
         """
 
         @param index:
         @return:
         """
-        return str(self.get_param(index))
+        return str(self.read_param(index))
 
-    def get_int(self, index: int) -> int:
+    def read_int(self, index: int) -> int:
         """
         Fetches a single param at a specific index, and attempts to get an int out of it.
         @param index: param index.
         @return: int if possible, 0 otherwise.
         """
-        value = self.get_param(index)
+        value = self.read_param(index)
         try:
             value = int(value)
         except (ValueError, TypeError):
@@ -246,7 +246,7 @@ class TriggeredAction:
             value = 0
         return value
 
-    def get_params_rest(self, start_from:int) -> list[str]:
+    def read_to_end(self, start_from:int) -> list[str]:
         """
         Fetches all remaining params starting from an index
         @param start_from: the index to start from
@@ -257,7 +257,7 @@ class TriggeredAction:
             return []
         result = []
         for i in range(start_from, len(self.data)):
-            value = self.get_param(i)
+            value = self.read_param(i)
             result.append(value)
         print(f"Obtained following params: <{result}>")
         return result
@@ -558,8 +558,8 @@ class EmitText(TriggeredAction, action_name="emit_text"):
     param 1: message TTL, -1 to keep
     """
     async def run_action(self, message: TGMessage) -> str:
-        pool_name = self.get_param(0)
-        msg_ttl = int(self.get_param(1))
+        pool_name = self.read_param(0)
+        msg_ttl = int(self.read_param(1))
         if self.target_reply:
             if not message.reply_to_message:
                 return "respond_no_target"
@@ -588,13 +588,13 @@ class EmitPoll(TriggeredAction, action_name="emit_poll"):
     param 6: variable to store the resulting poll ID into
     """
     async def run_action(self, message: TGMessage) -> str:
-        text = self.get_param(0)
-        answers = self.varstore[self.get_param(1)]
-        correct = int(self.get_param(2))
-        timer = int(self.get_param(3))
-        poll_type = telegram.Poll.QUIZ if self.get_param(4) == "quiz" else telegram.Poll.REGULAR
-        anon_mode = bool(self.get_param(5))
-        poll_id_var = self.get_param(6)
+        text = self.read_param(0)
+        answers = self.varstore[self.read_param(1)]
+        correct = int(self.read_param(2))
+        timer = int(self.read_param(3))
+        poll_type = telegram.Poll.QUIZ if self.read_param(4) == "quiz" else telegram.Poll.REGULAR
+        anon_mode = bool(self.read_param(5))
+        poll_id_var = self.read_param(6)
         poll = await botstate.BotState.bot.send_poll(message.chat.id,
                                                      text,
                                                      answers,
@@ -617,7 +617,7 @@ class GoSub(TriggeredAction, action_name="gosub"):
     param 0: Subsequence name or *pointer to one.
     """
     async def run_action(self, message: TGMessage) -> str:
-        return self.get_param(0)
+        return self.read_param(0)
 
 
 class BranchIfEquals(TriggeredAction, action_name="if_eq"):
@@ -629,10 +629,10 @@ class BranchIfEquals(TriggeredAction, action_name="if_eq"):
     param 3: subsequence to return if values are not equal
     """
     async def run_action(self, message: TGMessage) -> str:
-        a = self.get_param(0)
-        b = self.get_param(1)
-        equal = self.get_param(2)
-        not_equal = self.get_param(3)
+        a = self.read_param(0)
+        b = self.read_param(1)
+        equal = self.read_param(2)
+        not_equal = self.read_param(3)
         return equal if a == b else not_equal
 
 
@@ -648,9 +648,9 @@ class Concat(TriggeredAction, action_name="concat"):
     param 2: variable to write
     """
     async def run_action(self, message: TGMessage) -> str:
-        a = self.get_pstr(0)
-        b = self.get_pstr(1)
-        x = self.get_pstr(2)
+        a = self.read_string(0)
+        b = self.read_string(1)
+        x = self.read_string(2)
         self.varstore[x] = a + b
         return ""
 
@@ -662,9 +662,9 @@ class Add(TriggeredAction, action_name="add"):
     param 2: variable to write
     """
     async def run_action(self, message: TGMessage) -> str:
-        a = self.get_int(0)
-        b = self.get_int(1)
-        x = self.get_pstr(2)
+        a = self.read_int(0)
+        b = self.read_int(1)
+        x = self.read_string(2)
         self.varstore[x] = a + b
         return ""
 
@@ -674,8 +674,8 @@ class Count(TriggeredAction, action_name="count"):
     param 0: Variable containing items to count.
     param 1: Variable to store the result into."""
     async def run_action(self, message: TGMessage) -> str:
-        countvar = self.get_param(0)
-        outvar = self.get_param(1)
+        countvar = self.read_param(0)
+        outvar = self.read_param(1)
         if countvar not in self.varstore:
             self.varstore[outvar] = -1
             return ""
@@ -690,9 +690,9 @@ class ReadAttribute(TriggeredAction, action_name="obj_read"):
     param 1: Attribute to be read.
     param 2: Variable to store the read attribute."""
     async def run_action(self, message: TGMessage) -> str:
-        obj_var = self.get_param(0)
-        attr = self.get_param(1)
-        out_var = self.get_param(2)
+        obj_var = self.read_param(0)
+        attr = self.read_param(1)
+        out_var = self.read_param(2)
         result = ""
         if obj_var in self.varstore:
             obj = self.varstore[obj_var]
@@ -706,7 +706,7 @@ class LoadTriggerData(TriggeredAction, action_name="get_match"):
     param 0: Var to store to.
     """
     async def run_action(self, message: TGMessage) -> str:
-        out_var = self.get_pstr(0)
+        out_var = self.read_string(0)
         trig_data = self.matchdata
         self.varstore[out_var] = trig_data
         return ""
@@ -718,9 +718,9 @@ class FormatList(TriggeredAction, action_name="fmt_list"):
     param 1: format string pool
     param 2: variable to write to"""
     async def run_action(self, message: TGMessage) -> str:
-        listvar = self.get_param(0)
-        poolname = self.get_param(1)
-        outvar = self.get_param(2)
+        listvar = self.read_param(0)
+        poolname = self.read_param(1)
+        outvar = self.read_param(2)
         if listvar not in self.varstore:
             self.varstore[outvar] = ""
             return "reference_error"
@@ -739,8 +739,8 @@ class RollPercent(TriggeredAction, action_name="roll_chance"):
     param 1: variable to write True or False to
     """
     async def run_action(self, message: TGMessage) -> str:
-        chance_val = self.get_param(0)
-        out_var = self.get_pstr(1)
+        chance_val = self.read_param(0)
+        out_var = self.read_string(1)
         env_value = float(chance_val)
         roll = random.random()
         self.varstore[out_var] = roll < env_value
@@ -752,8 +752,8 @@ class GetEnv(TriggeredAction, action_name="load_env"):
 
     """
     async def run_action(self, message: TGMessage) -> str:
-        env_name = self.get_pstr(0)
-        out_var = self.get_pstr(1)
+        env_name = self.read_string(0)
+        out_var = self.read_string(1)
         value = EnvVar.get(env_name, message.chat_id)
         self.varstore[out_var] = value
         print(f"Obtained <{value}> from <{env_name}> and stored in <{out_var}>")
@@ -770,7 +770,7 @@ class GetUID(TriggeredAction, action_name="get_uid"):
     param 0: variable to store the extracted userID
     """
     async def run_action(self, message: TGMessage) -> str:
-        outvar = self.get_param(0)
+        outvar = self.read_param(0)
         if self.target_reply:
             if not message.reply_to_message:
                 self.varstore[outvar] = 0
@@ -785,8 +785,8 @@ class GetUserInfo(TriggeredAction, action_name="get_user"):
     param 1: variable to store the user object.
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = self.get_int(0)
-        out_var = self.get_param(1)
+        uid = self.read_int(0)
+        out_var = self.read_param(1)
         usr = UserInfo.User(uid, message.chat_id)
         self.varstore[out_var] = usr
         return ""
@@ -826,7 +826,7 @@ class GetMessageID(TriggeredAction, action_name="get_msgid"):
             if not message.reply_to_message:
                 return "whois_no_target"
             message = message.reply_to_message
-        out_var = self.get_param(0)
+        out_var = self.read_param(0)
         self.varstore[out_var] = message.id
         return ""
 
@@ -837,7 +837,7 @@ class GetLoadedSequences(TriggeredAction, action_name="get_seqs"):
     param 0: variable to store the information
     """
     async def run_action(self, message: TGMessage) -> str:
-        out_var = self.get_param(0)
+        out_var = self.read_param(0)
         seq_info = []
         for seq_name, seq_data in TriggeredSequence.running_sequences.items():
             seq_info.append(seq_data.md2info())
@@ -898,9 +898,9 @@ class TagMessage(TriggeredAction, action_name="tag_msg"):
             if not message.reply_to_message:
                 return "tag_no_target"
             message = message.reply_to_message
-        tag = self.get_pstr(0)
-        msgid = self.get_int(1)
-        extras = self.get_params_rest(2)
+        tag = self.read_string(0)
+        msgid = self.read_int(1)
+        extras = self.read_to_end(2)
         if msgid == -1:
             msgid = self.varstore["__last_msg"]
         if msgid == 0:
@@ -927,8 +927,8 @@ class EditMessage(TriggeredAction, action_name="edit_msg"):
     param 1: MessageID, if not set (0), uses message from trigger.
     """
     async def run_action(self, message: TGMessage) -> str:
-        strpool = self.get_param(0)
-        msgid = self.get_param(1)
+        strpool = self.read_param(0)
+        msgid = self.read_param(1)
         if self.target_reply:
             if not message.reply_to_message:
                 return "kill_no_target"
