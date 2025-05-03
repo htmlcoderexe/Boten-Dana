@@ -109,7 +109,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                 BotState.prize_mode = True
                 await context.bot.send_message(chat_id=chatid, text="Правильный ответ теперь будет спрятан.", parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
-        case "показать":
+        case "показать": # POSSIBLE with current
             if editing:
                 questions = datastuff.quiz_get_all_questions(quizid=params)
                 info = datastuff.quiz_get_info(quizid=params)
@@ -123,7 +123,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                 msgbox = "а не знаю чё показывать, команда \"*викторина редактировать* _ID викторины_\" в помощь"
                 await context.bot.send_message(chat_id=chatid, text=msgbox, parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
-        case "редактировать":
+        case "редактировать": # --------- ACTION ADDED
             if editing:
                 await context.bot.send_message(chat_id=chatid,
                                                text="Уже редактируется quiz \"{0}\", сначала завершите работу: `викторина завершить`".format(
@@ -147,12 +147,12 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                     await context.bot.send_message(chat_id=chatid, text="НЕТУ ТАКОЙ!!11один", parse_mode='Markdown',
                                                    reply_to_message_id=upd.message.id)
 
-        case "создать":
+        case "создать": # ---------------- ACTION ADDED
             datastuff.create_quiz(userid=userid, quizid=trail2)
             datastuff.begin_edit_session(userid=userid, name="quiz_edit " + trail2)
             await context.bot.send_message(chat_id=chatid, text="quiz \"" + trail2 + "\" был created!!",
                                            parse_mode='Markdown', reply_to_message_id=upd.message.id)
-        case "назвать":
+        case "назвать": # --------- ACTION ADDED
             if commands[2]:
                 if editing:
                     datastuff.quiz_rename(quizid=params, newname=fulltail)
@@ -200,7 +200,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                 await context.bot.send_message(chat_id=chatid,
                                                text="ты хуй, куда я это прикреплять буду :(", parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
-        case "добавить":
+        case "добавить": # ------ACTION ADDED
             print("add quiz?")
             if upd.message.reply_to_message and upd.message.reply_to_message.poll:
                 poll = upd.message.reply_to_message.poll
@@ -223,7 +223,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
         case "запустить":
             print("starting quiz")
             await datastuff.quiz_start(chatid=chatid, context=context, quizid=trail2)
-        case "завершить":
+        case "завершить": # ---------- ACTION ADDED
             sessions = datastuff.find_edit_sessions(userid)
             for session in sessions:
                 sesstype, params = session.split(" ", 1)

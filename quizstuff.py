@@ -692,9 +692,8 @@ class CreateQuiz(TriggeredAction, action_name="quiz_create"):
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
         uid = message.from_user.id
-        out_var = self.read_string(1)
         quiz = Quiz.create(uid,quiz_id,"(Без названия)",45)
-        self.varstore[out_var] = quiz
+        self.write_param(1, quiz)
         if quiz is not None:
             EditSession.begin("quiz_edit",uid,quiz.id)
         return ""
@@ -704,12 +703,14 @@ class RenameQuiz(TriggeredAction, action_name="quiz_rename"):
     """
     Renames a given quiz.
     param 0: quiz_id
+    param 1: out new name
     """
     async def run_action(self, message: TGMessage) -> str:
         newname = self.matchdata
         quiz_id = self.read_string(0)
         # more error checking not needed at this point
         Quiz.load(quiz_id).rename(newname)
+        self.write_param(1, newname)
         return ""
 
 
