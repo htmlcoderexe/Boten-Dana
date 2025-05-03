@@ -673,6 +673,27 @@ class BranchIfEquals(TriggeredAction, action_name="if_eq"):
         return not_equal
 
 
+class BranchIfGreaterOrEqual(TriggeredAction, action_name="if_gte"):
+    """
+    Compares two values, then triggers one of the specified Subsequences depending on
+    whether the first value is greater or equal than the second one or not.
+    param 0: first value
+    param 1: second value
+    param 2: subsequence to return if first value is greater or equal to the second one
+    param 3: subsequence to return if first value is less than the second one
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        a = self.read_param(0)
+        b = self.read_param(1)
+        gte = self.read_param(2)
+        not_gte = self.read_param(3)
+        if a >= b:
+            print(f"Value B is smaller, taking branch <{gte}>.")
+            return gte
+        print(f"Values A is smaller, taking branch <{not_gte}>.")
+        return not_gte
+
+
 # ###############################################
 #     Variable manipulation Actions
 # ###############################################
@@ -718,6 +739,19 @@ class Count(TriggeredAction, action_name="count"):
             return ""
         targetvar = self.varstore[countvar]
         self.varstore[outvar] = len(targetvar)
+        return ""
+
+
+class Escape(TriggeredAction, action_name="escape"):
+    """
+    Escapes a string for MarkDownV2, then stores the results.
+    param 0: String to be escaped.
+    param 1: out results.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        text = self.read_string(0)
+        text = botutils.MD(text,2)
+        self.write_param(1,text)
         return ""
 
 

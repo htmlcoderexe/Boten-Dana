@@ -703,14 +703,13 @@ class RenameQuiz(TriggeredAction, action_name="quiz_rename"):
     """
     Renames a given quiz.
     param 0: quiz_id
-    param 1: out new name
+    param 1: new name
     """
     async def run_action(self, message: TGMessage) -> str:
-        newname = self.matchdata
+        newname = self.read_string(1)
         quiz_id = self.read_string(0)
         # more error checking not needed at this point
         Quiz.load(quiz_id).rename(newname)
-        self.write_param(1, newname)
         return ""
 
 
