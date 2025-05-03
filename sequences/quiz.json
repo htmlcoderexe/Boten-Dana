@@ -23,7 +23,7 @@
     {
       "type": "text_exact",
       "params": ["викторина завершить работу"],
-      "subseq": "quiz_stop_edit"
+      "subseq": "quiz_end_edit"
     }
   ],
   "timers": [
@@ -37,7 +37,7 @@
       },
       {
         "action": "quiz_finish_edit",
-        "params": ["quiz_id","nobodycares"]
+        "params": ["*quiz_id","nobodycares"]
       },
       {
         "action": "emit_text",
