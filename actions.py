@@ -188,8 +188,8 @@ class TriggeredAction:
         """Factory method to realise correct subtype"""
         data = (self.sequence,self.subseq,self.action,self.data,self.target_reply)
         if self.action in TriggeredAction.registry:
-            print(f"Spawned <{self.action}>")
-            print(f"Params: START>{self.data}<END")
+            #print(f"Spawned <{self.action}>")
+            #print(f"Params: START>{self.data}<END")
             return TriggeredAction.registry[self.action](*data)
         print(f"Failed to spawn <{self.action}>")
 
@@ -277,8 +277,8 @@ class TriggeredAction:
         print(f"Obtained following params: <{result}>")
         return result
 
-    def get_string(self, poolname: str):
-        return TriggeredSequence.running_sequences[self.sequence].get_string(poolname)
+    def get_random_string(self, poolname: str):
+        return TriggeredSequence.running_sequences[self.sequence].get_random_string(poolname)
 
     async def run_action(self, message: TGMessage) -> str:
         """Does something with the message"""
@@ -335,12 +335,13 @@ class TriggeredSequence:
     @classmethod
     def load_from_json(cls, json_data:str):
         """"""
+        errorcounter = 0
         data = json.loads(json_data)
         # print(data)
         name = data['name']
         disp_name = data['display_name']
         desc = data['description']
-        print(f"Module <{name}> <{disp_name}> has description <{desc}>")
+        print(f"Loading <{name}> \"<{disp_name}>\".")
         version = data['version']
         # load triggers
         triggerlist = data['triggers']
@@ -367,14 +368,26 @@ class TriggeredSequence:
                 atarget = False
                 if 'target' in action:
                     atarget = True
-                actionlist.append(TriggeredAction(name,subseq,atype,aparams,atarget).construct())
-            subseqs[subseq] = actionlist
+                action_obj = TriggeredAction(name,subseq,atype,aparams,atarget).construct()
+                if action_obj is not None:
+                    actionlist.append(action_obj)
+                else:
+                    print(f"Unknown Action <{atype}>, skipping.")
+                    errorcounter += 1
+                    actionlist = []
+            if actionlist:
+                print(f"Loaded subseq <{subseq}>.")
+                subseqs[subseq] = actionlist
+            else:
+                print(f"Dropping subseq <{subseq}>.")
+                continue
         # load stringpools if any
         strings = None if 'stringpools' not in data else data['stringpools']
         # register timers if any
         if 'timers' in data:
             for timer in data['timers']:
                 TriggeredSequence.register_timer(name, timer[0], timer[1])
+            print(f"Loaded {len(data['timers'])} timers.")
         # load and init declared config vars
         config_vars = {}
         if 'config_vars' in data:
@@ -387,6 +400,7 @@ class TriggeredSequence:
                 # set a default value if the var hasn't been set before
                 #if env_vars.EnvVar.get_scope(var, 0) is None:
                 #    env_vars.EnvVar.set_scope(var, 0, default)
+            print(f"Loaded {len(data['config_vars'])} configuration variables.")
         # load and init declared config vars
         commands = {}
         if 'commands' in data:
@@ -394,7 +408,8 @@ class TriggeredSequence:
                 cmd_desc = info['description']
                 subseq= info['subseq']
                 commands[cmd] = (cmd_desc, subseq)
-
+            print(f"Loaded {len(data['commands'])} commands.")
+        print(f"Loaded <{name}> with {errorcounter} errors.")
         return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings,config_vars,commands)
 
     async def run(self, message: TGMessage):
@@ -506,15 +521,33 @@ class TriggeredSequence:
                 # otherwise just remove this action from the original copy and keep going
                 actions.remove(action)
 
-    def get_string(self, pool_name:str):
+    def get_random_string(self, pool_name:str):
         """
         Get a string from the sequence's internal string pools
         @param pool_name: string pool name
         @return: a string picked from the pool if pool exists, else an error string
         """
         if pool_name not in self.strings:
-            return "text.missing.error"
+            print(f"Couldn't find string pool <{pool_name}>.")
+            return "String pool not found"
+        print(f"Found string pool <{pool_name}>, picking random string.")
         return random.choice(self.strings[pool_name])
+
+    def get_string(self, pool_name:str, index:int):
+        """
+        Gets a string from the sequence's internal string pools at a specific index.
+        @param pool_name: string pool name
+        @param index: index
+        @return: a string selected by the parameters, or an error if not found
+        """
+        if pool_name not in self.strings:
+            print(f"Couldn't find string pool <{pool_name}>.")
+            return "String pool not found."
+        if 0 <= index < len(self.strings[pool_name]):
+            print(f"Fetching string <{index}> from <{pool_name}>.")
+            return self.strings[pool_name][index]
+        print(f"Index <{index}> is not in <{pool_name}>.")
+        return "String index out of bounds."
 
     @staticmethod
     def register_timer(sequence:str, subseq:str, period:float, run_once:bool = False):
@@ -592,7 +625,7 @@ class EmitText(TriggeredAction, action_name="emit_text"):
             if not message.reply_to_message:
                 return "respond_no_target"
             message = message.reply_to_message
-        text = self.get_string(pool_name)
+        text = self.get_random_string(pool_name)
         text = text.format_map(self.varstore)
         print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
         msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=text,
@@ -809,7 +842,7 @@ class FormatList(TriggeredAction, action_name="fmt_list"):
             self.varstore[outvar] = ""
             return "reference_error"
         data = self.varstore[listvar]
-        fmt_string = self.get_string(poolname)
+        fmt_string = self.get_random_string(poolname)
         output = ""
         for item in data:
             output += fmt_string.format(item)
@@ -1019,7 +1052,7 @@ class EditMessage(TriggeredAction, action_name="edit_msg"):
             message = message.reply_to_message
         if not msgid:
             msgid = message.id
-        text = self.get_string(strpool)
+        text = self.get_random_string(strpool)
         await botstate.BotState.bot.edit_message_text(chat_id=message.chat_id, message_id=msgid, text=text,
                                                       parse_mode="MarkdownV2")
         return ""
