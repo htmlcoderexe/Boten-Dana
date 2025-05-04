@@ -258,7 +258,7 @@ class TriggeredAction:
             value = int(value)
         except (ValueError, TypeError):
             print(f"Unable to get int from <{value}>, casting 0")
-            value = 0
+            value = -1
         return value
 
     def read_to_end(self, start_from:int) -> list[str]:
@@ -465,8 +465,11 @@ class TriggeredSequence:
             print('Argh, no subseq "' + subseq + '" found in sequence "'+self.name+'"')
             return
         print(f"--- ENTRY POINT <{subseq}> ---")
+        triggering_user = 0
+        if message is not None:
+            triggering_user = UserInfo.User.extract_uid(message)
         # init local variable store
-        var_store = {'__bot_uid': botstate.BotState.botuid}
+        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user}
         # get a copy of the actions list
         actions = self.subseqs[subseq][:]
         print(repr(actions))
@@ -584,7 +587,7 @@ class EmitText(TriggeredAction, action_name="emit_text"):
     """
     async def run_action(self, message: TGMessage) -> str:
         pool_name = self.read_param(0)
-        msg_ttl = int(self.read_param(1))
+        msg_ttl = self.read_int(1)
         if self.target_reply:
             if not message.reply_to_message:
                 return "respond_no_target"
@@ -752,6 +755,16 @@ class Escape(TriggeredAction, action_name="escape"):
         text = self.read_string(0)
         text = botutils.MD(text,2)
         self.write_param(1,text)
+        return ""
+
+
+class TimestampNow(TriggeredAction, action_name="get_time"):
+    """
+    Gets current timestamp and stores it.
+    param 0: output variable
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        self.write_param(0,time.time())
         return ""
 
 

@@ -200,7 +200,7 @@ class Quiz:
         @param index: Index to replace
         @return: True on success, False on failure
         """
-        if index >= len(self.questions):
+        if not 0 <= index < len(self.questions):
             return False
         BotState.DBLink.execute("""
             DELETE FROM quiz_questions
@@ -766,9 +766,11 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
         uid = message.from_user.id
-        replace = bool(self.read_int(3))
+        replace = self.read_param(3)
         # get desired index
-        question_index = self.read_int(2)
+        question_index = self.varstore[self.read_string(2)]
+        if question_index != -1:
+            question_index -= 1
         # pre-load failure
         self.write_param(2, -1)
         result =""
@@ -791,7 +793,7 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
         # if set to replace try to do it
         if replace:
             if quiz.replace_question(q, question_index):
-                self.write_param(2, question_index)
+                self.write_param(2, question_index + 1)
                 self.write_param(1,"ok")
                 return ""
             # write error on fail
@@ -799,7 +801,7 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
             return ""
         # else insert question as needed and get the resulting number
         question_index = quiz.add_question(q, question_index)
-        self.write_param(2,question_index)
+        self.write_param(2,question_index + 1)
         self.write_param(1,"ok")
         return ""
 
@@ -819,9 +821,26 @@ class SetSpecificQuestionTime(TriggeredAction, action_name="quiz_question_time")
 
 class QuestionAttach(TriggeredAction, action_name="quiz_question_attach"):
     """
-
+    Attaches media to a question.
+    param 0: quiz_id
+    param 1: question number, or -1 to attach to last question
+    param 2: attachment ID
+    param 3: out result
     """
 
     async def run_action(self, message: TGMessage) -> str:
-        pass
-
+        quiz_id = self.read_string(0)
+        question_index = self.read_int(1)
+        msgname = self.read_string(2)
+        quiz = Quiz.load(quiz_id)
+        if quiz is None:
+            self.write_param(3,"quiz_not_found")
+            return ""
+        if question_index == -1:
+            question_index = len(quiz.questions)
+        question_index -= 1
+        if not 0 < question_index < len(quiz.questions):
+            self.write_param(3,"question_not_found")
+        quiz.questions[question_index].attach_media(msgname)
+        self.write_param(3, "ok")
+        return ""

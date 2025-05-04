@@ -271,25 +271,20 @@ class MessagePool:
 class SaveMessage(TriggeredAction, action_name="save_msg"):
     """Saves a message to the MessageStore
     param 0: message name
+    param 1: out success state
     """
-
     async def run_action(self, message: TGMessage) -> str:
         if not message.reply_to_message:
-            return "nomessage"
-        msgname = ""
-        match self.data[0]:
-            case "var_store":
-                msgname = self.varstore[self.data[1]]
-            case "param":
-                msgname = self.param
-            case "prefixed":
-                msgname = self.data[1] + self.param
+            self.write_param(1,"no_message")
+            return ""
+        msgname = self.read_string(0)
         store = MessageStore(message.chat.id, message.from_user.id)
         saved = await store.store_message(message.reply_to_message, msgname)
         if saved:
-            self.varstore[self.data[2]] = msgname
+            self.write_param(1,"ok")
             return ""
-        return "savefail"
+        self.write_param(1,"fail")
+        return ""
 
 
 class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):

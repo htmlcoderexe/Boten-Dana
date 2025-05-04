@@ -152,7 +152,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
             datastuff.begin_edit_session(userid=userid, name="quiz_edit " + trail2)
             await context.bot.send_message(chat_id=chatid, text="quiz \"" + trail2 + "\" был created!!",
                                            parse_mode='Markdown', reply_to_message_id=upd.message.id)
-        case "назвать": # --------- ACTION ADDED
+        case "назвать": # --------- SEQUENCE ADDED ACTION ADDED
             if commands[2]:
                 if editing:
                     datastuff.quiz_rename(quizid=params, newname=fulltail)
@@ -176,7 +176,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                     await context.bot.send_message(chat_id=chatid,
                                                    text="используйте команду \"*викторина редактировать* _ID викторины_\", список ID можно посмотреть через \"*викторина список*\"",
                                                    parse_mode='Markdown', reply_to_message_id=upd.message.id)
-        case "прикрепить":
+        case "прикрепить": # ------------ SEQUENCE ADDED ACTION ADDED
             if editing:
                 if upd.message.reply_to_message:
                     question_id = datastuff.quiz_count_questions(params) - 1
@@ -200,7 +200,7 @@ async def deal_with_quiz_stuff(upd: Update, context: ContextTypes.DEFAULT_TYPE, 
                 await context.bot.send_message(chat_id=chatid,
                                                text="ты хуй, куда я это прикреплять буду :(", parse_mode='Markdown',
                                                reply_to_message_id=upd.message.id)
-        case "добавить": # ------ACTION ADDED
+        case "добавить": # ------SEQUENCE ADDED ACTION ADDED
             print("add quiz?")
             if upd.message.reply_to_message and upd.message.reply_to_message.poll:
                 poll = upd.message.reply_to_message.poll

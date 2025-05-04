@@ -33,6 +33,26 @@
       "raw": true
     },
     {
+      "type": "text_prefix",
+      "params": ["викторина добавить"],
+      "subseq": "quiz_submit_question"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["викторина заменить"],
+      "subseq": "quiz_replace_question"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["викторина прикрепить"],
+      "subseq": "quiz_attach"
+    },
+    {
+      "type": "text_exact",
+      "params": ["викторина добавить"],
+      "subseq": "quiz_submit_question"
+    },
+    {
       "type": "text_exact",
       "params": ["викторина завершить работу"],
       "subseq": "quiz_end_edit"
@@ -42,6 +62,178 @@
     ["quiz_get_plan",5]
   ],
   "subseqs": {
+    "quiz_submit_question": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "get_match",
+        "params": ["question_ord"]
+      },
+      {
+        "action": "add",
+        "params": [0, "*question_ord", "question_ord"]
+      },
+      {
+        "action": "quiz_add_question",
+        "params": ["*quiz_id","result","question_ord",false]
+      },
+      {
+        "action": "concat",
+        "params": ["add_question_result_","*result","result"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*result"]
+      }
+
+    ],
+    "quiz_replace_question": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "get_match",
+        "params": ["question_ord"]
+      },
+      {
+        "action": "add",
+        "params": [0, "*question_ord", "question_ord"]
+      },
+      {
+        "action": "quiz_add_question",
+        "params": ["*quiz_id","result","question_ord",true]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*result","ok","question_replaced",""]
+      },
+      {
+        "action": "concat",
+        "params": ["add_question_result_","*result","result"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*result"]
+      }
+
+    ],
+    "quiz_attach": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "get_match",
+        "params": ["question_ord"]
+      },
+      {
+        "action": "add",
+        "params": [0, "*question_ord", "question_ord"]
+      },
+      {
+        "action": "concat",
+        "params": ["*__uid", "_", "msgname"]
+      },
+      {
+        "action": "concat",
+        "params": ["*msgname", "*quiz_id", "msgname"]
+      },
+      {
+        "action": "concat",
+        "params": ["*msgname", "_", "msgname"]
+      },
+      {
+        "action": "get_time",
+        "params": ["now"]
+      },
+      {
+        "action": "concat",
+        "params": ["*msgname", "*now", "msgname"]
+      },
+      {
+        "action": "save_msg",
+        "params": ["*msgname","message_saved"]
+      },
+      {
+        "action": "concat",
+        "params": ["attach_result","*message_saved","save_fail_path"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*save_fail_path","attach_result_ok","","*save_fail_path"]
+      },
+      {
+        "action": "quiz_question_attach",
+        "params": ["*quiz_id","*question_ord","*msgname","result"]
+      },
+      {
+        "action": "concat",
+        "params": ["attach_","*result","result"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*result"]
+      }
+    ],
+    "attach_question_not_found": [
+      {
+        "action": "emit_text",
+        "params": ["question_replace_out_of_range",-1]
+      }
+
+    ],
+    "attach_ok":
+    [
+      {
+        "action": "emit_text",
+        "params": ["question_attach_ok",-1]
+      }
+    ],
+    "add_question_result_must_reply": [
+      {
+        "action": "emit_text",
+        "params": ["question_must_reply",-1]
+      }
+    ],
+    "add_question_result_no_poll": [
+      {
+        "action": "emit_text",
+        "params": ["question_no_poll",-1]
+      }
+    ],
+    "add_question_result_wrong_poll": [
+      {
+        "action": "emit_text",
+        "params": ["question_wrong_poll",-1]
+      }
+    ],
+    "add_question_result_quiz_not_found": [
+      {
+        "action": "emit_text",
+        "params": ["question_quiz_not_found",-1]
+      }
+    ],
+    "add_question_result_replace_out_of_range": [
+      {
+        "action": "emit_text",
+        "params": ["question_replace_out_of_range",-1]
+      }
+    ],
+    "add_question_result_ok": [
+      {
+        "action": "emit_text",
+        "params": ["question_added_numbered",-1]
+      }
+    ],
+    "question_replaced": [
+      {
+        "action": "emit_text",
+        "params": ["question_replaced",-1]
+      }
+    ],
     "quiz_create": [
       {
         "action": "if_eq",
@@ -336,6 +528,14 @@
     "done_editing": ["Редактирование завершено\\."],
     "quiz_created": ["Викторина создана\\."],
     "name_too_short": ["Название \\\"{new_name}\\\" слишком короткое\\, требуется минимум 4 знаков\\."],
-    "quiz_renamed": ["Викторина теперь называется __\\\"{new_name}\\\"__\\."]
+    "quiz_renamed": ["Викторина теперь называется __\\\"{new_name}\\\"__\\."],
+    "question_added_numbered": ["Вопрос добавлен под номером *\\{question_ord}*\\."],
+    "question_replaced": ["Вопрос под номером *\\{question_ord}*\\ успешно обновлён\\."],
+    "question_no_poll": ["Команда должна отправляться ответом на опрос в режиме викторины\\."],
+    "question_wrong_poll": ["Опрос должен быть в режиме викторины\\, содержать правильный ответ\\, анонимный режим должен быть отключён\\, а сам опрос \\- закрыт \\(больше не принимает ответы\\)\\."],
+    "question_quiz_not_found": ["Викторины не существует\\."],
+    "question_must_reply": ["Команда должна отправляться ответом на опрос в режиме викторины\\."],
+    "question_replace_out_of_range": ["Ну нету вопроса под таким номером\\."],
+    "question_attach_ok": ["Прикрепилось\\."]
   }
 }
