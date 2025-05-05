@@ -118,6 +118,10 @@
       {
         "action": "emit_frame",
         "params": ["start_animation", 0, -1]
+      },
+      {
+        "action": "quiz_begin",
+        "params": ["*quiz_id","*__last_msg"]
       }
     ]
     ,
@@ -479,6 +483,14 @@
         "params": ["quiz_session","id","quiz_session_id"]
       },
       {
+        "action": "obj_read",
+        "params": ["quiz_session","chat_id","__chat_id"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz_session","quiz_id","quiz_id"]
+      },
+      {
         "action": "concat",
         "params": ["quiz_plan_","*quiz_next","quiz_next"]
       },
@@ -491,6 +503,34 @@
       {
         "action": "obj_read",
         "params": ["quiz_session","start_message","quiz_msg_id"]
+      },
+      {
+        "action": "quiz_fetch_quiz",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","title","quizname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*quizname","quizname"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","count","count"]
+      },
+      {
+        "action": "escape",
+        "params": ["*count","count"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","question_time","timer"]
+      },
+      {
+        "action": "escape",
+        "params": ["*timer","timer"]
       },
       {
         "action": "get_frame",
@@ -511,12 +551,28 @@
         "params": ["*quiz_session_id","quiz_results"]
       },
       {
+        "action": "quiz_fetch_quiz",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","title","quizname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*quizname","quizname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*quiz_id","quiz_id"]
+      },
+      {
         "action": "fmt_list",
         "params": ["quiz_results","winner_line","quiz_board_list"]
       },
       {
         "action": "emit_text",
-        "params": ["finish_board"]
+        "params": ["finish_board", -1, 0]
       },
       {
         "action": "gosub",
@@ -557,6 +613,10 @@
         "params": ["quiz","question_time","timer"]
       },
       {
+        "action": "obj_read",
+        "params": ["quiz","owner_id","owner_id"]
+      },
+      {
         "action": "emit_poll",
         "params": [
           "*text",
@@ -574,7 +634,7 @@
       },
       {
         "action": "emit_saved_message",
-        "params": ["*question_extra","*timer"]
+        "params": ["*question_extra","*timer","", null, "*owner_id"]
       },
       {
         "action": "gosub",
@@ -610,6 +670,8 @@
     "start_animation": [
       "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDD34⚫⚫",
       "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDFE2\uD83D\uDFE2\uD83D\uDFE2",
-      "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDD34\uD83D\uDFE1⚫"]
+      "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDD34\uD83D\uDFE1⚫"],
+    "finish_board": ["\uD83C\uDFC1Конец\\!\uD83C\uDFC1\n    *{quizname}*\n    Победители и прочие участники {quiz_board_list}\nПройти в личке\\? пеши \\\"викторина запустить {quiz_id}\\\" боту \\(без кавычек\\!\\!\\!11\\)"],
+    "winner_line": ["\n{0[0]} *{0[1]}*\\: _{0[3]}_ правильных ответов за _{0[2]}_ секунд"]
   }
 }

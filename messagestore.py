@@ -156,7 +156,7 @@ class MessageStore:
         parts = self.read_parts(name=name)
         if not parts:
             if self.glob_mode:
-                msgsent = await BotState.bot.send_message(chatid=dest_chat,text="404")
+                msgsent = await BotState.bot.send_message(chat_id=dest_chat,text="404")
                 return [msgsent.id]
             else:
                 self.glob_mode = True
@@ -294,6 +294,7 @@ class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
     param 2: tag this message
     param 3: ID of the message to reply to. If not set (0), then this message won't be a reply.
     If -1, the message passed through the trigger will be used.
+    param 4: Owner chat override, ignored if -1
     """
     async def run_action(self, message: TGMessage) -> str:
         if self.target_reply:
@@ -304,20 +305,25 @@ class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
         if msgid == -1:
             msgid = message.id
         msg_name = self.read_param(0)
+        if not msg_name:
+            return ""
         msg_ttl = float(self.read_param(1))
         msg_tag = self.read_param(2)
-        store = MessageStore(chatid=message.chat_id, user=message.from_user.id, glob=True)
+        chatid = self.varstore["__chat_id"]
+        override = self.read_param(4)
+        source = chatid if override == -1 else override
+        store = MessageStore(chatid=source, user=self.varstore["__uid"])
         # put the message out
-        results = await store.replay_message(name=msg_name, reply_to=message.id)
+        results = await store.replay_message(name=msg_name, reply_to=msgid)
         if results:
             for msgid in results:
                 self.varstore["__last_msg"] = msgid
                 # apply tags if specified
                 if msg_tag:
-                    messagetagger.MessageTagger.tag_message(message.chat_id, msgid, msg_tag)
+                    messagetagger.MessageTagger.tag_message(chatid, msgid, msg_tag)
                 # schedule kill if specified
                 if msg_ttl != -1:
-                    botutils.schedule_kill(message.chat.id, msgid, msg_ttl)
+                    botutils.schedule_kill(chatid, msgid, msg_ttl)
         return ""
 
 

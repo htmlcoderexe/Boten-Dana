@@ -331,8 +331,8 @@ class QuizPlaySession:
             next_question = question_number + 1
             quiz = Quiz.load(session.quiz_id)
             # if this was the last question, set it to the end TODO: maybe use the question number >= question count as the end signal?
-            if next_question >= len(quiz.questions):
-                next_question = -3
+            #if next_question >= len(quiz.questions):
+            #    next_question = -3
             botutils.schedule_kill(session.chat_id, poll_msgid, 0)
             BotState.DBLink.execute(("""
                     UPDATE quiz_next
@@ -367,7 +367,7 @@ class QuizPlaySession:
         # this will hold the items to be written to the DB
         plan = []
         # 2 message edits #TODO make this more flexible somehow?
-        for i in range(-frame_count, 0, -1):
+        for i in range(-frame_count, 0, 1):
             now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
             plan.append((now, i))
         now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
@@ -428,10 +428,14 @@ class QuizPlaySession:
         db_results = res.fetchall()
         results = []
         for i, result in enumerate(db_results):
+            userid, seconds, answers = result
+            seconds = int(seconds)
+            usr = UserInfo.User(userid, self.chat_id)
+            uname = usr.current_nick
             if i < len(QuizPlaySession.MEDAL_EMOJI):
-                results.append((QuizPlaySession.MEDAL_EMOJI[i],) + result)
+                results.append((QuizPlaySession.MEDAL_EMOJI[i],uname, seconds, answers))
             else:
-                results.append((" ",) + result)
+                results.append((" ",uname, seconds, answers))
         return results
 
     def give_awards(self):
@@ -486,14 +490,16 @@ class TryStartQuiz(TriggeredAction, action_name="quiz_check_clear"):
 
 class RunQuiz(TriggeredAction, action_name="quiz_begin"):
     """Begins a quiz.
+    param 0: quiz id
+    param 1: starting message ID
     """
 
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_param(0)
-        starting_message = int(self.read_param(1))
+        starting_message = self.read_int(1)
 
         chat_id = message.chat_id
-        quiz = Quiz(quiz_id)
+        quiz = Quiz.load(quiz_id)
         session = QuizPlaySession.start(quiz_id, chat_id, starting_message)
         frame_count = len(actions.TriggeredSequence.running_sequences[self.sequence].strings["start_animation"]) -1
         session.write_plan(len(quiz.questions), quiz.question_time, frame_count)
@@ -514,6 +520,10 @@ class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
             WHERE time < ?""", (now,))
         events = res.fetchall()
         self.varstore[outvar] = events
+        BotState.DBLink.execute("""
+            DELETE
+            FROM quiz_next
+            WHERE time < ?""", (now,))
         return ""
 
 
@@ -581,6 +591,7 @@ class FinishQuiz(TriggeredAction, action_name="quiz_finish"):
         # fetch the results and award medals
         quiz_results = session.give_awards()
         self.varstore[out_var] = quiz_results
+        session.end()
         return ""
 
 ##################################

@@ -766,7 +766,7 @@ async def everyminute(context: CallbackContext):
     if kills is not None:
         for (chat, msg) in kills:
             datastuff.kill_message(chatid=chat, msgid=msg)
-    #await actions.TriggeredSequence.run_timers()
+    await actions.TriggeredSequence.run_timers()
     #for chat in BotState.current_chats:
     #    if str(chat)[0] != "-":
     #        continue
@@ -790,10 +790,12 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     print("-------QUIZ ANSWER DATA END---------------!!")
     answer = update.poll_answer.option_ids[0]
     uid = update.poll_answer.user.id
-    pollid = update.poll_answer.poll_id
+    pollid = int(update.poll_answer.poll_id)
     print("user " + str(uid) + " answered #" + str(answer) + " on poll " + str(pollid))
     # TODO: triggers based on poll responses
     # datastuff.quiz_verify_answer(poll=int(pollid), user=uid, answer=answer)
+    # TODO: THIS IS HACK PUT PROPER HANDLER YOU FUCKASS
+    quizstuff.QuizPlaySession.submit_answer(pollid, uid, answer)
 
 
 async def receive_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

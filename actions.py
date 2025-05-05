@@ -484,13 +484,15 @@ class TriggeredSequence:
             return
         print(f"--- ENTRY POINT <{subseq}> ---")
         triggering_user = 0
+        chat_id = 0
         if message is not None:
             triggering_user = UserInfo.User.extract_uid(message)
+            chat_id = message.chat_id
         # init local variable store
-        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user}
+        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id}
         # get a copy of the actions list
         actions = self.subseqs[subseq][:]
-        print(repr(actions))
+        # print(repr(actions))
         # keep going as long as there are any actions left
         while actions:
             # go through a copy of the current list until exhausted
@@ -620,10 +622,16 @@ class EmitText(TriggeredAction, action_name="emit_text"):
     """Responds from an internal pool
     param 0: pool to use, can be *pointer
     param 1: message TTL, -1 to keep
+    param 2: ID of the message to reply to. If not set (0), then this message won't be a reply.
+    If -1, the message passed through the trigger will be used.
     """
     async def run_action(self, message: TGMessage) -> str:
         pool_name = self.read_param(0)
         msg_ttl = self.read_int(1)
+        chatid = self.varstore["__chat_id"]
+        msgid = self.read_int(2)
+        if msgid == -1:
+            msgid = message.id
         if self.target_reply:
             if not message.reply_to_message:
                 return "respond_no_target"
@@ -631,13 +639,13 @@ class EmitText(TriggeredAction, action_name="emit_text"):
         text = self.get_random_string(pool_name)
         text = text.format_map(self.varstore)
         print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
-        msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=text,
+        msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=text,
                                                        parse_mode='MarkdownV2',
-                                                       reply_to_message_id=message.id)
+                                                       reply_to_message_id=msgid)
         if msg:
 
             self.varstore["__last_msg"] = msg.id
-            botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
+            botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
         return ""
 
 
@@ -651,6 +659,7 @@ class EmitFrame(TriggeredAction, action_name="emit_frame"):
         pool_name = self.read_param(0)
         frame_index = self.read_int(1)
         msg_ttl = self.read_int(2)
+        chatid = self.varstore["__chat_id"]
         if self.target_reply:
             if not message.reply_to_message:
                 return "respond_no_target"
@@ -658,7 +667,7 @@ class EmitFrame(TriggeredAction, action_name="emit_frame"):
         text = self.get_string(pool_name, frame_index)
         text = text.format_map(self.varstore)
         print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
-        msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=text,
+        msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=text,
                                                        parse_mode='MarkdownV2',
                                                        reply_to_message_id=message.id)
         if msg:
@@ -686,7 +695,10 @@ class EmitPoll(TriggeredAction, action_name="emit_poll"):
         poll_type = telegram.Poll.QUIZ if self.read_param(4) == "quiz" else telegram.Poll.REGULAR
         anon_mode = bool(self.read_param(5))
         poll_id_var = self.read_param(6)
-        poll = await botstate.BotState.bot.send_poll(message.chat.id,
+        chatid = self.varstore["__chat_id"]
+        if not chatid:
+            chatid = message.chat_id
+        poll = await botstate.BotState.bot.send_poll(chatid,
                                                      text,
                                                      answers,
                                                      type=poll_type,
@@ -1110,6 +1122,7 @@ class EditMessageEx(TriggeredAction, action_name="edit_msg_ex"):
     async def run_action(self, message: TGMessage) -> str:
         msgid = self.read_param(0)
         text = self.read_param(1)
+        chatid = self.varstore["__chat_id"]
         if self.target_reply:
             if not message.reply_to_message:
                 return "kill_no_target"
@@ -1117,6 +1130,6 @@ class EditMessageEx(TriggeredAction, action_name="edit_msg_ex"):
         if not msgid:
             msgid = message.id
         text = text.format_map(self.varstore)
-        await botstate.BotState.bot.edit_message_text(chat_id=message.chat_id, message_id=msgid, text=text,
+        await botstate.BotState.bot.edit_message_text(chat_id=chatid, message_id=msgid, text=text,
                                                       parse_mode="MarkdownV2")
         return ""
