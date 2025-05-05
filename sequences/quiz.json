@@ -48,6 +48,11 @@
       "subseq": "quiz_attach"
     },
     {
+      "type": "text_prefix",
+      "params": ["викторина запустить"],
+      "subseq": "quiz_begin"
+    },
+    {
       "type": "text_exact",
       "params": ["викторина добавить"],
       "subseq": "quiz_submit_question"
@@ -62,6 +67,70 @@
     ["quiz_get_plan",5]
   ],
   "subseqs": {
+    "quiz_begin": [
+      {
+        "action": "get_match",
+        "params": ["quiz_id"]
+      },
+      {
+        "action": "quiz_check_clear",
+        "params": ["*quiz_id","check_result"]
+      },
+      {
+        "action": "concat",
+        "params": ["begin_","*check_result","quiz_start_result"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*quiz_start_result"]
+      }
+    ],
+    "begin_ok":
+    [
+      {
+        "action": "quiz_fetch_quiz",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","title","quizname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*quizname","quizname"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","count","count"]
+      },
+      {
+        "action": "escape",
+        "params": ["*count","count"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","question_time","timer"]
+      },
+      {
+        "action": "escape",
+        "params": ["*timer","timer"]
+      },
+      {
+        "action": "emit_frame",
+        "params": ["start_animation", 0, -1]
+      }
+    ]
+    ,
+    "begin_quiz_ongoing":
+    [
+
+    ]
+    ,
+    "begin_quiz_not_found":
+    [
+
+    ]
+    ,
     "quiz_submit_question": [
       {
         "action": "call",
@@ -424,11 +493,11 @@
         "params": ["quiz_session","start_message","quiz_msg_id"]
       },
       {
-        "action": "concat",
-        "params": ["start_msg_frame_","*plan_param","next_msg"]
+        "action": "get_frame",
+        "params": ["start_animation","*plan_param","next_msg"]
       },
       {
-        "action": "edit_msg",
+        "action": "edit_msg_ex",
         "params": ["*quiz_msg_id","*next_msg"]
       },
       {
@@ -536,6 +605,11 @@
     "question_quiz_not_found": ["Викторины не существует\\."],
     "question_must_reply": ["Команда должна отправляться ответом на опрос в режиме викторины\\."],
     "question_replace_out_of_range": ["Ну нету вопроса под таким номером\\."],
-    "question_attach_ok": ["Прикрепилось\\."]
+    "question_attach_ok": ["Прикрепилось\\."],
+    "quiz_in_progress": ["Сейчас невозможно запустить викторину\\. "],
+    "start_animation": [
+      "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDD34⚫⚫",
+      "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDFE2\uD83D\uDFE2\uD83D\uDFE2",
+      "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDD34\uD83D\uDFE1⚫"]
   }
 }

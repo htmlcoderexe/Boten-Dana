@@ -280,6 +280,9 @@ class TriggeredAction:
     def get_random_string(self, poolname: str):
         return TriggeredSequence.running_sequences[self.sequence].get_random_string(poolname)
 
+    def get_string(self, poolname: str, frame_index: int):
+        return TriggeredSequence.running_sequences[self.sequence].get_string(poolname, frame_index)
+
     async def run_action(self, message: TGMessage) -> str:
         """Does something with the message"""
         if self.target_reply:
@@ -638,6 +641,33 @@ class EmitText(TriggeredAction, action_name="emit_text"):
         return ""
 
 
+class EmitFrame(TriggeredAction, action_name="emit_frame"):
+    """Responds from an internal pool
+    param 0: pool to use
+    param 1: index of the string
+    param 2: message TTL, -1 to keep
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        pool_name = self.read_param(0)
+        frame_index = self.read_int(1)
+        msg_ttl = self.read_int(2)
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "respond_no_target"
+            message = message.reply_to_message
+        text = self.get_string(pool_name, frame_index)
+        text = text.format_map(self.varstore)
+        print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
+        msg = await botstate.BotState.bot.send_message(chat_id=message.chat.id, text=text,
+                                                       parse_mode='MarkdownV2',
+                                                       reply_to_message_id=message.id)
+        if msg:
+
+            self.varstore["__last_msg"] = msg.id
+            botutils.schedule_kill(message.chat.id,msg.id,float(msg_ttl))
+        return ""
+
+
 class EmitPoll(TriggeredAction, action_name="emit_poll"):
     """Posts a poll.
     param 0: text of the poll.
@@ -788,6 +818,20 @@ class Escape(TriggeredAction, action_name="escape"):
         text = self.read_string(0)
         text = botutils.MD(text,2)
         self.write_param(1,text)
+        return ""
+
+
+class GetFrame(TriggeredAction, action_name="get_frame"):
+    """Responds from an internal pool
+    param 0: pool to use
+    param 1: index of the string
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        pool_name = self.read_param(0)
+        frame_index = self.read_int(1)
+        text = self.get_string(pool_name, frame_index)
+        text = text.format_map(self.varstore)
+        self.write_param(2,text)
         return ""
 
 
@@ -1053,6 +1097,26 @@ class EditMessage(TriggeredAction, action_name="edit_msg"):
         if not msgid:
             msgid = message.id
         text = self.get_random_string(strpool)
+        await botstate.BotState.bot.edit_message_text(chat_id=message.chat_id, message_id=msgid, text=text,
+                                                      parse_mode="MarkdownV2")
+        return ""
+
+
+class EditMessageEx(TriggeredAction, action_name="edit_msg_ex"):
+    """Edits a message using text from any source
+    param 0: MessageID, if not set (0), uses message from trigger.
+    param 1: text source.
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        msgid = self.read_param(0)
+        text = self.read_param(1)
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "kill_no_target"
+            message = message.reply_to_message
+        if not msgid:
+            msgid = message.id
+        text = text.format_map(self.varstore)
         await botstate.BotState.bot.edit_message_text(chat_id=message.chat_id, message_id=msgid, text=text,
                                                       parse_mode="MarkdownV2")
         return ""

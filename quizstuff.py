@@ -1,6 +1,7 @@
 import time
 
 import UserInfo
+import actions
 import botutils
 import scores
 from actions import TriggeredAction
@@ -68,6 +69,8 @@ class Quiz:
         """Time to answer a question, in seconds"""
         self.questions:list[Question] = questions
         """Questions belonging to the quiz"""
+        self.count = len(questions)
+        """amount of questions"""
 
     @classmethod
     def load(cls, quizid:str):
@@ -353,20 +356,20 @@ class QuizPlaySession:
         self.ended = ended
         """Determines if the session has ended."""
 
-    def write_plan(self, question_count: int, question_timer: float):
+    def write_plan(self, question_count: int, question_timer: float, frame_count: int):
         """Writes out the commands to follow for the quiz runner
         @param question_count: amount of questions
         @param question_timer: time given per question
+        @param frame_count: amount of animation frames
         """
         # set starting point
         now = time.time()
         # this will hold the items to be written to the DB
         plan = []
         # 2 message edits #TODO make this more flexible somehow?
-        now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
-        plan.append((now,-2))
-        now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
-        plan.append((now,-1))
+        for i in range(-frame_count, 0, -1):
+            now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
+            plan.append((now, i))
         now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
         # the questions
         for index in range(question_count):
@@ -463,21 +466,21 @@ class QuizPlaySession:
 
 class TryStartQuiz(TriggeredAction, action_name="quiz_check_clear"):
     """Checks if a quiz may be launched
+    param 0: quiz id
+    param 1: out result
     """
 
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_param(0)
-        outvar = self.read_param(1)
-
         chat_id = message.chat_id
         if QuizPlaySession.check_ongoing(chat_id):
-            self.varstore[outvar] = "quiz_ongoing"
+            self.write_param(1, "quiz_ongoing")
             return ""
         quiz = Quiz.load(quiz_id)
         if not quiz:
-            self.varstore[outvar] = "quiz_not_found"
+            self.write_param(1, "quiz_not_found")
             return ""
-        self.varstore[outvar] = "ok"
+        self.write_param(1, "ok")
         return ""
 
 
@@ -492,7 +495,8 @@ class RunQuiz(TriggeredAction, action_name="quiz_begin"):
         chat_id = message.chat_id
         quiz = Quiz(quiz_id)
         session = QuizPlaySession.start(quiz_id, chat_id, starting_message)
-        session.write_plan(len(quiz.questions), quiz.question_time)
+        frame_count = len(actions.TriggeredSequence.running_sequences[self.sequence].strings["start_animation"]) -1
+        session.write_plan(len(quiz.questions), quiz.question_time, frame_count)
         return ""
 
 
@@ -541,28 +545,25 @@ class ProcessEvent(TriggeredAction, action_name="quiz_do_plan"):
     """
     async def run_action(self, message: TGMessage) -> str:
         events = self.varstore[self.read_param(0)]
-        out_type = self.read_param(1)
-        out_param = self.read_param(2)
-        out_session = self.read_param(3)
 
         event = events.pop(0)
         sid, chat, time_stamp, quiz, cmd = event
         # store the session
-        self.varstore[out_session] = QuizPlaySession.load(sid)
+        self.write_param(3,QuizPlaySession.load(sid))
         # negative numbers animate the starting message
         if cmd < 0:
-            self.varstore[out_type] = "start_animation"
-            self.varstore[out_param] = int(cmd) * -1
+            self.write_param(1,"start_animation")
+            self.write_param(2,int(cmd) * -1)
             return ""
         # numbers past the last question end the quiz
         quiz = Quiz.load(quiz)
         if cmd >= len(quiz.questions):
-            self.varstore[out_type] = "quiz_finish"
-            self.varstore[out_param] = 0
+            self.write_param(1,"quiz_finish")
+            self.write_param(2,0)
             return ""
         # any others should post the question
-        self.varstore[out_type] = "question"
-        self.varstore[out_param] = cmd
+        self.write_param(1,"question")
+        self.write_param(2,cmd)
         return ""
 
 
