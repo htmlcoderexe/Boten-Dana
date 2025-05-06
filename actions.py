@@ -704,8 +704,9 @@ class EmitPoll(TriggeredAction, action_name="emit_poll"):
                                                      type=poll_type,
                                                      is_anonymous=anon_mode,
                                                      correct_option_id=correct,
-                                                     open_period=timer)
+                                                     open_period=timer,question_parse_mode="MarkdownV2")
         if poll:
+            botutils.schedule_kill(chatid, poll.id,timer)
             self.varstore[poll_id_var] = poll.poll.id
             self.varstore["__last_msg"] = poll.id
         return ""
@@ -902,6 +903,19 @@ class FormatList(TriggeredAction, action_name="fmt_list"):
         output = ""
         for item in data:
             output += fmt_string.format(item)
+        self.varstore[outvar] = output
+        return ""
+
+
+class FormatString(TriggeredAction, action_name="fmt_string"):
+    """Takes a list and a format string, outputs formatted list into a variable.
+    param 0: format string pool
+    param 1: variable to write to"""
+    async def run_action(self, message: TGMessage) -> str:
+        poolname = self.read_param(0)
+        outvar = self.read_param(1)
+        fmt_string = self.get_random_string(poolname)
+        output = fmt_string.format_map(self.varstore)
         self.varstore[outvar] = output
         return ""
 

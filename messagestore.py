@@ -314,7 +314,7 @@ class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
         source = chatid if override == -1 else override
         store = MessageStore(chatid=source, user=self.varstore["__uid"])
         # put the message out
-        results = await store.replay_message(name=msg_name, reply_to=msgid)
+        results = await store.replay_message(name=msg_name, reply_to=msgid,target_chat=chatid)
         if results:
             for msgid in results:
                 self.varstore["__last_msg"] = msgid
