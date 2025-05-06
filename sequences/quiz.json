@@ -2,17 +2,12 @@
   "name": "quiz",
   "display_name": "Викторина",
   "description": "Пока не работает. Позволяет проводить викторины.",
-  "version": [0,0,0,0],
+  "version": [1,0,0,0],
   "triggers": [
     {
       "type": "text_exact",
-      "params": ["бот это кто"],
-      "subseq": "main"
-    },
-    {
-      "type": "text_exact",
-      "params": ["бот кто это"],
-      "subseq": "main"
+      "params": ["викторина показать"],
+      "subseq": "quiz_display"
     },
     {
       "type": "text_prefix",
@@ -36,6 +31,11 @@
       "type": "text_prefix",
       "params": ["викторина добавить"],
       "subseq": "quiz_submit_question"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["викторина удалить"],
+      "subseq": "quiz_remove_question"
     },
     {
       "type": "text_prefix",
@@ -155,6 +155,87 @@
       {
         "action": "concat",
         "params": ["add_question_result_","*result","result"]
+      },
+      {
+        "action": "gosub",
+        "params": ["*result"]
+      }
+
+    ],
+    "quiz_display": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "quiz_fetch_quiz",
+        "params": ["*quiz_id","quiz"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","questions_in_mv2","quiz_questions"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["quiz_questions", "quiz_show_tpl_line", "qlist"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","count","qcount"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","question_time","qtime"]
+      },
+      {
+        "action": "mul",
+        "params": ["*qtime","*qcount","total_time"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["quiz","title","title"]
+      },
+      {
+        "action": "escape",
+        "params": ["*title","title"]
+      },
+      {
+        "action": "escape",
+        "params": ["*qtime","qtime"]
+      },
+      {
+        "action": "escape",
+        "params": ["*total_time","total_time"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["quiz_show_tpl",-1]
+      }
+
+    ],
+    "quiz_display_read_q": [
+
+    ],
+    "quiz_remove_question": [
+      {
+        "action": "call",
+        "params": ["require_edit_session"]
+      },
+      {
+        "action": "get_match",
+        "params": ["question_ord"]
+      },
+      {
+        "action": "add",
+        "params": [0, "*question_ord", "question_ord"]
+      },
+      {
+        "action": "quiz_delete_question",
+        "params": ["*quiz_id","*question_ord","result"]
+      },
+      {
+        "action": "concat",
+        "params": ["delete_question_result_","*result","result"]
       },
       {
         "action": "gosub",
@@ -295,10 +376,22 @@
         "params": ["question_replace_out_of_range",-1]
       }
     ],
-    "add_question_result_ok": [
+    "delete_question_result_ok": [
       {
         "action": "emit_text",
-        "params": ["question_added_numbered",-1]
+        "params": ["question_deleted",-1]
+      }
+    ],
+    "delete_question_result_quiz_not_found": [
+      {
+        "action": "emit_text",
+        "params": ["question_deleted_no_quiz",-1]
+      }
+    ],
+    "delete_question_result_invalid_question": [
+      {
+        "action": "emit_text",
+        "params": ["question_deleted_no_question",-1]
       }
     ],
     "question_replaced": [
@@ -606,6 +699,22 @@
       },
       {
         "action": "obj_read",
+        "params": ["quiz","count","q_total"]
+      },
+      {
+        "action": "add",
+        "params": ["*plan_param", 1, "q_curr"]
+      },
+      {
+        "action": "escape",
+        "params": ["*text","text"]
+      },
+      {
+        "action": "fmt_string",
+        "params": ["question_header","text"]
+      },
+      {
+        "action": "obj_read",
         "params": ["question","correct_answer","correct"]
       },
       {
@@ -619,6 +728,10 @@
       {
         "action": "obj_read",
         "params": ["quiz","owner_id","owner_id"]
+      },
+      {
+        "action": "emit_saved_message",
+        "params": ["*question_extra","*timer","", null, "*owner_id"]
       },
       {
         "action": "emit_poll",
@@ -635,10 +748,6 @@
       {
         "action": "quiz_register_poll",
         "params": ["*quiz_session_id","*poll_id","*plan_param"]
-      },
-      {
-        "action": "emit_saved_message",
-        "params": ["*question_extra","*timer","", null, "*owner_id"]
       },
       {
         "action": "gosub",
@@ -676,6 +785,13 @@
       "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDFE2\uD83D\uDFE2\uD83D\uDFE2",
       "Викторина начинается\\!\\!11\n*{quizname}*\n_{count}_ вопросов\\.\nНа каждый вопрос дано _{timer}_ секунд\\.\n                \uD83D\uDD34\uD83D\uDFE1⚫"],
     "finish_board": ["\uD83C\uDFC1Конец\\!\uD83C\uDFC1\n    *{quizname}*\n    Победители и прочие участники {quiz_board_list}\nПройти в личке\\? пеши \\\"викторина запустить {quiz_id}\\\" боту \\(без кавычек\\!\\!\\!11\\)"],
-    "winner_line": ["\n{0[0]} *{0[1]}*\\: _{0[3]}_ правильных ответов за _{0[2]}_ секунд"]
+    "winner_line": ["\n{0[0]} *{0[1]}*\\: _{0[3]}_ правильных ответов за _{0[2]}_ секунд"],
+    "question_header": ["*\\[{q_curr}\\/{q_total}\\]* {text}"],
+    "question_deleted": ["Вопрос был удалён\\."],
+    "question_deleted_no_quiz": ["Викторина куда\\-то пропала\\, пока редактировали\\. Стукните тем кретинам\\, которые писали бота\\."],
+    "question_deleted_no_question": ["А такого вопроса тут и нет\\."],
+    "quiz_time_set": ["Выставлено время {time}\\."],
+    "quiz_show_tpl_line": ["*{0[0]}\\. {0[1]}* _{0[2]}_\n"],
+    "quiz_show_tpl": ["{title} \\- {qcount} вопросов\\\nНа каждый вопрос даётся {qtime} секунд\\, общая продолжительность\\: {total_time} секунд\\.\n{qlist}"]
   }
 }

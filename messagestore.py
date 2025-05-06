@@ -21,6 +21,11 @@ class StoredMessagePart:
         self.part_type = part_type
         self.data = data
 
+    def __str__(self):
+        return f"MessagePart: type <{self.part_type}>, data <{self.data}>"
+    def __repr__(self):
+        return f"MessagePart: type <{self.part_type}>, data <{self.data}>"
+
 
 class MessageStore:
     """
@@ -78,6 +83,39 @@ class MessageStore:
             parts.append(StoredMessagePart(part_type=part[0], data=part[1]))
         return parts
 
+    def get_type_emoji(self, name: str):
+        parts = self.read_parts(name)
+        print(parts)
+        # nothing
+        if not parts:
+            return " "
+        # remove all text
+        for part in parts[:]:
+            if part.part_type in ["text","caption"]:
+                parts.remove(part)
+        # nothing left, there was only text
+        if not parts:
+            return "📄"
+        # probably an album
+        if len(parts) > 1:
+            return "🗃"
+        match parts[0].part_type:
+            # append to a list to send as a mediagroup later
+            case "image":
+                return "🖼"
+            case "voice":
+                return "🎤"
+            case "eblovoice":
+                return "🤳"
+            case "video":
+                return "📼"
+            case "music":
+                return "🎧"
+            case "sticker":
+                return "🩹"
+            case "file":
+                return "💾"
+
     async def store_message(self, msg: Message, name: str):
         """
         Stores a Telegram.Message.
@@ -104,6 +142,8 @@ class MessageStore:
                 if msg_part.photo:
                     self.write_part(name=name,part_type="image",data=msg_part.photo.file_id)
             return True
+        if msg.photo:
+            self.write_part(name=name, part_type="image", data=msg.photo[-1].file_id)
         if msg.caption:
             self.write_part(name=name,part_type="caption",data=msg.caption)
         if msg.voice:

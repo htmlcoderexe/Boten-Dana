@@ -801,8 +801,20 @@ class Add(TriggeredAction, action_name="add"):
     async def run_action(self, message: TGMessage) -> str:
         a = self.read_int(0)
         b = self.read_int(1)
-        x = self.read_string(2)
-        self.varstore[x] = a + b
+        self.write_param(2, a + b)
+        return ""
+
+
+class Multiply(TriggeredAction, action_name="mul"):
+    """Multiplies two values and stores the result
+    param 0: first value
+    param 1: second value
+    param 2: variable to write
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        a = self.read_int(0)
+        b = self.read_int(1)
+        self.write_param(2, a * b)
         return ""
 
 

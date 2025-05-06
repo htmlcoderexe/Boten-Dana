@@ -3,6 +3,7 @@ import time
 import UserInfo
 import actions
 import botutils
+import messagestore
 import scores
 from actions import TriggeredAction
 from telegram import Message as TGMessage
@@ -42,6 +43,8 @@ class Question:
         """Number of the correct option"""
         self.attachment = attachment
         """Saved Message ID attached to the question"""
+        self.attachment_emoji =""
+        """Attachment type emoji, set by the quiz when loaded."""
 
     def attach_media(self, mediaid:str):
         """Attaches a specific Saved Message to this question"""
@@ -71,6 +74,13 @@ class Quiz:
         """Questions belonging to the quiz"""
         self.count = len(questions)
         """amount of questions"""
+        self.questions_in_mv2 = []
+        """Questions in a nice to display list with MarkDownV2 escaping."""
+        for question in self.questions:
+            index = question.index + 1
+            text = botutils.MD(question.text)
+            emoji = question.attachment_emoji
+            self.questions_in_mv2.append((index, emoji, text))
 
     @classmethod
     def load(cls, quizid:str):
@@ -96,11 +106,15 @@ class Quiz:
         rows = res.fetchall()
         qlist = []
         if rows:
+            ms = messagestore.MessageStore(owner_id, owner_id)
             for row in rows:
                 qdata = list(row)
                 qdata[1] = int(qdata[1])
                 qdata[3] = qdata[3].split("|")
-                qlist.append(Question(*qdata))
+                q = Question(*qdata)
+                q.attachment_emoji = ms.get_type_emoji(q.attachment)
+                qlist.append(q)
+
         return cls(quizid,owner_id,creation_time,title,question_time,qlist)
 
     @classmethod
@@ -224,6 +238,9 @@ class Quiz:
         @param index: Number of the question to remove
         @return:
         """
+        # -1 removes last question
+        if index == -1:
+            index = self.count - 1
         # erase question from DB
         BotState.DBLink.execute("""
         DELETE FROM quiz_questions
@@ -631,8 +648,6 @@ class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
         return ""
 
 
-# TODO:  some sort of a ticking trigger
-# TODO: editing actions and commands
 
 #######################################
 #   Operator commands
@@ -777,9 +792,8 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
     """
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
-        uid = message.from_user.id
         replace = self.read_param(3)
-        # get desired index
+        # get desired index - user facing side indexes from 1
         question_index = self.varstore[self.read_string(2)]
         if question_index != -1:
             question_index -= 1
@@ -817,6 +831,28 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
         self.write_param(1,"ok")
         return ""
 
+
+class RemoveQuestion(TriggeredAction, action_name="quiz_delete_question"):
+    """
+    param 0: quiz ID to delete from
+    param 1: question index - 1-indexed. pass -1 to delete the last question.
+    param 2: out result, of (ok, quiz_not_found, invalid_question)
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        quiz_id = self.read_string(0)
+        index = self.read_int(1)
+        quiz = Quiz.load(quiz_id)
+        if quiz is None:
+            self.write_param(2,"quiz_not_found")
+            return ""
+        if index != -1:
+            index -=1
+        if -1 > index >= quiz.count:
+            self.write_param(2,"invalid_question")
+            return ""
+        quiz.remove_question(index)
+        self.write_param(2,"ok")
+        return ""
 
 
 
