@@ -309,6 +309,10 @@
     ],
     "quiz_create": [
       {
+        "action": "quiz_find_session",
+        "params": ["session_count","quiz_id"]
+      },
+      {
         "action": "if_eq",
         "params": ["*session_count",0,"","editing_in_progress"]
       },

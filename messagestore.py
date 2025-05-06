@@ -310,7 +310,7 @@ class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
         msg_ttl = float(self.read_param(1))
         msg_tag = self.read_param(2)
         chatid = self.varstore["__chat_id"]
-        override = self.read_param(4)
+        override = self.read_int(4)
         source = chatid if override == -1 else override
         store = MessageStore(chatid=source, user=self.varstore["__uid"])
         # put the message out
