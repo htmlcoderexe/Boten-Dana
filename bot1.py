@@ -877,7 +877,7 @@ if __name__ == '__main__':
     application.add_handler(MessageReactionHandler(receive_reaction))
     application.add_handler(ChatMemberHandler(join_leave))
     # state inits
-    #datastuff.load_chats()
+    datastuff.load_chats()
     # datastuff.quiz_refresh_stats()
     BotState.q = application.job_queue
     print("registering one-run")

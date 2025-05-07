@@ -662,10 +662,10 @@ def XX__log_user_event(userid: int, chatid: int, event_type: string, data: strin
 def load_chats():
     res = BotState.DBLink.execute("SELECT DISTINCT chatid FROM userseen")
     chats = res.fetchall()
-    print(chats)
+    #print(chats)
     for chat in chats:
         info = BotState.bot.get_chat(chat)
-        print(info)
+        #print(info)
         BotState.current_chats.append(chat[0])
     print(BotState.current_chats)
 
