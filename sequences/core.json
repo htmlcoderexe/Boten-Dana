@@ -28,10 +28,22 @@
       {
         "description": "Показать статус бота.",
         "subseq": "show_status"
+      },
+      "sbtest":
+      {
+        "description": "scoreboard_test",
+        "subseq": "scoreboard_test"
       }
     }
   ,
   "subseqs": {
+    "scoreboard_test":
+            [
+              {
+                "action": "scoreboard",
+                "params": ["dontcare",-1,"all",-1,20,"rep","mat","voice"]
+              }
+            ],
     "show_status": [
       {
         "action": "kill_msg",
