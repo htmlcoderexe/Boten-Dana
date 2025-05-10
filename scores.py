@@ -1,4 +1,7 @@
+import time
 from datetime import datetime
+
+import UserInfo
 from actions import TriggeredAction
 from telegram import Message as TGMessage
 from botstate import BotState
@@ -14,6 +17,25 @@ class ScoreHelper:
         self.chatid = chatid
         self.today = today if today is not None else datetime.now()
 
+    @staticmethod
+    def make_scopes(date: datetime = None):
+        if date is None:
+            date = datetime.now()
+        year = date.strftime("%Y")
+        month = date.strftime("%Y-%m")
+        week = date.strftime("%Y-w%W")
+        day = date.strftime("%Y-%m-%d")
+        return "all", year, month, week, day
+
+    @staticmethod
+    def make_scope(scope: str, date: datetime = None):
+        scope_names = ("all", "year", "month", "week", "day")
+        if scope not in scope_names:
+            scope = "all"
+        index = scope_names.index(scope)
+        scopes = ScoreHelper.make_scopes(date)
+        return scopes[index]
+
     def add_scope(self, scorename: str, scope: str, delta: int):
         data1 = (self.userid, self.chatid, scorename, scope)
         data2 = (self.chatid, self.userid, scorename, scope, delta)
@@ -24,7 +46,7 @@ class ScoreHelper:
             BotState.DBLink.execute("INSERT INTO scores VALUES (?,?,?,?,?)", data2)
             BotState.write()
         else:
-            amount = row[0]
+            amount = int(row[0])
             data3 = (amount + delta, self.chatid, self.userid, scorename, scope)
             BotState.DBLink.execute("""UPDATE scores
                 SET amount = ?
@@ -35,17 +57,10 @@ class ScoreHelper:
                 """, data3)
             BotState.write()
 
-    def add(self,scorename:str,delta: int = 1) -> int:
-        year = self.today.strftime("%Y")
-        yearmonth = self.today.strftime("%Y-%m")
-        yearmonthday = self.today.strftime("%Y-%m-%d")
-        yearweek = self.today.strftime("%Y-w%W")
-        self.add_scope(scorename=scorename,delta=delta,scope="all")
-        self.add_scope(scorename=scorename,delta=delta,scope=year)
-        self.add_scope(scorename=scorename,delta=delta,scope=yearmonth)
-        self.add_scope(scorename=scorename,delta=delta,scope=yearmonthday)
-        self.add_scope(scorename=scorename,delta=delta,scope=yearweek)
-        return self.get_scope(scorename,"all")
+    def add(self, scorename: str, delta: int = 1) -> int:
+        for scope in ScoreHelper.make_scopes():
+            self.add_scope(scorename, scope, delta)
+        return self.get_scope(scorename, "all")
 
     def get_scope(self, scorename: str, scope: str):
         res = BotState.DBLink.execute("""
@@ -61,19 +76,10 @@ class ScoreHelper:
         else:
             return row[0]
 
-    def get(self,scorename: str):
-        year = self.today.strftime("%Y")
-        yearmonth = self.today.strftime("%Y-%m")
-        yearmonthday = self.today.strftime("%Y-%m-%d")
-        yearweek = self.today.strftime("%Y-w%W")
-        return \
-            self.get_scope(scorename=scorename, scope="all"), \
-            self.get_scope(scorename=scorename, scope=year), \
-            self.get_scope(scorename=scorename, scope=yearmonth), \
-            self.get_scope(scorename=scorename, scope=yearweek), \
-            self.get_scope(scorename=scorename, scope=yearmonthday)
+    def get(self, scorename: str, date: datetime = None):
+        return tuple([self.get_scope(scorename, scope) for scope in ScoreHelper.make_scopes(date)])
 
-    def get_top(self,scorename: str, count: int = 1, scope: str = "all"):
+    def get_top(self, scorename: str, count: int = 1, scope: str = "all"):
         res = BotState.DBLink.execute("""
             SELECT ue.event_data as name, amount, userid
             FROM scores
@@ -91,8 +97,54 @@ class ScoreHelper:
             LIMIT ? """, (self.chatid, scorename, scope, count))
         return res.fetchall()
 
+    def get_scoreboard(self, count: int = 1, scope: str = "all", scores=None, date: datetime = None):
+        """
 
-class ActionScoreBoard(TriggeredAction, action_name="score_board"):
+        @param count:
+        @param scope:
+        @param scores:
+        @param date:
+        @return:
+        """
+        scope = ScoreHelper.make_scope(scope,date)
+        if not scores:
+            return []
+        extras1 = ", extrascore{0}.amount as score{0}"
+        extras2 = """
+            LEFT JOIN 
+            (SELECT amount, userid FROM scores
+            WHERE scorename = :score{0}
+            AND chatid = :chatid
+            AND scope = :noscope
+            ) extrascore{0}
+        ON scores.userid = extrascore{0}.userid"""
+        extras3 = ", score{0} DESC"
+        query = """SELECT scores.userid, scores.amount as score0{extras1}
+        FROM "scores" 
+        {extras2}
+        WHERE scope = :noscope 
+        AND scorename = :score0 
+        AND chatid = :chatid
+        ORDER BY score0 DESC{extras3}
+        LIMIT :cunt"""
+        mainscore = scores[0]
+        params = {"chatid": self.chatid, "noscope": scope, "score0": mainscore, "cunt": count}
+        e1 = e2 = e3 = ""
+        for i, score in enumerate(scores):
+            if i == 0:
+                continue
+            e1 = e1 + extras1.format(i)
+            e2 = e2 + extras2.format(i)
+            e3 = e3 + extras3.format(i)
+            params["score" + str(i)] = score
+        q = query.format(extras1=e1, extras2=e2, extras3=e3)
+        res = BotState.DBLink.execute(q, params)
+        rows = res.fetchall()
+        return rows
+
+
+
+class ActionScoreBoard(TriggeredAction, action_name="sxxxxcore_board"):
     """Shows a top scoreboard
     param 0: score to show
     param 1: number of winners
@@ -104,7 +156,7 @@ class ActionScoreBoard(TriggeredAction, action_name="score_board"):
             if not message.reply_to_message:
                 return "scoreboard_no_target"
             message = message.reply_to_message
-        ss = ScoreHelper(message.from_user.id,message.chat.id)
+        ss = ScoreHelper(message.from_user.id, message.chat.id)
         board = ss.get_top(self.data[0], int(self.data[1]))
         self.varstore[self.data[2]] = board
         return ""
@@ -117,29 +169,98 @@ class ActionScoreUp(TriggeredAction, action_name="score_up"):
     param 2: amount, can be *pointer
     param 3: variable to store into
     """
+
     async def run_action(self, message: TGMessage) -> str:
         uid = self.read_param(0)
         scorename = self.read_param(1)
-        scoreamount = self.read_param(2)
-        outvar = self.read_param(3)
-        ss = ScoreHelper(uid, message.chat.id)
-        amount = int(scoreamount)
+        amount = self.read_int(2)
+        ss = ScoreHelper(uid, self.varstore["__chat_id"])
         score = ss.add(scorename, amount)
-        self.varstore[outvar] = score
+        self.write_param(3,score)
+        return ""
+
+
+class ActionScoreSet(TriggeredAction, action_name="score_set"):
+    """Sets a score
+    param 0: uid
+    param 1: score name
+    param 2: amount, can be *pointer
+    param 3: variable to store into
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        uid = self.read_param(0)
+        scorename = self.read_param(1)
+        amount = self.read_int(2)
+        ss = ScoreHelper(uid, self.varstore["__chat_id"])
+        score = ss.add(scorename, 0)
+        amount = amount - score
+        score = ss.add(scorename, amount)
+        self.write_param(3, score)
         return ""
 
 
 class ActionScoreGet(TriggeredAction, action_name="score_get"):
     """Gets a score
-    param 0: uid
+    param 0: uid, -1 = current
     param 1: score name
     param 2: variable to store into
+    param 3: optional scope from "all" (default), "day", "week", "month", "year"
+    param 4: optional timestamp
     """
+
     async def run_action(self, message: TGMessage) -> str:
         uid = self.read_param(0)
+        if uid == -1:
+            uid = self.varstore["__uid"]
         scorename = self.read_param(1)
-        outvar = self.read_param(2)
-        ss = ScoreHelper(uid, message.chat.id)
-        score = ss.get(scorename)
-        self.varstore[outvar] = score
+        scope = self.read_string(3)
+        timestamp = self.read_int(4)
+        if timestamp == -1:
+            timestamp = time.time()
+        date = datetime.fromtimestamp(timestamp)
+        scopes = ("all", "year", "month", "week", "day")
+        if scope not in scopes:
+            scope = "all"
+        ss = ScoreHelper(uid, self.varstore["__chat_id"])
+        score = ss.get(scorename, date)
+        index = scopes.index(scope)
+        self.write_param(2, score[index])
         return ""
+
+    class GetScoreBoard(TriggeredAction, action_name="scoreboard"):
+        """
+        Gets a scoreboard
+        param 0: out resulting board
+        param 1: chatid, -1 = from __chat_id
+        param 2: scope, from "all" (default), "day", "week", "month", "year"
+        param 3: timestamp, -1 = today
+        param 4: count
+        param X: score names
+        """
+
+        async def run_action(self, message: TGMessage) -> str:
+            chatid = self.read_int(1)
+            if chatid == -1:
+                chatid = self.varstore["__chat_id"]
+            scope = self.read_string(2)
+            timestamp = self.read_int(3)
+            count = self.read_int(4)
+            if count < 0:
+                count = 10
+            scores = self.read_to_end(5)
+            if timestamp == -1:
+                timestamp = time.time()
+            date = datetime.fromtimestamp(timestamp)
+            sh = ScoreHelper(0,chatid,date)
+            data = sh.get_scoreboard(count, scope, scores,date)
+            board = []
+            for line in data:
+                uid = line[0]
+                rest = line[1:]
+                usr = UserInfo.User(uid, chatid)
+                line2 = (usr.current_nick,) + rest
+                board.append(line2)
+            self.write_param(0,board)
+            return ""
+
