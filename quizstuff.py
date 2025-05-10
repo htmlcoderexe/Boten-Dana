@@ -346,10 +346,6 @@ class QuizPlaySession:
         # on a single player session, advance immediately to the next question
         if session.singleplayer:
             next_question = question_number + 1
-            quiz = Quiz.load(session.quiz_id)
-            # if this was the last question, set it to the end TODO: maybe use the question number >= question count as the end signal?
-            #if next_question >= len(quiz.questions):
-            #    next_question = -3
             botutils.schedule_kill(session.chat_id, poll_msgid, 0)
             BotState.DBLink.execute(("""
                     UPDATE quiz_next
@@ -572,7 +568,8 @@ class ProcessEvent(TriggeredAction, action_name="quiz_do_plan"):
     """
     async def run_action(self, message: TGMessage) -> str:
         events = self.varstore[self.read_param(0)]
-
+        if not events:
+            return ""
         event = events.pop(0)
         sid, chat, time_stamp, quiz, cmd = event
         # store the session
