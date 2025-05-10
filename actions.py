@@ -204,6 +204,7 @@ class TriggeredAction:
             print(f"var_store pointer read at <{var_name}>")
             if var_name not in self.varstore:
                 print("bad pointer!")
+                print(self.varstore)
                 return ""
             print("good pointer.")
             print(f"value <{self.varstore[var_name]}> was fetched from <{var_name}>")
@@ -762,8 +763,8 @@ class BranchIfGreaterOrEqual(TriggeredAction, action_name="if_gte"):
     param 3: subsequence to return if first value is less than the second one
     """
     async def run_action(self, message: TGMessage) -> str:
-        a = self.read_param(0)
-        b = self.read_param(1)
+        a = self.read_int(0)
+        b = self.read_int(1)
         gte = self.read_param(2)
         not_gte = self.read_param(3)
         if a >= b:
@@ -818,6 +819,21 @@ class Multiply(TriggeredAction, action_name="mul"):
         return ""
 
 
+class Divide(TriggeredAction, action_name="div"):
+    """Divides two values and stores the result
+    param 0: first value
+    param 1: second value
+    param 2: variable to write
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        a = self.read_int(0)
+        b = self.read_int(1)
+        if b == 0:
+            b = 0.00001
+        self.write_param(2, a / b)
+        return ""
+
+
 class Count(TriggeredAction, action_name="count"):
     """Counts items in a given variable, then stores the results into a variable.
     param 0: Variable containing items to count.
@@ -830,6 +846,21 @@ class Count(TriggeredAction, action_name="count"):
             return ""
         targetvar = self.varstore[countvar]
         self.varstore[outvar] = len(targetvar)
+        return ""
+
+
+class Index(TriggeredAction, action_name="index"):
+    """Indexes into a list and returns the result.
+    param 0: list to index (can be inline or *pointer)
+    param 1: index
+    param 2: variable to store result
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        listvar = self.read_param(0)
+        index = self.read_int(1)
+        if 0 > index >= len(listvar):
+            index = 0
+        self.write_param(2, listvar[index])
         return ""
 
 
@@ -946,6 +977,22 @@ class RollPercent(TriggeredAction, action_name="roll_chance"):
         return ""
 
 
+class RollDice(TriggeredAction, action_name="roll_dice"):
+    """Rolls n dice with m sides each and returns the total.
+    param 0: number of dice.
+    param 1: number of sides.
+    param 2: out result
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        n = self.read_int(0)
+        m = self.read_int(1)
+        total = 0
+        for i in range(0, n):
+            total = total + random.randint(1, m)
+        self.write_param(2, total)
+        return ""
+
+
 class GetEnv(TriggeredAction, action_name="load_env"):
     """
 
@@ -1028,6 +1075,73 @@ class GetMessageID(TriggeredAction, action_name="get_msgid"):
         out_var = self.read_param(0)
         self.varstore[out_var] = message.id
         return ""
+
+
+class GetNumbers(TriggeredAction, action_name="get_numbers"):
+    """Gets numbers out of a message.
+    param 0: out list of numbers
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        print(message)
+        if self.target_reply:
+            if not message.reply_to_message:
+                print("FUYUUUUUUUUUUUUUUUUUUUUUUUUUCK")
+                return "no_target"
+            print("ok message reply")
+            message = message.reply_to_message
+            print(message)
+
+        text = ""
+        if message.text:
+            text = message.text
+        if message.caption:
+            text = message.caption
+        numbers = []
+        if text == "":
+            self.write_param(0, numbers)
+            return ""
+        # filter out anything but numbers
+        numberstring = ''.join((ch if ch in '0123456789.-' else ' ') for ch in text)
+        for chunk in numberstring.split():
+            try:
+                num = float(chunk)
+                numbers.append(num)
+            except ValueError:
+                pass
+        print(f"got {len(numbers)} numbers out like {numbers}")
+        self.write_param(0,numbers)
+        return ""
+
+
+class GetMentions(TriggeredAction, action_name="get_mentions"):
+    """Gets user mentions out of a message.
+    param 0: out list of mentioned users
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        self.write_param(0,"")
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "no_target"
+            message = message.reply_to_message
+        self.write_param(0,"")
+        entity_list = []
+        users = []
+        if message.text:
+            entity_list = message.entities
+            print("entities:")
+            print(entity_list)
+        if message.caption:
+            entity_list = message.caption_entities
+            print("entities:")
+            print(entity_list)
+        for entity in entity_list:
+            if entity.type in (entity.TEXT_MENTION,):
+                usr = entity.user
+                users.append(usr.id)
+                print(usr.id)
+        self.write_param(0, users)
+
+
 
 
 class GetLoadedSequences(TriggeredAction, action_name="get_seqs"):
