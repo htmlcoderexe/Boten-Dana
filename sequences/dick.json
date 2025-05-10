@@ -1,7 +1,7 @@
 {
   "name": "dick",
   "display_name": "nenuca v2.0",
-  "description": "a",
+  "description": "Отращивание письки в чате, платонический идеал виртуальной фаллометрии с элементами гамификации.",
   "version": [
     1,
     0,
@@ -11,15 +11,25 @@
   "triggers": [
     {
       "type": "text_exact",
-      "params": ["перенести пепису"],
+      "params": ["перенести пепису","перенести пипису"],
       "subseq": "transfer"
+    },
+    {
+      "type": "text_exact",
+      "params": ["топ пепис","топ пипис"],
+      "subseq": "top_dicks"
     }
   ],
   "commands": {
     "dick":
     {
-      "description": "pp up",
+      "description": "Отрастить пепису",
       "subseq": "dick_main"
+    },
+    "top_dicks":
+    {
+      "description": "Топ писек в чятике",
+      "subseq": "top_dicks"
     }
   },
   "subseqs": {
@@ -176,6 +186,10 @@
         "params": [2,5,"today"]
       },
       {
+        "action": "mul",
+        "params": ["*today",-1, "today"]
+      },
+      {
         "action": "score_up",
         "params": ["*__uid","dick","*today","total"]
       },
@@ -188,6 +202,10 @@
       {
         "action": "roll_dice",
         "params": [1,5,"today"]
+      },
+      {
+        "action": "mul",
+        "params": ["*today",-1, "today"]
       },
       {
         "action": "score_up",
@@ -233,6 +251,25 @@
       }
 
     ],
+    "top_dicks":
+            [
+              {
+                "action": "kill_msg",
+                "params": [5]
+              },
+              {
+                "action": "scoreboard",
+                "params": ["dontcare",-1,"all",-1,20,"dick"]
+              },
+              {
+                "action": "fmt_list",
+                "params": ["dontcare","dick_board_fmt","top"]
+              },
+              {
+                "action": "emit_text",
+                "params": ["dick_board",15]
+              }
+            ],
     "already_played": [
       {
         "action": "emit_text",
@@ -244,9 +281,23 @@
     "already_played": ["Ти сьогоднi вже играв\\."],
     "not_you": ["Мне кажется\\, кто\\-то пытается украсть чужое хуищще\\."],
     "transfer_ok": ["Удалось перенести {pp_size} члена\\."],
-    "crit_fail": ["Прилетела акула и отгрызла {today} см\\. Осталось всего {total} см песюна\\."],
-    "crit_succ": ["В завещании недавно умершего Рокко Сифреди было указано передать его легендарный член именно тебе\\. \\+{today} см к письке\\. Рокко смотрит на твои {total}см с небес и улыбается\\."],
-    "norm_shrink": ["Облом\\! Теперь песюн короче на {today} см\\. Теперь его длина {total} см\\."],
-    "norm_grow": ["Расти\\, писька\\! {today} см добавлены\\, теперь твой меч правосудия уже {total} см\\."]
+    "crit_fail": [
+      "Прилетела акула и отгрызла {today} см\\. Осталось всего {total} см песюна\\."
+    ],
+    "crit_succ": [
+      "В завещании недавно умершего Рокко Сифреди было указано передать его легендарный член именно тебе\\. \\+{today} см к письке\\. Рокко смотрит на твои {total}см с небес и улыбается\\."
+    ],
+    "norm_shrink": [
+      "Облом\\! Теперь песюн короче на {today} см\\. Теперь его длина {total} см\\."
+    ],
+    "norm_grow": [
+      "Расти\\, писька\\! {today} см добавлены\\, теперь твой меч правосудия уже {total} см\\."
+    ],
+    "dick_board": [
+      "```\nчлен       владелец \n{top}```"
+    ],
+    "dick_board_fmt": [
+      "\\{0[1]:6d} см  {0[0]: <13.13}\n"
+    ]
   }
 }

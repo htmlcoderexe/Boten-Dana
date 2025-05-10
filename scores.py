@@ -257,9 +257,9 @@ class ActionScoreGet(TriggeredAction, action_name="score_get"):
             board = []
             for line in data:
                 uid = line[0]
-                rest = line[1:]
+                rest = [val if val is not None else 0 for val in line[1:]]
                 usr = UserInfo.User(uid, chatid)
-                line2 = (usr.current_nick,) + rest
+                line2 = [usr.current_nick] + list(rest)
                 board.append(line2)
             self.write_param(0,board)
             return ""

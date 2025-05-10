@@ -42,6 +42,14 @@
               {
                 "action": "scoreboard",
                 "params": ["dontcare",-1,"all",-1,20,"rep","mat","voice"]
+              },
+              {
+                "action": "fmt_list",
+                "params": ["dontcare","test_board_fmt","top"]
+              },
+              {
+                "action": "emit_text",
+                "params": ["test_board",15]
               }
             ],
     "show_status": [
@@ -191,6 +199,12 @@
     ],
     "seq_short_fmt": [
       "*{0.display_name}* v{0.version} \n\"_{0.description}_\"\n"
+    ],
+    "test_board": [
+      "```\nпепяка   маты   войс  имя \n{top}```"
+    ],
+    "test_board_fmt": [
+      "\\{0[1]:6d} \\{0[2]:6d} \\{0[3]:6d} {0[0]: <13.13}\n"
     ]
   },
     "config_vars": [
