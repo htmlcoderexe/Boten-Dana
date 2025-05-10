@@ -1,0 +1,252 @@
+{
+  "name": "dick",
+  "display_name": "nenuca v2.0",
+  "description": "a",
+  "version": [
+    1,
+    0,
+    0,
+    0
+  ],
+  "triggers": [
+    {
+      "type": "text_exact",
+      "params": ["перенести пепису"],
+      "subseq": "transfer"
+    }
+  ],
+  "commands": {
+    "dick":
+    {
+      "description": "pp up",
+      "subseq": "dick_main"
+    }
+  },
+  "subseqs": {
+    "transfer": [
+      {
+        "action": "get_mentions",
+        "params": ["userids"],
+        "target": "reply"
+      },
+      {
+        "action": "get_numbers",
+        "params": ["msgnumbers"],
+        "target": "reply"
+      },
+      {
+        "action": "index",
+        "params": ["*userids",0,"user_id"]
+      },
+      {
+        "action": "index",
+        "params": ["*msgnumbers",0,"pp_size"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*__uid","*user_id","transfer_start","not_you"]
+      }
+    ],
+    "not_you": [
+      {
+        "action": "emit_text",
+        "params": ["not_you",30]
+      }
+
+    ],
+    "transfer_start": [
+      {
+        "action": "score_set",
+        "params": ["*__uid","dick","*pp_size","____"]
+      },
+      {
+        "action": "escape",
+        "params": ["*pp_size","pp_size"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["transfer_ok",30]
+      },
+      {
+        "action": "gosub",
+        "params": ["grow_dick"]
+      }
+    ],
+    "dick_main": [
+      {
+        "action": "score_get",
+        "params": [
+          -1,
+          "dick",
+          "dick_today",
+          "day"
+        ]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      },
+      {
+        "action": "if_eq",
+        "params": [
+          "*dick_today",
+          0,
+          "grow_dick",
+          "already_played"
+        ]
+      }
+    ],
+    "grow_dick": [{
+        "action": "score_get",
+        "params": [
+          -1,
+          "dick",
+          "total",
+          "all"
+        ]
+      },{
+        "action": "score_get",
+        "params": [
+          -1,
+          "dick_rolls",
+          "total_rolls",
+          "all"
+        ]
+      },{
+        "action": "score_get",
+        "params": [
+          -1,
+          "dick_plays",
+          "total_plays",
+          "all"
+        ]
+      },
+      {
+        "action": "div",
+        "params": ["*total_rolls","*total_plays","pity"]
+      },
+      {
+        "action": "add",
+        "params": ["*pity",-10.5, "pity"]
+      },
+      {
+        "action": "mul",
+        "params": ["*pity",-0.2, "pity"]
+      },
+      {
+        "action": "if_gte",
+        "params": [30,"*total","grow",""]
+      },
+      {
+        "action": "roll_dice",
+        "params": [1,20,"today_outcome"]
+      },
+      {
+        "action": "add",
+        "params": ["*today_outcome","*pity","today_outcome"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*__uid","dick_plays",1,"____"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*__uid","dick_rolls","*today_outcome","____"]
+      },
+      {
+        "action": "if_gte",
+        "params": [1,"*today_outcome","crit_fail",""]
+      },
+      {
+        "action": "if_gte",
+        "params": [6,"*today_outcome","shrink",""]
+      },
+      {
+        "action": "if_gte",
+        "params": [19,"*today_outcome","grow","crit_succ"]
+      }
+    ],
+    "crit_fail": [
+      {
+        "action": "roll_dice",
+        "params": [2,5,"today"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*__uid","dick","*today","total"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["crit_fail",30]
+      }
+    ],
+    "shrink": [
+      {
+        "action": "roll_dice",
+        "params": [1,5,"today"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*__uid","dick","*today","total"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["norm_shrink",30]
+      }
+
+    ],
+    "grow": [
+      {
+        "action": "roll_dice",
+        "params": [1,5,"today"]
+      },
+      {
+        "action": "add",
+        "params": ["*today",2,"today"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*__uid","dick","*today","total"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["norm_grow",30]
+      }
+
+    ],
+    "crit_succ": [
+      {
+        "action": "roll_dice",
+        "params": [2,6,"today"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*__uid","dick","*today","total"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["crit_succ",30]
+      }
+
+    ],
+    "already_played": [
+      {
+        "action": "emit_text",
+        "params": ["already_played",30]
+      }
+    ]
+  },
+  "stringpools": {
+    "already_played": ["Ти сьогоднi вже играв\\."],
+    "not_you": ["Мне кажется\\, кто\\-то пытается украсть чужое хуищще\\."],
+    "transfer_ok": ["Удалось перенести {pp_size} члена\\."],
+    "crit_fail": ["Прилетела акула и отгрызла {today} см\\. Осталось всего {total} см песюна\\."],
+    "crit_succ": ["В завещании недавно умершего Рокко Сифреди было указано передать его легендарный член именно тебе\\. \\+{today} см к письке\\. Рокко смотрит на твои {total}см с небес и улыбается\\."],
+    "norm_shrink": ["Облом\\! Теперь песюн короче на {today} см\\. Теперь его длина {total} см\\."],
+    "norm_grow": ["Расти\\, писька\\! {today} см добавлены\\, теперь твой меч правосудия уже {total} см\\."]
+  }
+}
