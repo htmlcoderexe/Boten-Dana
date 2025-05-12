@@ -58,7 +58,7 @@ class ScoreHelper:
             BotState.write()
 
     def add(self, scorename: str, delta: int = 1) -> int:
-        for scope in ScoreHelper.make_scopes():
+        for scope in ScoreHelper.make_scopes(self.today):
             self.add_scope(scorename, scope, delta)
         return self.get_scope(scorename, "all")
 
@@ -77,6 +77,8 @@ class ScoreHelper:
             return row[0]
 
     def get(self, scorename: str, date: datetime = None):
+        if date is None:
+            date = self.today
         return tuple([self.get_scope(scorename, scope) for scope in ScoreHelper.make_scopes(date)])
 
     def get_top(self, scorename: str, count: int = 1, scope: str = "all"):
@@ -168,13 +170,17 @@ class ActionScoreUp(TriggeredAction, action_name="score_up"):
     param 1: score name
     param 2: amount, can be *pointer
     param 3: variable to store into
+    param 4: optional timestamp
     """
 
     async def run_action(self, message: TGMessage) -> str:
         uid = self.read_param(0)
         scorename = self.read_param(1)
         amount = self.read_int(2)
-        ss = ScoreHelper(uid, self.varstore["__chat_id"])
+        timestamp = self.read_int(4)
+        if timestamp == -1:
+            timestamp = time.time()
+        ss = ScoreHelper(uid, self.varstore["__chat_id"], datetime.fromtimestamp(timestamp))
         score = ss.add(scorename, amount)
         self.write_param(3,score)
         return ""
@@ -186,13 +192,17 @@ class ActionScoreSet(TriggeredAction, action_name="score_set"):
     param 1: score name
     param 2: amount, can be *pointer
     param 3: variable to store into
+    param 4: optional timestamp
     """
 
     async def run_action(self, message: TGMessage) -> str:
         uid = self.read_param(0)
         scorename = self.read_param(1)
         amount = self.read_int(2)
-        ss = ScoreHelper(uid, self.varstore["__chat_id"])
+        timestamp = self.read_int(4)
+        if timestamp == -1:
+            timestamp = time.time()
+        ss = ScoreHelper(uid, self.varstore["__chat_id"], datetime.fromtimestamp(timestamp))
         score = ss.add(scorename, 0)
         amount = amount - score
         score = ss.add(scorename, amount)
@@ -222,8 +232,8 @@ class ActionScoreGet(TriggeredAction, action_name="score_get"):
         scopes = ("all", "year", "month", "week", "day")
         if scope not in scopes:
             scope = "all"
-        ss = ScoreHelper(uid, self.varstore["__chat_id"])
-        score = ss.get(scorename, date)
+        ss = ScoreHelper(uid, self.varstore["__chat_id"], date)
+        score = ss.get(scorename)
         index = scopes.index(scope)
         self.write_param(2, score[index])
         return ""

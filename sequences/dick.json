@@ -70,8 +70,17 @@
     ],
     "transfer_start": [
       {
+        "action": "now",
+        "params": ["now"]
+      },
+      {
+        "action": "add",
+        "params": ["*now", 21600,"now"]
+      },
+      {
         "action": "score_set",
-        "params": ["*__uid","dick","*pp_size","____"]
+        "params": ["*__uid","dick","*pp_size","____",
+          "*now"]
       },
       {
         "action": "escape",
@@ -88,12 +97,21 @@
     ],
     "dick_main": [
       {
+        "action": "get_time",
+        "params": ["now"]
+      },
+      {
+        "action": "add",
+        "params": ["*now", 21600,"now"]
+      },
+      {
         "action": "score_get",
         "params": [
           -1,
           "dick",
           "dick_today",
-          "day"
+          "day",
+          "*now"
         ]
       },
       {
@@ -116,7 +134,8 @@
           -1,
           "dick",
           "total",
-          "all"
+          "all",
+          "*now"
         ]
       },{
         "action": "score_get",
@@ -124,7 +143,8 @@
           -1,
           "dick_rolls",
           "total_rolls",
-          "all"
+          "all",
+          "*now"
         ]
       },{
         "action": "score_get",
@@ -132,7 +152,8 @@
           -1,
           "dick_plays",
           "total_plays",
-          "all"
+          "all",
+          "*now"
         ]
       },
       {
@@ -161,11 +182,13 @@
       },
       {
         "action": "score_up",
-        "params": ["*__uid","dick_plays",1,"____"]
+        "params": ["*__uid","dick_plays",1,"____",
+          "*now"]
       },
       {
         "action": "score_up",
-        "params": ["*__uid","dick_rolls","*today_outcome","____"]
+        "params": ["*__uid","dick_rolls","*today_outcome","____",
+          "*now"]
       },
       {
         "action": "if_gte",
@@ -186,16 +209,17 @@
         "params": [2,5,"today"]
       },
       {
+        "action": "emit_text",
+        "params": ["crit_fail",30]
+      },
+      {
         "action": "mul",
         "params": ["*today",-1, "today"]
       },
       {
         "action": "score_up",
-        "params": ["*__uid","dick","*today","total"]
-      },
-      {
-        "action": "emit_text",
-        "params": ["crit_fail",30]
+        "params": ["*__uid","dick","*today","total",
+          "*now"]
       }
     ],
     "shrink": [
@@ -204,16 +228,17 @@
         "params": [1,5,"today"]
       },
       {
+        "action": "emit_text",
+        "params": ["norm_shrink",30]
+      },
+      {
         "action": "mul",
         "params": ["*today",-1, "today"]
       },
       {
         "action": "score_up",
-        "params": ["*__uid","dick","*today","total"]
-      },
-      {
-        "action": "emit_text",
-        "params": ["norm_shrink",30]
+        "params": ["*__uid","dick","*today","total",
+          "*now"]
       }
 
     ],
@@ -228,7 +253,8 @@
       },
       {
         "action": "score_up",
-        "params": ["*__uid","dick","*today","total"]
+        "params": ["*__uid","dick","*today","total",
+          "*now"]
       },
       {
         "action": "emit_text",
@@ -243,7 +269,8 @@
       },
       {
         "action": "score_up",
-        "params": ["*__uid","dick","*today","total"]
+        "params": ["*__uid","dick","*today","total",
+          "*now"]
       },
       {
         "action": "emit_text",
@@ -282,16 +309,20 @@
     "not_you": ["Мне кажется\\, кто\\-то пытается украсть чужое хуищще\\."],
     "transfer_ok": ["Удалось перенести {pp_size} члена\\."],
     "crit_fail": [
-      "Прилетела акула и отгрызла {today} см\\. Осталось всего {total} см песюна\\."
+      "Прилетела акула и отгрызла {today} см\\. Осталось всего {total} см песюна\\.",
+      "Как оказалось\\, опыты с бензопилой ни к чему хорошему не приведут\\. Резултат \\- потеря уймы крови и {today} см песюна\\. Береги оставшиеся {total} см\\!"
     ],
     "crit_succ": [
-      "В завещании недавно умершего Рокко Сифреди было указано передать его легендарный член именно тебе\\. \\+{today} см к письке\\. Рокко смотрит на твои {total}см с небес и улыбается\\."
+      "В завещании недавно умершего Рокко Сифреди было указано передать его легендарный член именно тебе\\. \\+{today} см к письке\\. Рокко смотрит на твои {total}см с небес и улыбается\\.",
+      "Применяя запретные техники якутских шаманов\\, тебе удалось растянуть член на ещё {today} см\\. Теперь он целых {total} в длину\\."
     ],
     "norm_shrink": [
-      "Облом\\! Теперь песюн короче на {today} см\\. Теперь его длина {total} см\\."
+      "Облом\\! Теперь песюн короче на {today} см\\. Теперь его длина {total} см\\.",
+      "Похолодало \\:\\( Песюн сморщился на {today} см\\. Теперь он всего {total} см\\."
     ],
     "norm_grow": [
-      "Расти\\, писька\\! {today} см добавлены\\, теперь твой меч правосудия уже {total} см\\."
+      "Расти\\, писька\\! {today} см добавлены\\, теперь твой меч правосудия уже {total} см\\.",
+      "Эрекция наступила внезапно, плюс {today} см\\! Теперь твой монстр {total} см"
     ],
     "dick_board": [
       "```\nчлен       владелец \n{top}```"
