@@ -187,6 +187,8 @@ class User:
         """List of known nicknames for this user"""
         self.current_nick = botutils.MD("MissingNo.&%!▮",2) if not self.nicknames else self.nicknames[0]
         """Most recent known nickname"""
+        if self.nicknames:
+            self.nicknames.pop()
         print("'"+self.current_nick+"'")
         print(repr(self.nicknames))
 
@@ -301,7 +303,25 @@ class User:
                 return 0
             return message.sender_chat.id
         uid = message.from_user.id
-        if uid == telegram.constants.ChatID.ANONYMOUS_ADMIN:
+        if uid in (telegram.constants.ChatID.ANONYMOUS_ADMIN, telegram.constants.ChatID.SERVICE_CHAT, telegram.constants.ChatID.FAKE_CHANNEL):
             uid = message.sender_chat.id
         print(f"The extracted uid was {uid}.")
         return uid
+
+    @staticmethod
+    def extract_nick(message:telegram.Message) -> str:
+        """
+        Extracts a name to refer to an identified entity by.
+        @param message:
+        @return:
+        """
+        if not message.from_user:
+            if not message.sender_chat:
+                return 0
+            return message.sender_chat.title or message.sender_chat.full_name
+        nick = message.from_user.full_name
+        uid = message.from_user.id
+        if uid in (telegram.constants.ChatID.ANONYMOUS_ADMIN, telegram.constants.ChatID.SERVICE_CHAT, telegram.constants.ChatID.FAKE_CHANNEL):
+            nick = message.sender_chat.title or message.sender_chat.full_name
+        print(f"The extracted nick was {nick}.")
+        return nick

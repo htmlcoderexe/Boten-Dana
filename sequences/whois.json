@@ -57,6 +57,33 @@
         "params": ["nickname_list","nickname_list_format","usernicks"]
       },
       {
+        "action": "count",
+        "params": ["nickname_list","nickount"]
+      },
+      {
+        "action": "if_gte",
+        "params": ["*nickount",1, "","no_nicks"]
+      },
+      {
+        "action": "concat",
+        "params": ["aka \n", "*usernicks", "usernicks"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["ok",60]
+      },
+      {
+        "action": "tag_msg",
+        "params": ["whois_list",-1,"*uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0]
+      }
+    ],
+    "no_nicks": [
+
+      {
         "action": "emit_text",
         "params": ["ok",60]
       },
@@ -97,7 +124,7 @@
     ]
   },
   "stringpools": {
-    "ok": ["Пользователь {userinfo.current_nick}\naka {usernicks}\nid {userinfo.id}\nпепяка: {usermeta.reputation}\n%medals%\nпоследнее действие: %recent% назад\nпервое сообщение: %joindate%\n%isreturner%{quotes}\n    "],
+    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\n%medals%\nпоследнее действие: %recent% назад\nпервое сообщение: %joindate%\n%isreturner%{quotes}\n    "],
     "404": ["Да хуй знает\\, в первый раз вижу"],
     "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
     "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],

@@ -70,7 +70,7 @@
     ],
     "transfer_start": [
       {
-        "action": "now",
+        "action": "get_time",
         "params": ["now"]
       },
       {
@@ -162,7 +162,7 @@
       },
       {
         "action": "add",
-        "params": ["*pity",-10.5, "pity"]
+        "params": ["*pity",-12.5, "pity"]
       },
       {
         "action": "mul",
@@ -196,11 +196,11 @@
       },
       {
         "action": "if_gte",
-        "params": [6,"*today_outcome","shrink",""]
+        "params": [3,"*today_outcome","shrink",""]
       },
       {
         "action": "if_gte",
-        "params": [19,"*today_outcome","grow","crit_succ"]
+        "params": [17,"*today_outcome","grow","crit_succ"]
       }
     ],
     "crit_fail": [
@@ -245,7 +245,7 @@
     "grow": [
       {
         "action": "roll_dice",
-        "params": [1,5,"today"]
+        "params": [1,6,"today"]
       },
       {
         "action": "add",
@@ -265,7 +265,11 @@
     "crit_succ": [
       {
         "action": "roll_dice",
-        "params": [2,6,"today"]
+        "params": [2,7,"today"]
+      },
+      {
+        "action": "add",
+        "params": ["*today",2,"today"]
       },
       {
         "action": "score_up",
@@ -305,7 +309,7 @@
     ]
   },
   "stringpools": {
-    "already_played": ["Ти сьогоднi вже играв\\."],
+    "already_played": ["Ти сьогоднi вже грав\\."],
     "not_you": ["Мне кажется\\, кто\\-то пытается украсть чужое хуищще\\."],
     "transfer_ok": ["Удалось перенести {pp_size} члена\\."],
     "crit_fail": [

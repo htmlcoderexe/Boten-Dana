@@ -620,7 +620,8 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     # extract useful information from the update
     chatid = update.effective_chat.id
-    userid = update.message.from_user.id
+    userid = UserInfo.User.extract_uid(update.message)
+    nickname = UserInfo.User.extract_nick(update.message)
     # check if message has a parent message
     replyis = update.message.reply_to_message
 
@@ -633,7 +634,7 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usr = UserInfo.User(userid,chatid)
     print(repr(usr))
     usr.msg_uptick()
-    usr.refresh_nick(update.message.from_user.full_name)
+    usr.refresh_nick(nickname)
     # upcount voice seconds if there's a voice message
     if update.message.voice is not None:
         usr.score_add("voice", update.message.voice.duration)
@@ -678,32 +679,6 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         output = ("Это кто еще, блядь", -1, -1)
     elif update.message.left_chat_member:
         output = ("Куда, блядь", -1, -1)
-    #else:
-
-    # if the message is a reply to something, handle with reply
-    #    if replyis is not None:
-    #        output = await handle_with_reply(upd=update, context=context)
-    #    # else handle standalone message
-    #    else:
-    #        output = await handle_plain_message(upd=update, context=context)
-    # if any of the handling functions returned some sort of a response,
-    # send the message, schedule deletes if needed
-    #if output and BotState.talk:
-    #    msgid = await context.bot.send_message(chat_id=update.effective_chat.id, text=output[0],
-    #                                           parse_mode='MarkdownV2', reply_to_message_id=update.message.id)
-    #    botmsg_killdelay = output[1]
-    #    if botmsg_killdelay != -1:  # -1 to keep the bot's message
-    #        if botmsg_killdelay == 0:  # 0 to use default kill delay
-    #            botmsg_killdelay = botconfig.killdelay
-    #        datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=msgid.message_id,
-    #                                expiration=time.time() + float(botmsg_killdelay))
-    #    usermsg_killdelay = output[2]
-    #    if usermsg_killdelay != -1:  # -1 to keep the user's message
-    #        if usermsg_killdelay == 0:  # 0 to use default kill delay
-    #            usermsg_killdelay = botconfig.killdelay
-    #        datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=update.message.id,
-    #                                expiration=time.time() + float(usermsg_killdelay))
-
 
 # handle joins/leaves etc
 # async def member_change(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -790,6 +765,9 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
     print("-------QUIZ ANSWER DATA END---------------!!")
     answer = update.poll_answer.option_ids[0]
     uid = update.poll_answer.user.id
+    if uid in (telegram.constants.ChatID.ANONYMOUS_ADMIN, telegram.constants.ChatID.SERVICE_CHAT,
+               telegram.constants.ChatID.FAKE_CHANNEL):
+        uid = update.poll_answer.voter_chat.id
     pollid = int(update.poll_answer.poll_id)
     print("user " + str(uid) + " answered #" + str(answer) + " on poll " + str(pollid))
     # TODO: triggers based on poll responses

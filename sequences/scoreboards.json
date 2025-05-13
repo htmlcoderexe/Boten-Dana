@@ -26,8 +26,20 @@
     ],
     "voice_stats": [
       {
+        "action": "kill_msg",
+        "params": [5]
+      },
+      {
         "action": "scoreboard",
-        "params": ["voice",10,"voice_whores","board_line",60]
+        "params": ["output",-1,"all",-1,20,"voice"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["output","board_line","stats"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["voice_whores",15]
       }
     ],
     "pizda": [
@@ -45,7 +57,7 @@
     "exit": []
   },
   "stringpools": {
-    "voice_whores": ["Доска почёта войсоблядей\n```Войсоблядь\n{stats}\n```"],
-    "board_line": ["{:^25}{:^10}"]
+    "voice_whores": ["Доска почёта войсоблядей\n```все нижеперечисленные \\- войсобляди\n{stats}\n```"],
+    "board_line": ["{0[1]:10d} {0[0]}\n"]
   }
 }
