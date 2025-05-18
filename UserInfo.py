@@ -255,7 +255,7 @@ class User:
         """
         print("'"+nick+"'")
         # if user has no known names yet, update
-        if not self.nicknames:
+        if not self.nicknames and not self.current_nick:
             self.log_event(event_type="renamed", data=nick)
             self.nicknames = [nick]
             self.current_nick = nick
