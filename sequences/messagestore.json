@@ -11,6 +11,11 @@
     },
     {
       "type": "text_prefix",
+      "params": ["бот для всех держи"],
+      "subseq": "save_message_glob"
+    },
+    {
+      "type": "text_prefix",
       "params": ["бот дай"],
       "subseq": "retrieve_message"
     }
@@ -49,24 +54,34 @@
         "params": ["*pizda",true,"pizda",""]
       }
     ],
-    "pizda": [
+    "retrieve_message": [
       {
-        "action": "fetch_pool",
-        "params": ["*pizda_pool","pizda_message_id"]
+        "action": "get_match",
+        "params": ["request"]
       },
       {
         "action": "emit_saved_message",
-        "params": ["*pizda_message_id",-1,"pizda_message",-1]
+        "params": ["*request",-1,"",-1]
       }
     ],
-    "tvoya": [
+    "save_message": [
       {
-        "action": "fetch_pool",
-        "params": ["tvoya_pool","pizda_message_id"]
+        "action": "get_match",
+        "params": ["request"]
       },
       {
-        "action": "emit_saved_message",
-        "params": ["*pizda_message_id",-1,"tvoya_message", -1]
+        "action": "save_msg",
+        "params": ["*request","message_saved"]
+      }
+    ],
+    "save_message_glob": [
+      {
+        "action": "get_match",
+        "params": ["request"]
+      },
+      {
+        "action": "save_msg",
+        "params": ["*request","message_saved",0]
       }
     ],
     "exit": []

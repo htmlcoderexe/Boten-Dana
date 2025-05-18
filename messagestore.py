@@ -23,6 +23,7 @@ class StoredMessagePart:
 
     def __str__(self):
         return f"MessagePart: type <{self.part_type}>, data <{self.data}>"
+
     def __repr__(self):
         return f"MessagePart: type <{self.part_type}>, data <{self.data}>"
 
@@ -62,13 +63,15 @@ class MessageStore:
             """, (chatid, name, part_type, data, self.current_user, time.time()))
         BotState.write()
 
-    def read_parts(self, name:str):
+    def read_parts(self, name:str, chatid:int = -1):
         """
         Retrieves all components of a specific stored message.
         @param name: Name of the stored message.
+        @param chatid: optional chatid
         @return: A List (empty if nothing is found) of StoredMessagePart
         """
-        chatid = 0 if self.glob_mode else self.owner_chat
+        if chatid == -1:
+            chatid = 0 if self.glob_mode else self.owner_chat
         print(name)
         print(chatid)
         print("getting parts---------------")
@@ -82,6 +85,29 @@ class MessageStore:
         for part in partdata:
             parts.append(StoredMessagePart(part_type=part[0], data=part[1]))
         return parts
+
+    def move_message(self, name:str, new_id:int):
+        """
+
+        @param name:
+        @param new_id:
+        @return:
+        """
+        chatid = 0 if self.glob_mode else self.owner_chat
+        print(name)
+        print(chatid)
+        rows = self.read_parts(name=name, chatid=new_id)
+        if rows:
+            # TODO: i8n
+            return False
+        print("moving part---------------")
+        res = BotState.DBLink.execute("""
+                   UPDATE saved_messages
+                   SET chatid = ?
+                   WHERE name = ?
+                   AND chatid = ?
+                   """, (new_id, name, chatid))
+        return True
 
     def get_type_emoji(self, name: str):
         parts = self.read_parts(name)
@@ -312,19 +338,31 @@ class SaveMessage(TriggeredAction, action_name="save_msg"):
     """Saves a message to the MessageStore
     param 0: message name
     param 1: out success state
+    param 2: optional chatid
     """
     async def run_action(self, message: TGMessage) -> str:
         if not message.reply_to_message:
             self.write_param(1,"no_message")
             return ""
+        chatid = self.read_int(2)
+        if chatid == -1:
+            chatid = self.varstore["__chat_id"]
         msgname = self.read_string(0)
-        store = MessageStore(message.chat.id, message.from_user.id)
+        store = MessageStore(chatid, message.from_user.id)
         saved = await store.store_message(message.reply_to_message, msgname)
         if saved:
             self.write_param(1,"ok")
             return ""
         self.write_param(1,"fail")
         return ""
+
+
+class MoveMessage(TriggeredAction, action_name="move_saved_message"):
+    """
+    param 0: message name
+    param 1: new scopeID (chatid/0 for global)
+    """
+
 
 
 class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
