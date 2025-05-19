@@ -15,6 +15,7 @@ import botstate
 import botutils
 import env_vars
 import messagetagger
+import scheduled_events
 from env_vars import EnvVar
 
 
@@ -307,6 +308,8 @@ class TriggeredSequence:
     """Contains currently loaded running sequences."""
     timed_subseqs = []
     """Contains subsequences registered to run on a timer"""
+    event_handlers = {}
+    """Contains event handlers subscribing to a specific event"""
 
     def __init__(self, name:str, display_name:str, desc:str, version:tuple[int], triggers:list[Trigger], subseqs:dict[str,list[TriggeredAction]],
                  strings=None, config_vars:dict[str,tuple[str,str]] = None, commands:dict[str,tuple[str,str]] = None):
@@ -470,7 +473,7 @@ class TriggeredSequence:
             await self.run_subseq(subseq, Trigger.Empty(),update.message,"")
         return handler
 
-    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = ""):
+    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = "", **kwargs):
         """
         Runs a specific subsequence.
         @param subseq:
@@ -490,7 +493,7 @@ class TriggeredSequence:
             triggering_user = UserInfo.User.extract_uid(message)
             chat_id = message.chat_id
         # init local variable store
-        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id}
+        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id} | kwargs
         # get a copy of the actions list
         actions = self.subseqs[subseq][:]
         # print(repr(actions))
@@ -607,6 +610,46 @@ class TriggeredSequence:
         """
         for name, seq in TriggeredSequence.running_sequences.items():
             await seq.run(message)
+
+    @staticmethod
+    def register_handler(event_type:str, sequence:str, subseq:str) -> bool:
+        """
+        Subscribes a specific subsequence to handle an event.
+        @param event_type:
+        @param sequence:
+        @param subseq:
+        @return:
+        """
+        if event_type in TriggeredSequence.event_handlers:
+            return False
+        TriggeredSequence.event_handlers[event_type] = sequence, subseq
+        return True
+
+    @staticmethod
+    async def run_handler(event_type:str, event:scheduled_events.ScheduledEvent):
+        """
+
+        @param event_type:
+        @param event:
+        @return:
+        """
+        if event_type not in TriggeredSequence.event_handlers:
+            print(f"Invalid event handler for <{event_type}>: no handler registered with this name.")
+            return
+        seq, sub = TriggeredSequence.event_handlers[event_type]
+        if seq not in TriggeredSequence.running_sequences:
+            print(f"Invalid event handler for <{event_type}>: sequence <{seq}> does not exist.")
+            return
+        if sub not in TriggeredSequence.running_sequences[seq].subseqs:
+            print(f"Invalid event handler for <{event_type}>: subsequence <{sub}> not found in <{seq}>.")
+        await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "", {"__event": event.event_data, "__chat_id": event.chat_id})
+
+    @staticmethod
+    async def process_events():
+        for handler in TriggeredSequence.event_handlers.keys():
+            events = scheduled_events.ScheduledEvent.fetch_events(handler)
+            for event in events:
+                await TriggeredSequence.run_handler(handler, event)
 
 
 class MockMessage:

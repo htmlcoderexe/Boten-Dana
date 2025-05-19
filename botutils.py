@@ -1,6 +1,10 @@
 ﻿import io
 import time
 
+import requests
+
+import botconfig
+from scheduled_events import ScheduledEvent
 import botstate
 from telegram.helpers import escape_markdown
 
@@ -47,12 +51,7 @@ def schedule_kill(chatid: int, msgid: int, expiration: float):
     """
     if expiration == -1:
         return
-    botstate.BotState.DBLink.execute("""
-    INSERT INTO msgkills
-    VALUES (?,?,?)
-    """,
-                            (chatid, msgid, time.time() + expiration)
-                            )
+    ScheduledEvent.schedule_event("msg_kill", chatid, expiration, msgid)
     botstate.BotState.write()
     print(f"scheduled to kill message {msgid}")
 
@@ -64,6 +63,9 @@ def cancel_kill(chatid: int, msgid: int):
     @param msgid: Message ID to cancel deletion of.
     @return:
     """
-    botstate.BotState.DBLink.execute("DELETE from msgkills WHERE chatid=? AND msgid = ?", (chatid, msgid))
-    botstate.BotState.write()
+    ScheduledEvent.fetch_events("msg_kill", -1,4_000_000_000,[(0, msgid)])
     print(f"canceled message kill for {msgid}")
+
+
+def kill_message(chatid: int, msgid: int) -> requests.Response:
+    return requests.get(f"https://api.telegram.org/bot{botconfig.bottoken}/deleteMessage?chat_id={chatid}&message_id={msgid}")

@@ -16,6 +16,8 @@ from telegram.ext import filters, PollAnswerHandler, PollHandler, MessageHandler
 
 import UserInfo
 import actions
+import botutils
+import scheduled_events
 import userlists
 import quizstuff
 import messagestore
@@ -312,7 +314,7 @@ async def do_console_command(command: string, args,chatid: int, messageid: int,p
             output = await console_commands.bot_info(pargs)
         case "exit":
             datastuff.console_end_session(chatid=chatid,userid=userid,messageid=prev)
-            datastuff.schedule_kill(chatid=chatid,msgid=messageid,expiration=0)
+            #datastuff.schedule_kill(chatid=chatid,msgid=messageid,expiration=0)
             return
         case "get":
             output = await console_commands.get_env(pargs,chatid)
@@ -492,8 +494,9 @@ async def handle_plain_message(upd: Update, context: ContextTypes.DEFAULT_TYPE):
         if current.text[0] == "/":
             now = datetime.now()
             # midnight = now.replace(hour=23, minute=59, second=59, microsecond=0)
-            datastuff.schedule_kill(chatid=upd.effective_chat.id, msgid=current.message_id,
-                                    expiration=now.timestamp() + 120)
+            pass
+            #datastuff.schedule_kill(chatid=upd.effective_chat.id, msgid=current.message_id,
+            #                        expiration=now.timestamp() + 120)
         stext = S(current.text.lower())
         rawlistext = current.text.split()
         fulltail = " ".join(rawlistext[2:])
@@ -599,8 +602,8 @@ async def test_poll(chatid: int):
 # start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msgid = await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please fuck me!")
-    datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=msgid.message_id,
-                            expiration=time.time() + botconfig.killdelay)
+    #datastuff.schedule_kill(chatid=update.effective_chat.id, msgid=msgid.message_id,
+                            #expiration=time.time() + botconfig.killdelay)
 
 
 # #called on any regular messages
@@ -737,11 +740,11 @@ async def random_chatter(chatid:int):
 
 # #run this to keep checking for messages to kill
 async def everyminute(context: CallbackContext):
-    kills = datastuff.check_kills()
-    if kills is not None:
-        for (chat, msg) in kills:
-            datastuff.kill_message(chatid=chat, msgid=msg)
+    kills = scheduled_events.ScheduledEvent.fetch_events("msg_kill")
+    for kill in kills:
+        botutils.kill_message(chatid=kill.chat_id, msgid=kill.event_data[0])
     await actions.TriggeredSequence.run_timers()
+    await actions.TriggeredSequence.process_events()
     #for chat in BotState.current_chats:
     #    if str(chat)[0] != "-":
     #        continue

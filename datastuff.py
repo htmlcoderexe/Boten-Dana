@@ -50,7 +50,7 @@ def send_message(message: string, target_id: int) -> requests.Response:
 # #------ Message killing ------
 
 # delete a specific message from a chat
-def kill_message(chatid: int, msgid: int) -> requests.Response:
+def XX__kill_message(chatid: int, msgid: int) -> requests.Response:
     BotState.DBLink.execute("DELETE from msgkills WHERE chatid=? AND msgid = ?", (chatid, msgid))
     BotState.write()
     return requests.get(
@@ -58,7 +58,7 @@ def kill_message(chatid: int, msgid: int) -> requests.Response:
 
 
 # assign a specific message to be deleted at a future time
-def schedule_kill(chatid: int, msgid: int, expiration: float):
+def XX__schedule_kill(chatid: int, msgid: int, expiration: float):
     BotState.DBLink.execute("""
     INSERT INTO msgkills
     VALUES (?,?,?)

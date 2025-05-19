@@ -66,6 +66,9 @@
   "timers": [
     ["quiz_get_plan",5]
   ],
+  "event_handlers": [
+    "quiz_next":"quiz_do_plan"
+  ],
   "subseqs": {
     "quiz_begin": [
       {
