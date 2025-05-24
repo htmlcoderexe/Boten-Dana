@@ -395,6 +395,11 @@ class TriggeredSequence:
             for timer in data['timers']:
                 TriggeredSequence.register_timer(name, timer[0], timer[1])
             print(f"Loaded {len(data['timers'])} timers.")
+        # register event hanlders
+        if 'event_handlers' in data:
+            for event, handler in data['event_handlers'].items():
+                TriggeredSequence.register_handler(event, name, handler)
+                print(f"Registered <{name}/{handler}> for <{event}>")
         # load and init declared config vars
         config_vars = {}
         if 'config_vars' in data:
@@ -642,6 +647,7 @@ class TriggeredSequence:
             return
         if sub not in TriggeredSequence.running_sequences[seq].subseqs:
             print(f"Invalid event handler for <{event_type}>: subsequence <{sub}> not found in <{seq}>.")
+        print(f"Dispatching <{event_type}> to <{sub}/{seq}>.")
         await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "", {"__event": event.event_data, "__chat_id": event.chat_id})
 
     @staticmethod

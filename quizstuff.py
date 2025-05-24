@@ -4,6 +4,7 @@ import UserInfo
 import actions
 import botutils
 import messagestore
+import scheduled_events
 import scores
 from actions import TriggeredAction
 from telegram import Message as TGMessage
@@ -393,10 +394,7 @@ class QuizPlaySession:
         # write to DB
         for entry in plan:
             moment, command = entry
-            BotState.DBLink.execute("""
-                    INSERT INTO quiz_next
-                    VALUES (?,?,?,?,?)""", (self.id, self.chat_id, moment, self.quiz_id, command))
-        BotState.write()
+            scheduled_events.ScheduledEvent.schedule_event("quiz_next", self.chat_id, moment, self.id, self.quiz_id, command)
 
     def award_correct_answer(self, user_id:int, seconds:float):
         """
@@ -561,17 +559,18 @@ class RegisterPoll(TriggeredAction, action_name="quiz_register_poll"):
 
 class ProcessEvent(TriggeredAction, action_name="quiz_do_plan"):
     """Processes a single event.
-    param 0: variable storing the events.
+    param 0: variable storing the event.
     param 1: variable to store the command type
     param 2: variable to store modified event
-    param 3: variable to store session ID
+    param 3: variable to store session
     """
     async def run_action(self, message: TGMessage) -> str:
-        events = self.varstore[self.read_param(0)]
-        if not events:
+        event:scheduled_events.ScheduledEvent = self.varstore[self.read_param(0)]
+        if not event:
             return ""
-        event = events.pop(0)
-        sid, chat, time_stamp, quiz, cmd = event
+        sid = event.event_data[0]
+        quiz_id = event.event_data[1]
+        cmd = event.event_data[2]
         # store the session
         self.write_param(3,QuizPlaySession.load(sid))
         # negative numbers animate the starting message
@@ -580,7 +579,7 @@ class ProcessEvent(TriggeredAction, action_name="quiz_do_plan"):
             self.write_param(2,int(cmd) * -1)
             return ""
         # numbers past the last question end the quiz
-        quiz = Quiz.load(quiz)
+        quiz = Quiz.load(quiz_id)
         if cmd >= len(quiz.questions):
             self.write_param(1,"quiz_finish")
             self.write_param(2,0)

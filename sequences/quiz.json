@@ -63,12 +63,9 @@
       "subseq": "quiz_end_edit"
     }
   ],
-  "timers": [
-    ["quiz_get_plan",5]
-  ],
-  "event_handlers": [
-    "quiz_next":"quiz_do_plan"
-  ],
+  "event_handlers": {
+    "quiz_next": "quiz_tick"
+  },
   "subseqs": {
     "quiz_begin": [
       {
@@ -553,30 +550,10 @@
         "params": ["session_started",-1]
       }
     ],
-    "quiz_get_plan": [
-      {
-        "action": "quiz_get_plan",
-        "params": ["quiz_plan"]
-      },
-      {
-        "action": "gosub",
-        "params": ["quiz_count_plan"]
-      }
-    ],
-    "quiz_count_plan": [
-      {
-        "action": "count",
-        "params": ["quiz_plan","quiz_plan_count"]
-      },
-      {
-        "action": "if_eq",
-        "params": [0,"*quiz_plan_count","quiz_no_more_plan","quiz_tick"]
-      }
-    ],
     "quiz_tick": [
       {
         "action": "quiz_do_plan",
-        "params": ["quiz_plan","quiz_next", "plan_param","quiz_session"]
+        "params": ["__event","quiz_next", "plan_param","quiz_session"]
       },
       {
         "action": "obj_read",
@@ -639,10 +616,6 @@
       {
         "action": "edit_msg_ex",
         "params": ["*quiz_msg_id","*next_msg"]
-      },
-      {
-        "action": "gosub",
-        "params": ["quiz_count_plan"]
       }
     ],
     "quiz_plan_quiz_finish": [
@@ -673,10 +646,6 @@
       {
         "action": "emit_text",
         "params": ["finish_board", -1, 0]
-      },
-      {
-        "action": "gosub",
-        "params": ["quiz_count_plan"]
       }
     ],
     "quiz_plan_question": [
@@ -751,10 +720,6 @@
       {
         "action": "quiz_register_poll",
         "params": ["*quiz_session_id","*poll_id","*plan_param"]
-      },
-      {
-        "action": "gosub",
-        "params": ["quiz_count_plan"]
       }
     ],
     "self": [
