@@ -348,13 +348,8 @@ class QuizPlaySession:
         if session.singleplayer:
             next_question = question_number + 1
             botutils.schedule_kill(session.chat_id, poll_msgid, 0)
-            BotState.DBLink.execute(("""
-                    UPDATE quiz_next
-                    SET time = 0
-                    WHERE quiz_session_id = ?
-                    AND ordinal = ?
-                    """), (session_id, next_question))
-            BotState.write()
+            scheduled_events.ScheduledEvent.advance_event("quiz_next",session.chat_id, [(0, session.id),(2,next_question)])
+
 
     def __init__(self, session_id: str, chat_id: int, quiz_id: str, starting_message: int, ended: bool):
         self.id = session_id

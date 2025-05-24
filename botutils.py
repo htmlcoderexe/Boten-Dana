@@ -51,6 +51,7 @@ def schedule_kill(chatid: int, msgid: int, expiration: float):
     """
     if expiration == -1:
         return
+    expiration = expiration + time.time()
     ScheduledEvent.schedule_event("msg_kill", chatid, expiration, msgid)
     botstate.BotState.write()
     print(f"scheduled to kill message {msgid}")
@@ -63,7 +64,7 @@ def cancel_kill(chatid: int, msgid: int):
     @param msgid: Message ID to cancel deletion of.
     @return:
     """
-    ScheduledEvent.fetch_events("msg_kill", -1,4_000_000_000,[(0, msgid)])
+    ScheduledEvent.fetch_events("msg_kill", 0,4_000_000_000,[(0, msgid)])
     print(f"canceled message kill for {msgid}")
 
 

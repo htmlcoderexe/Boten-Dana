@@ -19,7 +19,40 @@ class ScheduledEvent:
         """Any additional data."""
 
     @staticmethod
-    def fetch_events(event_type: str,chat_id:int = -1, event_time: float = -1, filters = None):
+    def advance_event(event_type: str, chat_id:int = 0, filters = None):
+        """
+
+        @param event_type:
+        @param chat_id:
+        @param filters:
+        @return:
+        """
+        mod_q = """
+                UPDATE scheduled_events
+                SET time = 0
+                WHERE etype = ?
+                """
+        if filters is None:
+            filters = []
+        filter_list =[]
+        q_list = [event_type]
+        if chat_id != 0:
+            filter_list.append(("chatid",chat_id))
+        for col, val in filters:
+            if 8 < col < 0:
+                continue
+            filter_list.append(("data" + str(col),val))
+        for q_filter in filter_list:
+            mod_q = mod_q + " AND " + q_filter[0] + " = ? "
+            q_list.append(q_filter[1])
+        BotState.DBLink.execute(mod_q, tuple(q_list))
+        BotState.write()
+
+
+
+
+    @staticmethod
+    def fetch_events(event_type: str,chat_id:int = 0, event_time: float = -1, filters = None):
         """
         Retrieves and removes events that have been scheduled before current time.
         @param event_type: Type of the event to fetch.
@@ -72,5 +105,6 @@ class ScheduledEvent:
         BotState.DBLink.execute("""
         INSERT INTO scheduled_events
         VALUES (?,?,?, ?,?,?,?, ?,?,?,?)
-        """,(event_type,chat_id,event_time,exact7))
+        """,(event_type,chat_id,event_time,*exact7))
         BotState.write()
+

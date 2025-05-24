@@ -4,6 +4,7 @@ import string
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 # from turtle import update
 from typing import Optional, Tuple, Any
 
@@ -835,6 +836,15 @@ if __name__ == '__main__':
     data_handler = CommandHandler('dump', dumpdb)
     reboot_handler = CommandHandler('reboot', reboot)
 
+
+    seqdir = Path("./sequences")
+    seqfiles = list(seqdir.glob("*.json"))
+    for seq in seqfiles:
+        sdata = seq.read_text("UTF-8")
+        sequence = actions.TriggeredSequence.load_from_json(sdata)
+        actions.TriggeredSequence.running_sequences[sequence.name] = sequence
+    print(f"Loaded {len(actions.TriggeredSequence.running_sequences)} sequences.")
+
     commands = []
     handlers = []
     for seqname, seq in actions.TriggeredSequence.running_sequences.items():
@@ -868,7 +878,6 @@ if __name__ == '__main__':
     print("registering onceaminute")
     BotState.q.run_repeating(callback=everyminute, interval=60, first=1)
     # BotState.q.run_repeating(callback=reg_commands, interval=6, first=1)
-
     # startup messages
     # #datastuff.blast("перезагрузка успешна!!11")
     changelogs.blast_logs()

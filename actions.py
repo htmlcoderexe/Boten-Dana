@@ -478,7 +478,7 @@ class TriggeredSequence:
             await self.run_subseq(subseq, Trigger.Empty(),update.message,"")
         return handler
 
-    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = "", **kwargs):
+    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = "", extra_vars = None):
         """
         Runs a specific subsequence.
         @param subseq:
@@ -494,13 +494,17 @@ class TriggeredSequence:
         print(f"--- ENTRY POINT <{subseq}> ---")
         triggering_user = 0
         chat_id = 0
+        if extra_vars is None:
+            extra_vars = {}
         if message is not None:
             triggering_user = UserInfo.User.extract_uid(message)
             chat_id = message.chat_id
         # init local variable store
-        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id} | kwargs
+        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id} | extra_vars
         # get a copy of the actions list
         actions = self.subseqs[subseq][:]
+        lst = [action.action_name for action in actions]
+        print(lst)
         # print(repr(actions))
         # keep going as long as there are any actions left
         while actions:
@@ -648,7 +652,7 @@ class TriggeredSequence:
         if sub not in TriggeredSequence.running_sequences[seq].subseqs:
             print(f"Invalid event handler for <{event_type}>: subsequence <{sub}> not found in <{seq}>.")
         print(f"Dispatching <{event_type}> to <{sub}/{seq}>.")
-        await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "", {"__event": event.event_data, "__chat_id": event.chat_id})
+        await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "", {"__event": event, "__chat_id": event.chat_id})
 
     @staticmethod
     async def process_events():
