@@ -16,6 +16,8 @@ killdelay = 40.0
 # load the token from file
 with open(".token") as tokenfile:
     bottoken = tokenfile.read()
+with open(".owner") as ownerfile:
+    operator = int(ownerfile.read())
 # set up the bot data connection
 DB = sqlite3.connect("main.db")
 # set up logging
