@@ -70,7 +70,7 @@ def XX__schedule_kill(chatid: int, msgid: int, expiration: float):
 
 
 # find any messages due to be deleted
-def check_kills() -> list[Tuple[int, int]] | None:
+def XX__check_kills() -> list[Tuple[int, int]] | None:
     res = BotState.DBLink.execute("""
     SELECT chatid,msgid FROM msgkills
     WHERE expiration < ?
@@ -107,16 +107,16 @@ def blast(bot_message: string, remove: bool = True, doprivates: bool = False):
         print("------BLAST END---------")
 
 
-def write_message_event(chatid: int, msgid: int, event_type: string, data0: string = "", data1: string = "", data2: string = "", data3: string = "", data4: string = "", data5: string = "", data6: string = ""):
+def XX__write_message_event(chatid: int, msgid: int, event_type: string, data0: string = "", data1: string = "", data2: string = "", data3: string = "", data4: string = "", data5: string = "", data6: string = ""):
     BotState.DBLink.execute("INSERT INTO message_events VALUES (?,?,?,?,?,?,?,?,?,?)",(chatid,msgid,event_type,data0,data1,data2,data3,data4,data5,data6))
     BotState.write()
 
 
-def tag_pizda_target(chatid: int, msgid: int, userid: int):
+def XXD__tag_pizda_target(chatid: int, msgid: int, userid: int):
     write_message_event(chatid=chatid,msgid=msgid,event_type="pizda_target",data0=userid)
 
 
-def find_pizda_target(chatid:int,msgid:int) -> int:
+def XXD__find_pizda_target(chatid:int,msgid:int) -> int:
     res = BotState.DBLink.execute("""
     SELECT data0 FROM message_events
     WHERE chatid = ? 
@@ -128,11 +128,11 @@ def find_pizda_target(chatid:int,msgid:int) -> int:
     return 0
 
 
-def tag_pizda_reply(chatid:int, msgid: int,userid:int, replytoid: int,depth: int = 0):
+def XX__tag_pizda_reply(chatid:int, msgid: int,userid:int, replytoid: int,depth: int = 0):
     write_message_event(chatid=chatid,msgid=msgid,event_type="pizda_reply",data0=userid,data1=replytoid,data2=depth)
 
 
-def check_if_pizda_reply(chatid:int,msgid:int) -> int:
+def XX__check_if_pizda_reply(chatid:int,msgid:int) -> int:
     res = BotState.DBLink.execute("""
     SELECT data0, data1, data2 FROM message_events
     WHERE chatid = ?
@@ -330,9 +330,9 @@ def XX__save_quote(userid: int, chatid: int, author: int, messageid: int, quote:
 
 
 # --- {SUBSCRIPTIONS to PIZDA function-----
-
+# all below done in userlists
 # add user to unsubscribed list
-def unsubscribe_user(userid: int):
+def XX__unsubscribe_user(userid: int):
     BotState.DBLink.execute("""
     INSERT INTO unsubscribers 
     VALUES (?)""", (userid,))
@@ -341,7 +341,7 @@ def unsubscribe_user(userid: int):
 
 
 # remove user from unsubscribed list
-def resubscribe_user(userid: int):
+def XX__resubscribe_user(userid: int):
     BotState.DBLink.execute("""
     DELETE FROM unsubscribers 
     WHERE userid = ?""", (userid,))
@@ -350,7 +350,7 @@ def resubscribe_user(userid: int):
 
 
 # check if user is on the unsubscribed list
-def user_subscribed(userid: int) -> bool:
+def XX__user_subscribed(userid: int) -> bool:
     res = BotState.DBLink.execute("""
     SELECT userid 
     FROM unsubscribers 
@@ -515,7 +515,7 @@ def XX_score_add_scope(chatid: int, userid: int, scorename: string, scope: strin
 
 
 # --- END SCORE STUFF }
-# TODO UTILITY/display
+
 def XUTIL__fmt_timespan(timespan: float) -> str:
     timeunits = ("сек.", "мин.", "ч.", "д.", "мес.")
     index = 0
@@ -1126,7 +1126,7 @@ async def XX_retrieve_message(name: string, chatid: int,  do_global: bool = Fals
 
 
 # QUIZ STUFF: SESSIONS
-def check_edit_session(userid: int, name: string):
+def XX__check_edit_session(userid: int, name: string):
     res = BotState.DBLink.execute("""
     SELECT session_name,userid FROM edit_sessions
     WHERE session_name = ?
@@ -1135,7 +1135,7 @@ def check_edit_session(userid: int, name: string):
     return len(res.fetchall()) > 0
 
 
-def find_edit_sessions(userid: int):
+def XX__find_edit_sessions(userid: int):
     res = BotState.DBLink.execute("""
     SELECT session_name FROM edit_sessions
     WHERE userid = ?
@@ -1147,7 +1147,7 @@ def find_edit_sessions(userid: int):
     return result
 
 
-def end_edit_session(userid: int, name: string):
+def XX__end_edit_session(userid: int, name: string):
     BotState.DBLink.execute("""
     DELETE FROM edit_sessions
     WHERE session_name = ?
@@ -1156,7 +1156,7 @@ def end_edit_session(userid: int, name: string):
     BotState.write()
 
 
-def begin_edit_session(userid: int, name: string):
+def XX__begin_edit_session(userid: int, name: string):
     BotState.DBLink.execute("""
     INSERT INTO edit_sessions
     VALUES (?,?)
