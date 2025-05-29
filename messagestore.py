@@ -98,7 +98,6 @@ class MessageStore:
         print(chatid)
         rows = self.read_parts(name=name, chatid=new_id)
         if rows:
-            # TODO: i8n
             return False
         print("moving part---------------")
         res = BotState.DBLink.execute("""
@@ -149,11 +148,9 @@ class MessageStore:
         @param name: The name to
         @return: Tuple used by timed bot responses - str response, int user message remove delay, int bot message remove delay
         """
-        success_msg = "Сообщение \"" + botutils.MD(name) + "\" сохранено\\!", 5, 10
         chatid = 0 if self.glob_mode else self.owner_chat
         rows = self.read_parts(name=name)
         if rows:
-            # TODO: i8n
             return False
         if msg.text:
             self.write_part(name=name, part_type="text", data=msg.text)
@@ -249,7 +246,7 @@ class MessageStore:
                 case "voice":
                     msgsent = (await BotState.bot.send_voice(chat_id=dest_chat, voice=part.data, caption=caption,reply_to_message_id=reply_to_msg))
                 case "eblovoice":
-                    msgsent = (await BotState.bot.send_video_note(chat_id=dest_chat, video_note=part.data, caption=caption,reply_to_message_id=reply_to_msg))
+                    msgsent = (await BotState.bot.send_video_note(chat_id=dest_chat, video_note=part.data, reply_to_message_id=reply_to_msg))
                 case "video":
                     msgsent = (await BotState.bot.send_video(chat_id=dest_chat, video=part.data, caption=caption, reply_to_message_id=reply_to_msg))
                 case "music":
