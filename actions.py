@@ -11,6 +11,7 @@ from telegram import Message as TGMessage
 from telegram.ext import ContextTypes
 
 import UserInfo
+import botconfig
 import botstate
 import botutils
 import env_vars
@@ -124,7 +125,9 @@ class TriggerTextContains(Trigger):
     """Matches if the text is found anywhere"""
 
     def match(self, data:str) -> str:
-        return data if self.trigger[0] in data else ""
+        for pattern in self.trigger:
+            if pattern in data:
+                return data
 
 
 class TriggerRetVal(Trigger):
@@ -253,13 +256,27 @@ class TriggeredAction:
         """
         Fetches a single param at a specific index, and attempts to get an int out of it.
         @param index: param index.
-        @return: int if possible, 0 otherwise.
+        @return: int if possible, -1 otherwise.
         """
         value = self.read_param(index)
         try:
             value = int(value)
         except (ValueError, TypeError):
             print(f"Unable to get int from <{value}>, casting 0")
+            value = -1
+        return value
+
+    def read_float(self, index: int) -> float:
+        """
+        Fetches a single param at a specific index, and attempts to get a float out of it.
+        @param index: param index.
+        @return: float if possible, -1 otherwise.
+        """
+        value = self.read_param(index)
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            print(f"Unable to get float from <{value}>, casting 0")
             value = -1
         return value
 
@@ -500,7 +517,7 @@ class TriggeredSequence:
             triggering_user = UserInfo.User.extract_uid(message)
             chat_id = message.chat_id
         # init local variable store
-        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id} | extra_vars
+        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id, '__operator': botconfig.operator} | extra_vars
         # get a copy of the actions list
         actions = self.subseqs[subseq][:]
         lst = [action.action_name for action in actions]
@@ -928,6 +945,50 @@ class Escape(TriggeredAction, action_name="escape"):
         text = botutils.MD(text,2)
         self.write_param(1,text)
         return ""
+
+
+class FormatTimeSpan(TriggeredAction, action_name="fmt_time"):
+    """
+    param 0: time value
+    param 1: out formatted string
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        timespan = self.read_float(0)
+        print(f"{timespan} seconds")
+        # TODO: I8N
+        timeunits = ("сек.", "мин.", "ч.", "д.", "мес.")
+        index = 0
+        output = 0
+        if timespan < 60:
+            output = timespan
+        else:
+            timespan /= 60
+            print(f"{timespan} minutes")
+            index = 1
+            if timespan < 60:
+                output = timespan
+            else:
+                timespan /= 60
+                print(f"{timespan} hours")
+                index = 2
+                if timespan < 24:
+                    output = timespan
+                else:
+                    timespan /= 24
+                    print(f"{timespan} days")
+                    index = 3
+                    if timespan < 30:
+                        output = timespan
+                    else:
+                        timespan /= 30.5
+                        output = timespan
+                        print(f"{timespan} months")
+                        index = 4
+                        self.write_param(1,"~ " + str(output.__round__()) + " " + timeunits[index])
+                        return ""
+        self.write_param(1, str(output.__round__()) + " " + timeunits[index])
+        return ""
+
 
 
 class GetFrame(TriggeredAction, action_name="get_frame"):
