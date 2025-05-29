@@ -61,6 +61,62 @@
         "params": ["nickname_list","nickount"]
       },
       {
+        "action": "obj_read",
+        "params": ["usermeta","joindate","joindate"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["usermeta","last_seen","last_seen"]
+      },
+      {
+        "action": "get_time",
+        "params": ["now"]
+      },
+      {
+        "action": "mul",
+        "params": ["*joindate",-1,"joindate"]
+      },
+      {
+        "action": "add",
+        "params": ["*joindate","*now","joindate"]
+      },
+      {
+        "action": "fmt_time",
+        "params": ["*joindate","joindate"]
+      },
+      {
+        "action": "escape",
+        "params": ["*joindate","joindate"]
+      },
+      {
+        "action": "mul",
+        "params": ["*last_seen",-1,"last_seen"]
+      },
+      {
+        "action": "add",
+        "params": ["*last_seen","*now","last_seen"]
+      },
+      {
+        "action": "fmt_time",
+        "params": ["*last_seen","last_seen"]
+      },
+      {
+        "action": "escape",
+        "params": ["*last_seen","last_seen"]
+      },
+      {
+        "action": "score_get",
+        "params": [
+          "*uid",
+          "dick",
+          "dick"
+        ]
+      },
+      {
+        "action": "escape",
+        "params": ["*dick","dick"]
+      },
+      {
         "action": "if_gte",
         "params": ["*nickount",1, "","no_nicks"]
       },
@@ -124,7 +180,7 @@
     ]
   },
   "stringpools": {
-    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\n%medals%\nпоследнее действие: %recent% назад\nпервое сообщение: %joindate%\n%isreturner%{quotes}\n    "],
+    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n%medals%\nпоследнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n%isreturner%{quotes}\n    "],
     "404": ["Да хуй знает\\, в первый раз вижу"],
     "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
     "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],
