@@ -20,7 +20,12 @@
       "params": ["бот придержи","бот оставь","бот не удаляй"],
       "subseq": "cancel_kill",
       "target": "reply"
-    }
+    },
+    {
+      "type": "text_contains",
+      "params": ["доминант","доминир","доминат"],
+      "subseq": "dominating"
+      }
   ],
   "commands":
     {
@@ -37,21 +42,32 @@
     }
   ,
   "subseqs": {
+    "dominating":
+      [
+        {
+          "action": "fetch_pool",
+          "params": ["dominating_pool","dominate"]
+        },
+        {
+          "action": "emit_saved_message",
+          "params": ["*dominate",-1,"dominating",-1]
+        }
+      ],
     "scoreboard_test":
-            [
-              {
-                "action": "scoreboard",
-                "params": ["dontcare",-1,"all",-1,20,"rep","mat","voice"]
-              },
-              {
-                "action": "fmt_list",
-                "params": ["dontcare","test_board_fmt","top"]
-              },
-              {
-                "action": "emit_text",
-                "params": ["test_board",15]
-              }
-            ],
+      [
+        {
+          "action": "scoreboard",
+          "params": ["dontcare",-1,"all",-1,20,"rep","mat","voice"]
+        },
+        {
+          "action": "fmt_list",
+          "params": ["dontcare","test_board_fmt","top"]
+        },
+        {
+          "action": "emit_text",
+          "params": ["test_board",15]
+        }
+      ],
     "show_status": [
       {
         "action": "kill_msg",
@@ -205,7 +221,8 @@
     ],
     "test_board_fmt": [
       "\\{0[1]:6d} \\{0[2]:6d} \\{0[3]:6d} {0[0]: <13.13}\n"
-    ]
+    ],
+    "domin8":["*DOMINATING!*"]
   },
     "config_vars": [
     {
