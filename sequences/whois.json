@@ -15,6 +15,11 @@
       "subseq": "404"
     }
   ],
+  "event_handlers": {
+    "user_join": "user_joined",
+    "user_rejoin": "user_rejoined",
+    "user_leave": "user_left"
+  },
   "subseqs": {
     "main": [
       {
@@ -63,6 +68,14 @@
       {
         "action": "obj_read",
         "params": ["usermeta","joindate","joindate"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["usermeta","joins","joins"]
+      },
+      {
+        "action": "count",
+        "params": ["joins","joincount"]
       },
       {
         "action": "obj_read",
@@ -118,8 +131,31 @@
       },
       {
         "action": "if_gte",
-        "params": ["*nickount",1, "","no_nicks"]
+        "params": ["*joincount",2, "returner","no_returner"]
+      }
+    ],
+    "returner": [
+      {
+        "action": "fmt_string",
+        "params": ["returner","is_returner"]
       },
+      {
+        "action": "if_gte",
+        "params": ["*nickount",1, "yes_nicks","no_nicks"]
+      }
+    ],
+    "no_returner": [
+      {
+        "action": "concat",
+        "params": ["","","is_returner"]
+      },
+      {
+        "action": "if_gte",
+        "params": ["*nickount",1, "yes_nicks","no_nicks"]
+      }
+    ],
+    "yes_nicks": [
+
       {
         "action": "concat",
         "params": ["aka \n", "*usernicks", "usernicks"]
@@ -177,16 +213,52 @@
         "action": "emit_text",
         "params": ["self",-1]
       }
+    ],
+    "user_rejoined": [
+      {
+        "action": "obj_read",
+        "params": ["__event", "event_data","event"]
+      },
+      {
+        "action": "index",
+        "params": ["event",0,"__uid"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["yourback",-1,0]
+      }
+    ],
+    "user_left": [
+      {
+        "action": "obj_read",
+        "params": ["__event", "event_data","event"]
+      },
+      {
+        "action": "index",
+        "params": ["event",0,"__uid"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["userleft",-1,0]
+      }
     ]
   },
   "stringpools": {
-    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n%medals%\nпоследнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n%isreturner%{quotes}\n    "],
+    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n%medals%\nпоследнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n{is_returner}{quotes}\n    "],
     "404": ["Да хуй знает\\, в первый раз вижу"],
     "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
     "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],
     "nickname_list_format": ["{0}\n"],
+    "returner": ["Рецидивист\\. В чате уже {joincount}\\-й раз\\.\n"],
     "user_quotes_format": [
       "\n*№{0.id}*\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
-    ]
+    ],
+    "userleft": [
+      "кудаааааааа",
+      "нельзя вот просто взять и свалить\\.",
+      "Астрологи объявляют неделю слива\\. \\-1 участник",
+      "юзер из чату \\- боту легче\\."
+    ],
+    "yourback": ["опять ты\\? ну велкам бэк тогда типа","возвращение блудного попугая прямо какое\\-то","о\\, с возвращением\\. а вот котлеты без тебя доели\\("]
   }
 }

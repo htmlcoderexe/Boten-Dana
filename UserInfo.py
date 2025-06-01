@@ -47,21 +47,7 @@ class ChatUserInfo:
 
         ######################################################################
 
-        # get joindate
-        res = BotState.DBLink.execute("""
-            SELECT time,fake
-            FROM join_dates
-            WHERE userid=? 
-            AND chatid=?
-            """, (self.userid, self.chatid))
-        row = res.fetchone()
-        # if found use that
-        if row:
-            joindate, fake = row
-        # if not found log a join now
-        else:
-            joindate, fake = (time.time(), True)
-            self.set_join(True)
+        joindate, fake = ChatUserInfo.get_join(self.chatid,self.userid)
         # set the resulting values
         self.joindate = float(joindate)
         """First time the user was seen in the chat."""
@@ -149,14 +135,32 @@ class ChatUserInfo:
             BotState.write()
             return rep
 
-    def set_join(self, fake: bool = False):
+    @staticmethod
+    def set_join(chatid:int, userid:int, fake: bool = False):
         """Logs a joindate for the specific user/chat pair."""
         last = time.time()
         BotState.DBLink.execute("""
             INSERT INTO join_dates 
             VALUES (?,?,?,?)
-            """, (self.chatid, self.userid, last, "true" if fake else "false"))
+            """, (chatid, userid, last, "true" if fake else "false"))
         BotState.write()
+
+    @staticmethod
+    def get_join(chatid:int, userid:int):
+        res = BotState.DBLink.execute("""
+            SELECT time,fake
+            FROM join_dates
+            WHERE userid=? 
+            AND chatid=?
+            """, (userid, chatid))
+        row = res.fetchone()
+        # if found use that
+        if row:
+           return row
+        # if not found log a join now
+        else:
+            return None
+
 
 
 class User:
@@ -181,8 +185,6 @@ class User:
             ORDER BY time DESC
         """, (self.id,))
         rows = res.fetchall()
-        #if rows:
-        #    rows = sorted(rows, key=lambda row: row[1])
         self.nicknames = [] if not rows else [botutils.MD(row[0],2) for row in rows]
         """List of known nicknames for this user"""
         self.current_nick = botutils.MD("MissingNo.&%!▮",2) if not self.nicknames else self.nicknames[0]
@@ -271,14 +273,19 @@ class User:
         return False
 
     @classmethod
-    def refresh(cls, user_id: int, chat_id: int):
+    def refresh(cls, user_id: int, chat_id: int, true_join: bool = False):
         """
         Refreshes user's presence and known names.
+        @param true_join:
         @param user_id: UserID of the user to refresh
         @param chat_id: ChatID of the chat to refresh
         @return: the User with updated stats
         """
         last = time.time()
+        joininfo = ChatUserInfo.get_join(chat_id, user_id)
+        if joininfo is None:
+            print("set new join info!")
+            ChatUserInfo.set_join(chat_id, user_id, true_join)
         res = BotState.DBLink.execute("SELECT last FROM userseen where userid=? AND chatid=?", (user_id, chat_id))
         row = res.fetchone()
         if row is None:
@@ -289,6 +296,8 @@ class User:
             BotState.DBLink.execute("UPDATE userseen SET last=? WHERE  chatid=? AND userid=?", (last, chat_id, user_id))
         BotState.write()
         usr = cls(user_id, chat_id)
+        if joininfo is None and not true_join:
+            usr.log_event("joined","message")
         return usr
 
     @staticmethod

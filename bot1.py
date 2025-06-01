@@ -613,10 +613,6 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # global botuid
     BotState.botuid = context.bot.id
     BotState.bot = context.bot
-    # print(context)
-    # print(BotState.botuid)
-    # print(update)
-    # check for weird updates and bail
     if update.message is None:
         # it could be something else!!
         if update.edited_message is not None:
@@ -626,16 +622,9 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatid = update.effective_chat.id
     userid = UserInfo.User.extract_uid(update.message)
     nickname = UserInfo.User.extract_nick(update.message)
-    # check if message has a parent message
-    replyis = update.message.reply_to_message
 
+    usr = UserInfo.User.refresh(user_id=userid,chat_id=chatid)
 
-    # logg messages
-    ###############################datastuff.log_user(userid=userid, chatid=chatid)
-    UserInfo.User.refresh(user_id=userid,chat_id=chatid)
-    ########################datastuff.upcountmessage(userid=userid, chatid=chatid)
-    ################datastuff.score_add(userid=userid, chatid=chatid, scorename="msgcount", delta=1)
-    usr = UserInfo.User(userid,chatid)
     print(repr(usr))
     usr.msg_uptick()
     usr.refresh_nick(nickname)
@@ -654,51 +643,7 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # also upcount character counts
         usr.score_add("text",len(rawtext))
         usr.score_add("mat",len(antimat.get_mats("тест " + rawtext + " тест")))
-
-
     await actions.TriggeredSequence.run_triggers(update.message)
-
-    # get user's name and check if it changed since last
-###    newnick = update.message.from_user.full_name
-        ### if oldnick is None:
-        ###       datastuff.log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
-        ###print("initial user seen")
-        # fake join, currently the only working join
-        ###datastuff.log_user_event(userid=userid, chatid=chatid, event_type="joined", data="message")
-    # if user unknown yet, add with today's join date
-    ###if datastuff.get_join_date(userid=userid, chatid=chatid) is None:
-        ### datastuff.handle_new_user(userid=userid, chatid=chatid)
-        ###print(f"new user {userid}@{chatid}!")
-    # log user rename
-    ###if oldnick is not None and oldnick != newnick:
-        ### datastuff.log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
-        ###print(f"User <{oldnick}> is now known as <{newnick}>.")
-    # prepare text for processing, if there is any
-    # output = ()
-
-    # run triggers for response functions
-
-    # joiners
-    if update.message.new_chat_members:
-        output = ("Это кто еще, блядь", -1, -1)
-    elif update.message.left_chat_member:
-        output = ("Куда, блядь", -1, -1)
-
-# handle joins/leaves etc
-# async def member_change(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#    result = extract_status_change(Update.chat_member)
-#    if result is None:
-#        return
-#    output = ""
-#    was_member, is_member = result
-#    joining = not was_member and is_member
-#    leaving = was_member and not is_member
-#    if joining:
-#        output = handle_join(update)
-#    if leaving:
-#        output = handle_leave(update)
-#    if output:
-#        await context.bot.send_message(chat_id=update.effective_chat.id, text=output, parse_mode='MarkdownV2')
 
 
 async def reboot(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -790,6 +735,31 @@ async def receive_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print("fuck")
+    print(update)
+    if update.chat_member is None:
+        return
+    old, new = extract_status_change(update.chat_member)
+    uid = update.chat_member.new_chat_member.user.id
+    uname = update.chat_member.new_chat_member.user.full_name
+    actor_uid = update.chat_member.from_user.id
+    actor_name = update.chat_member.from_user.full_name
+    chatid=update.chat_member.chat.id
+    new_user = UserInfo.User.refresh(uid,chatid, True)
+    if old and not new:
+        # user left
+        new_user.log_event("left","left")
+        scheduled_events.ScheduledEvent.schedule_event("user_leave",chatid, -1, uid)
+        pass
+    if new and not old:
+        new_user.log_event("joined","joined")
+        if len(new_user.current_chat.joins) > 1:
+            scheduled_events.ScheduledEvent.schedule_event("user_rejoin", chatid, -1, uid)
+        else:
+            scheduled_events.ScheduledEvent.schedule_event("user_join", chatid, -1, uid)
+
+        # user joined
+
     pass
 
 
@@ -866,7 +836,7 @@ if __name__ == '__main__':
     application.add_handler(phandler)
     application.add_handler(PollAnswerHandler(receive_poll_answer))
     application.add_handler(MessageReactionHandler(receive_reaction))
-    application.add_handler(ChatMemberHandler(join_leave))
+    application.add_handler(ChatMemberHandler(join_leave, ChatMemberHandler.CHAT_MEMBER))
     # state inits
     datastuff.load_chats()
     # datastuff.quiz_refresh_stats()
