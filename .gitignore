@@ -1,10 +1,14 @@
 .token
+.gitignore
 *.session
 *.session*
 *.log
 *.log.*
 .idea
 __pycache__
-main.db
-main.sqbpro
+*.db
+*.sqbpro
 .owner
+*.sql
+*.txt
+*.db

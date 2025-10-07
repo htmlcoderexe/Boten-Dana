@@ -37,6 +37,8 @@ class Quote:
         """UserID of the replied message's author."""
         self.chatid:int = chatid
         """Chat ID where the quote was saved."""
+        self.real_chat_id:int = int(str(chatid)[4:]) if chatid < 0 else chatid
+        """Chat ID where the quote was saved."""
         self.saved_by:int = saver
         """UserID of the user who saved the quote."""
         self.rating:int = rating
