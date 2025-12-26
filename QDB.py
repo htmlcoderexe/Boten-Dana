@@ -261,7 +261,7 @@ class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
         amount = int(self.read_param(1))
         page = max(0, self.read_int(2) - 1)
         min_score = int(self.read_param(3))
-        sortby = self.read_param(5)
+        sortby = self.read_param(4)
         # constrain the options
         if sortby not in ("score","newest","oldest","random"):
             sortby = "oldest"
