@@ -221,7 +221,7 @@
       "{chat_quote_list}"
     ],
     "user_quotes_format": [
-      "\n*[№{0.id}](https://t.me/c/{0.real_chat_id}/{0.message_id})*    \\| {0.rating} \\+\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
+      "\n*[№{0.id}](https://t.me/c/{0.real_chat_id}/{0.message_id})*    \\| {0.rating} \\+\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>\u2029"
     ],
     "chat_quotes_format": [
       "\n*[№{0.id}](https://t.me/c/{0.real_chat_id}/{0.message_id})* {0.user_nick}    \\| {0.rating} \\+\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"

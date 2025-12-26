@@ -709,14 +709,30 @@ class EmitText(TriggeredAction, action_name="emit_text"):
             message = message.reply_to_message
         text = self.get_random_string(pool_name)
         text = text.format_map(self.varstore)
-        print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
-        msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=text,
-                                                       parse_mode='MarkdownV2',
-                                                       reply_to_message_id=msgid)
-        if msg:
+        chunks = text.split("\u2029")
+        accumulator = ""
+        maxsize=4096
+        for chunk in chunks:
+            if len(accumulator+chunk) > maxsize:
+                print("-------Writing message:--------\n" + accumulator + "\n--------End of message:--------")
+                msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=accumulator,
+                                                               parse_mode='MarkdownV2',
+                                                               reply_to_message_id=msgid)
+                if msg:
 
-            self.varstore["__last_msg"] = msg.id
-            botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
+                    self.varstore["__last_msg"] = msg.id
+                    botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
+                accumulator=""
+            accumulator+=chunk
+        if len(accumulator) > 0:
+            print("-------Writing message:--------\n" + accumulator + "\n--------End of message:--------")
+            msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=accumulator,
+                                                           parse_mode='MarkdownV2',
+                                                           reply_to_message_id=msgid)
+            if msg:
+
+                self.varstore["__last_msg"] = msg.id
+                botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
         return ""
 
 
