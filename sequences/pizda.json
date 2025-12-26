@@ -29,7 +29,7 @@
       },
       {
         "action": "if_eq",
-        "params": [true, "user_unsubscribed","exit","subscribed"]
+        "params": [true, "*user_unsubscribed","exit","subscribed"]
       }
     ],
     "subscribed": [
