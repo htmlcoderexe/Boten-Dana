@@ -626,6 +626,11 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usr = UserInfo.User.refresh(user_id=userid,chat_id=chatid)
 
     print(repr(usr))
+    print(chatid)
+    if update.message and update.message.text:
+        print("------------------")
+        print(update.message.text)
+        print("------------------")
     usr.msg_uptick()
     usr.refresh_nick(nickname)
     # upcount voice seconds if there's a voice message
