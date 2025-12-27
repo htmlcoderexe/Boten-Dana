@@ -286,6 +286,9 @@ class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
             quotes = filtered_quotes
         else:
             start = page * amount
+            if start > len(filtered_quotes):
+                self.varstore[outvar] = []
+                return ""
             finish = start + amount
             quotes = filtered_quotes[start:finish]
         for quote in quotes:

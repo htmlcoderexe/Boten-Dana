@@ -518,6 +518,13 @@ class TriggeredSequence:
             chat_id = message.chat_id
         # init local variable store
         var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id, '__operator': botconfig.operator} | extra_vars
+        try:
+            if trigger.tagdata:
+                print(trigger.tagdata)
+                for index, tag in enumerate(trigger.tagdata):
+                    var_store['__tag'+(str(index))] = tag
+        except AttributeError:
+            pass
         # get a copy of the actions list
         actions = self.subseqs[subseq][:]
         lst = [action.action_name for action in actions]
@@ -714,7 +721,7 @@ class EmitText(TriggeredAction, action_name="emit_text"):
         maxsize=4096
         for chunk in chunks:
             if len(accumulator+chunk) > maxsize:
-                print("-------Writing message:--------\n" + accumulator + "\n--------End of message:--------")
+                print("-------Writing message chunk:--------\n" + accumulator + "\n--------End of message:--------")
                 msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=accumulator,
                                                                parse_mode='MarkdownV2',
                                                                reply_to_message_id=msgid)
@@ -725,7 +732,7 @@ class EmitText(TriggeredAction, action_name="emit_text"):
                 accumulator=""
             accumulator+=chunk
         if len(accumulator) > 0:
-            print("-------Writing message:--------\n" + accumulator + "\n--------End of message:--------")
+            print("-------Writing message remains:--------\n" + accumulator + "\n--------End of message:--------")
             msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=accumulator,
                                                            parse_mode='MarkdownV2',
                                                            reply_to_message_id=msgid)
@@ -733,6 +740,7 @@ class EmitText(TriggeredAction, action_name="emit_text"):
 
                 self.varstore["__last_msg"] = msg.id
                 botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
+        print(self.varstore)
         return ""
 
 
@@ -1345,6 +1353,7 @@ class TagMessage(TriggeredAction, action_name="tag_msg"):
         msgid = self.read_int(1)
         extras = self.read_to_end(2)
         if msgid == -1:
+            print(self.varstore)
             msgid = self.varstore["__last_msg"]
         if msgid == 0:
             msgid = message.id

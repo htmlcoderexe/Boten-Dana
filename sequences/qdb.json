@@ -17,7 +17,7 @@
     {
       "type": "text_exact",
       "params": ["показать цитатник","цитатник чата"],
-      "subseq": "show_chat_quotes_page"
+      "subseq": "show_chat_quotes"
     },
     {
       "type": "text_prefix",
@@ -30,6 +30,12 @@
       "params": ["плюсую "],
       "subseq": "quote_upvote",
       "tag": "whois_list"
+    },
+    {
+      "type": "text_exact",
+      "params": ["ещё"],
+      "subseq": "chat_quotes_paginate",
+      "tag": "quotes_paginate"
     }
   ],
   "subseqs":
@@ -133,7 +139,7 @@
       },
       {
         "action": "if_eq",
-        "params": ["*user_quotes_count","0","no_quotes_yet","show_user_quotes"]
+        "params": ["*user_quotes_count",0,"no_quotes_yet","show_user_quotes"]
       },
       {
         "action": "kill_msg",
@@ -160,17 +166,57 @@
         "params": ["quotes_list",-1]
       }
     ],
-    "show_chat_quotes": [
+    "show_chat_quotesxx": [
       {
         "action": "emit_text",
         "params": ["no_quotes", 10]
       }
     ],
-    "show_chat_quotes_page": [
+    "chat_quotes_paginate": [
+      {
+        "action": "add",
+        "params": ["*__tag0",1,"chat_quote_page"]
+      },
+      {
+        "action": "qdb_get_chat",
+        "params": ["chat_quotes",10, "*chat_quote_page", 1, "score"]
+      },
+      {
+        "action": "count",
+        "params": ["chat_quotes", "chat_quotes_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*chat_quotes_count",0,"last_page_chat",""]
+      },
+      {
+        "action": "call",
+        "params": ["show_chat_quotes_page"]
+      }
+    ],
+    "show_chat_quotes": [
       {
         "action": "qdb_get_chat",
         "params": ["chat_quotes",10, 1, 1, "score"]
       },
+      {
+        "action": "count",
+        "params": ["chat_quotes", "chat_quotes_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*chat_quotes_count",0,"no_chat_quotes_yet",""]
+      },
+      {
+        "action": "add",
+        "params": [0,1,"chat_quote_page"]
+      },
+      {
+        "action": "call",
+        "params": ["show_chat_quotes_page"]
+      }
+    ],
+    "show_chat_quotes_page": [
       {
         "action": "fmt_list",
         "params": ["chat_quotes","chat_quotes_format","chat_quote_list"]
@@ -182,7 +228,37 @@
       {
         "action": "tag_msg",
         "params": ["quotes_list",-1,1]
+      },
+      {
+        "action": "tag_msg",
+        "params": ["quotes_paginate",-1,"*chat_quote_page"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
       }
+    ],
+    "no_chat_quotes_yet": [
+      {
+        "action": "emit_text",
+        "params": ["chat_no_quotes", 10]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      }
+
+    ],
+    "last_page_chat": [
+      {
+        "action": "emit_text",
+        "params": ["chat_last_page", 10]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      }
+
     ],
     "qdb_save_no_target": [
       {
@@ -219,6 +295,12 @@
     ],
     "chat_quotes_template": [
       "{chat_quote_list}"
+    ],
+    "chat_no_quotes": [
+      "Тут ничего нет ещё да\\."
+    ],
+    "chat_last_page": [
+      "Больше нету\\, ещё насохраняйте\\!"
     ],
     "user_quotes_format": [
       "\n*[№{0.id}](https://t.me/c/{0.real_chat_id}/{0.message_id})*    \\| {0.rating} \\+\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>\u2029"
