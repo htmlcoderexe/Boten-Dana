@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-import actions
 import asyncio
 from telegram import Message
 import sqlite3
