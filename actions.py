@@ -1296,26 +1296,7 @@ class GetLoadedSequences(TriggeredAction, action_name="get_seqs"):
         return ""
 
 
-class Whois(TriggeredAction, action_name="whois"):
-    """Does a whois and responds one way or another
-    param 0: variable prefix for the whois data
-    """
-
-    async def run_action(self, message: TGMessage) -> str:
-        if self.target_reply:
-            if not message.reply_to_message:
-                return "whois_no_target"
-            message = message.reply_to_message
-        if message.from_user.id == botstate.botstate.botuid:
-            return "self"
-        uid = UserInfo.User.extract_uid(message)
-        user = UserInfo.User(user_id=uid, chat_id=message.chat.id)
-        vp = self.data[0]
-        self.varstore[vp+"usernick"] = user.current_nick
-        self.varstore[vp+"userid"] = user.id
-        self.varstore[vp+"userrep"] = user.chatinfos[message.chat_id].reputation
-        # TODO: add the rest of them
-        return ""
+#
 
 
 # ###############################################
