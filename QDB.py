@@ -59,7 +59,7 @@ class Quote:
                 RETURNING rating
                 """
         res = BotState.DBLink.execute(query, (amount, self.id))
-        row = res.fetchone()
+        res.fetchone()
         BotState.write()
         self.rating += amount
         return self.rating

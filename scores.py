@@ -160,7 +160,6 @@ class ScoreHelper:
         return rows
 
 
-
 class ActionScoreBoard(TriggeredAction, action_name="sxxxxcore_board"):
     """Shows a top scoreboard
     param 0: score to show
@@ -288,4 +287,3 @@ class ActionScoreGet(TriggeredAction, action_name="score_get"):
                 board.append(line2)
             self.write_param(0,board)
             return ""
-

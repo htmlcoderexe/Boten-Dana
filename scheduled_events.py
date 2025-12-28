@@ -19,7 +19,7 @@ class ScheduledEvent:
         """Any additional data."""
 
     @staticmethod
-    def advance_event(event_type: str, chat_id:int = 0, filters = None):
+    def advance_event(event_type: str, chat_id:int = 0, filters=None):
         """
 
         @param event_type:
@@ -34,7 +34,7 @@ class ScheduledEvent:
                 """
         if filters is None:
             filters = []
-        filter_list =[]
+        filter_list = []
         q_list = [event_type]
         if chat_id != 0:
             filter_list.append(("chatid",chat_id))
@@ -48,11 +48,8 @@ class ScheduledEvent:
         BotState.DBLink.execute(mod_q, tuple(q_list))
         BotState.write()
 
-
-
-
     @staticmethod
-    def fetch_events(event_type: str,chat_id:int = 0, event_time: float = -1, filters = None):
+    def fetch_events(event_type: str,chat_id:int = 0, event_time: float = -1, filters=None):
         """
         Retrieves and removes events that have been scheduled before current time.
         @param event_type: Type of the event to fetch.
@@ -61,13 +58,13 @@ class ScheduledEvent:
         @param filters: list of tuples for filtering, set as (data index, filter value)
         @return:
         """
-        get_q="""
+        get_q = """
         SELECT chatid, time, data0, data1, data2, data3, data4, data5, data6, data7
         FROM scheduled_events
         WHERE etype == ?
         AND time < ?
         """
-        del_q="""
+        del_q = """
         DELETE
         FROM scheduled_events
         WHERE etype == ?
@@ -76,7 +73,7 @@ class ScheduledEvent:
             event_time = time.time()
         if filters is None:
             filters = []
-        filter_list =[]
+        filter_list = []
         q_list = [event_type, event_time]
         if chat_id != 0:
             filter_list.append(("chatid",chat_id))
@@ -107,4 +104,3 @@ class ScheduledEvent:
         VALUES (?,?,?, ?,?,?,?, ?,?,?,?)
         """,(event_type,chat_id,event_time,*exact7))
         BotState.write()
-

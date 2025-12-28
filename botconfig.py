@@ -1,15 +1,10 @@
 import logging
-from pathlib import Path
-import asyncio
-from telegram import Message
 import sqlite3
 
 
-mockmsg = lambda : None
+mockmsg = lambda: None
 mockmsg.text = "бот это кто"
 
-
-#print(actions.TriggeredAction.registry)
 # default time to clean own/replied messages
 killdelay = 40.0
 # load the token from file

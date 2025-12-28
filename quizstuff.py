@@ -44,7 +44,7 @@ class Question:
         """Number of the correct option"""
         self.attachment = attachment
         """Saved Message ID attached to the question"""
-        self.attachment_emoji =""
+        self.attachment_emoji = ""
         """Attachment type emoji, set by the quiz when loaded."""
 
     def attach_media(self, mediaid:str):
@@ -288,7 +288,6 @@ class QuizPlaySession:
         @param session_id: The session to load
         @return:
         """
-        # TODO: modify the table schema of quiz_sessions and quiz_replytracker
         res = BotState.DBLink.execute("""
             SELECT quiz_session_id,chatid,quiz_id,start_message_id,ended
             FROM quiz_sessions
@@ -401,7 +400,7 @@ class QuizPlaySession:
         now = time.time()
         # this will hold the items to be written to the DB
         plan = []
-        # 2 message edits #TODO make this more flexible somehow?
+        # plan a message edit per frame
         for i in range(-frame_count, 0, 1):
             now += QuizPlaySession.START_MESSAGE_ANIMATION_TIMER
             plan.append((now, i))
@@ -533,7 +532,7 @@ class RunQuiz(TriggeredAction, action_name="quiz_begin"):
         chat_id = message.chat_id
         quiz = Quiz.load(quiz_id)
         session = QuizPlaySession.start(quiz_id, chat_id, starting_message)
-        frame_count = len(actions.TriggeredSequence.running_sequences[self.sequence].strings["start_animation"]) -1
+        frame_count = len(actions.TriggeredSequence.running_sequences[self.sequence].strings["start_animation"]) - 1
         session.write_plan(len(quiz.questions), quiz.question_time, frame_count)
         return ""
 
@@ -544,7 +543,6 @@ class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
     """
     async def run_action(self, message: TGMessage) -> str:
         outvar = self.read_param(0)
-        events = []
         now = time.time()
         res = BotState.DBLink.execute("""
             SELECT quiz_session_id,chatid,time,quiz_name,ordinal
@@ -665,7 +663,6 @@ class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
         return ""
 
 
-
 #######################################
 #   Operator commands
 #######################################
@@ -717,7 +714,6 @@ class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_sessions"):
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
         sessions = EditSession.find_sessions("quiz_edit", uid)
-        result = ""
         if len(sessions) == 0:
             result = "none"
         elif quiz_id in sessions:
@@ -816,7 +812,6 @@ class AddQuestion(TriggeredAction, action_name="quiz_add_question"):
             question_index -= 1
         # pre-load failure
         self.write_param(2, -1)
-        result =""
         if message.reply_to_message is None:
             self.write_param(1,"must_reply")
             return ""
@@ -863,16 +858,13 @@ class RemoveQuestion(TriggeredAction, action_name="quiz_delete_question"):
             self.write_param(2,"quiz_not_found")
             return ""
         if index != -1:
-            index -=1
+            index -= 1
         if -1 > index >= quiz.count:
             self.write_param(2,"invalid_question")
             return ""
         quiz.remove_question(index)
         self.write_param(2,"ok")
         return ""
-
-
-
 
 
 class SetSpecificQuestionTime(TriggeredAction, action_name="quiz_question_time"):

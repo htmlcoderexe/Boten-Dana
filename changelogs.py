@@ -96,17 +96,17 @@ def blast_logs():
     SELECT logid
     FROM changelogs""")
     rows = res.fetchall()
-    #print(rows)
+    # print(rows)
     if rows:
         known_changelogs = [row[0] for row in rows]
-    #print(known_changelogs)
+    # print(known_changelogs)
     for logid, changelog in messages.items():
-        #print((logid, changelog))
+        # print((logid, changelog))
         if logid not in known_changelogs:  # and False:
             BotState.DBLink.execute("""
             INSERT INTO changelogs
             VALUES (?)""", (logid,))
-            #print(changelog)
+            # print(changelog)
             accumulator += changelog
     if accumulator:
         datastuff.blast(bot_message=accumulator, remove=False)

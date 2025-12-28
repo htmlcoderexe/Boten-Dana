@@ -100,7 +100,7 @@ class MessageStore:
         if rows:
             return False
         print("moving part---------------")
-        res = BotState.DBLink.execute("""
+        BotState.DBLink.execute("""
                    UPDATE saved_messages
                    SET chatid = ?
                    WHERE name = ?
@@ -204,7 +204,7 @@ class MessageStore:
                     return part.data
         return ""
 
-    async def replay_message(self, name: str, reply_to: int = 0, target_chat: int =0) -> list[int]:
+    async def replay_message(self, name: str, reply_to: int = 0, target_chat: int = 0) -> list[int]:
         """
         Fetches a stored message and sends it to a chat
         @param name: The name identifying the stored message
@@ -359,7 +359,6 @@ class MoveMessage(TriggeredAction, action_name="move_saved_message"):
     param 0: message name
     param 1: new scopeID (chatid/0 for global)
     """
-
 
 
 class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):

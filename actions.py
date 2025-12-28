@@ -1,7 +1,6 @@
 """
 This module contains code dealing with actions the bot is able to perform based on things happening in the chat.
 """
-import copy
 import random
 import json
 import time
@@ -14,7 +13,7 @@ import UserInfo
 import botconfig
 import botstate
 import botutils
-import env_vars
+# import env_vars
 import messagetagger
 import scheduled_events
 from env_vars import EnvVar
@@ -67,7 +66,7 @@ class Trigger:
         """Whether the trigger consumes sanitised string or raw string."""
         self.orig_data = ""
         """Used to smuggle in the original string, as a heck."""
-        self.tagdata:tuple[str]
+        self.tagdata:tuple[str] = ("",)
         """Any additional tag-related data"""
 
     def construct(self):
@@ -185,15 +184,15 @@ class TriggeredAction:
         """Dynamic parameter passed from trigger"""
         self.varstore = None
         """refers to common store"""
-        self.matchdata =""
+        self.matchdata = ""
         """trigger match data"""
 
     def construct(self):
         """Factory method to realise correct subtype"""
         data = (self.sequence,self.subseq,self.action,self.data,self.target_reply)
         if self.action in TriggeredAction.registry:
-            #print(f"Spawned <{self.action}>")
-            #print(f"Params: START>{self.data}<END")
+            # print(f"Spawned <{self.action}>")
+            # print(f"Params: START>{self.data}<END")
             return TriggeredAction.registry[self.action](*data)
         print(f"Failed to spawn <{self.action}>")
 
@@ -307,7 +306,7 @@ class TriggeredAction:
         if self.target_reply:
             if not message.reply_to_message:
                 return "no_target"
-            message = message.reply_to_message
+            # message = message.reply_to_message
 
 
 class SequenceMd2Info:
@@ -427,7 +426,7 @@ class TriggeredSequence:
                 default = cfgvar['default']
                 config_vars[var] = (cfg_desc, default)
                 # set a default value if the var hasn't been set before
-                #if env_vars.EnvVar.get_scope(var, 0) is None:
+                # if env_vars.EnvVar.get_scope(var, 0) is None:
                 #    env_vars.EnvVar.set_scope(var, 0, default)
             print(f"Loaded {len(data['config_vars'])} configuration variables.")
         # load and init declared config vars
@@ -435,7 +434,7 @@ class TriggeredSequence:
         if 'commands' in data:
             for cmd, info in data['commands'].items():
                 cmd_desc = info['description']
-                subseq= info['subseq']
+                subseq = info['subseq']
                 commands[cmd] = (cmd_desc, subseq)
             print(f"Loaded {len(data['commands'])} commands.")
         print(f"Loaded <{name}> with {errorcounter} errors.")
@@ -451,7 +450,6 @@ class TriggeredSequence:
         cat_txt = ["text_exact","text_prefix","text_suffix","text_contains"]
         cat_filter = []
 
-        t_match = ""
         # get text out
         if message.text:
             cat_filter = cat_txt
@@ -467,10 +465,8 @@ class TriggeredSequence:
         # if replying to something, check if that has any additional data we saved earlier
         if message.reply_to_message:
             tags = messagetagger.MessageTagger.get_tags(message.chat_id, message.reply_to_message.id)
-        subseq = ""
         # go thru triggers
         for trig in self.triggers:
-            t_match = ""
             # for now this is redundant, used to filter by a specific trigger category
             if trig.t_type in cat_filter:
                 # matching is cheap enough to to regardless
@@ -495,13 +491,14 @@ class TriggeredSequence:
             await self.run_subseq(subseq, Trigger.Empty(),update.message,"")
         return handler
 
-    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = "", extra_vars = None):
+    async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = "", extra_vars=None):
         """
         Runs a specific subsequence.
         @param subseq:
         @param trigger:
         @param message:
-        @param matchdata
+        @param matchdata:
+        @param extra_vars:
         @return:
         """
         # not found!
@@ -708,17 +705,17 @@ class EmitText(TriggeredAction, action_name="emit_text"):
         msg_ttl = self.read_int(1)
         chatid = self.varstore["__chat_id"]
         msgid = self.read_int(2)
-        if msgid == -1:
-            msgid = message.id
         if self.target_reply:
             if not message.reply_to_message:
                 return "respond_no_target"
             message = message.reply_to_message
+        if msgid == -1:
+            msgid = message.id
         text = self.get_random_string(pool_name)
         text = text.format_map(self.varstore)
         chunks = text.split("\u2029")
         accumulator = ""
-        maxsize=4096
+        maxsize = 4096
         for chunk in chunks:
             if len(accumulator+chunk) > maxsize:
                 print("-------Writing message chunk:--------\n" + accumulator + "\n--------End of message:--------")
@@ -729,8 +726,8 @@ class EmitText(TriggeredAction, action_name="emit_text"):
 
                     self.varstore["__last_msg"] = msg.id
                     botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
-                accumulator=""
-            accumulator+=chunk
+                accumulator = ""
+            accumulator += chunk
         if len(accumulator) > 0:
             print("-------Writing message remains:--------\n" + accumulator + "\n--------End of message:--------")
             msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=accumulator,
@@ -982,7 +979,6 @@ class FormatTimeSpan(TriggeredAction, action_name="fmt_time"):
         # TODO: I8N
         timeunits = ("сек.", "мин.", "ч.", "д.", "мес.")
         index = 0
-        output = 0
         if timespan < 60:
             output = timespan
         else:
@@ -1012,7 +1008,6 @@ class FormatTimeSpan(TriggeredAction, action_name="fmt_time"):
                         return ""
         self.write_param(1, str(output.__round__()) + " " + timeunits[index])
         return ""
-
 
 
 class GetFrame(TriggeredAction, action_name="get_frame"):
@@ -1278,8 +1273,6 @@ class GetMentions(TriggeredAction, action_name="get_mentions"):
                 users.append(usr.id)
                 print(usr.id)
         self.write_param(0, users)
-
-
 
 
 class GetLoadedSequences(TriggeredAction, action_name="get_seqs"):

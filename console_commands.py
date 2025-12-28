@@ -93,7 +93,7 @@ async def pool_capture_start(args, userid: int,chatid:int):  # pool-capture-star
     command = "pool-add \"" + str(pool_id) + "\" " + str(pool_chat_id)
     cap_mode = "full" 
     if str(pool_chat_id) == "0":
-        cap_mode="full-glob"
+        cap_mode = "full-glob"
     sessid = str(chatid) + " " + str(userid)
     context = pool_id
     BotState.DBLink.execute("""

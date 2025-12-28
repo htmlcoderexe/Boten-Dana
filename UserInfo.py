@@ -4,7 +4,7 @@ import telegram
 
 import botutils
 import scores
-from botstate import  BotState
+from botstate import BotState
 
 
 class ChatUserInfo:
@@ -70,7 +70,6 @@ class ChatUserInfo:
             ORDER BY time DESC
             """, (self.userid, self.chatid))
         rows = res.fetchall()
-        joins = []
         if not rows:
             joins = [self.joindate]
         else:
@@ -166,7 +165,6 @@ class ChatUserInfo:
             return None
 
 
-
 class User:
 
     def __init__(self, user_id: int, chat_id: int):
@@ -236,7 +234,7 @@ class User:
         @param chat_id:
         @return:
         """
-        sh = scores.ScoreHelper(self.id, self.chatid_or_default())
+        sh = scores.ScoreHelper(self.id, self.chatid_or_default(chat_id))
         sh.add(scorename, amount)
 
     def log_event(self, event_type: str, data: str, chat_id: int = -1):
@@ -330,7 +328,7 @@ class User:
         """
         if not message.from_user:
             if not message.sender_chat:
-                return 0
+                return "0"
             return message.sender_chat.title or message.sender_chat.full_name
         nick = message.from_user.full_name
         uid = message.from_user.id
