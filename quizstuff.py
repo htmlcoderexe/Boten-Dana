@@ -388,6 +388,8 @@ class QuizPlaySession:
         """MessageID of the message launching the session"""
         self.ended = ended
         """Determines if the session has ended."""
+        self.time = float(self.id[len(self.quiz_id)+len(str(self.chat_id)):])
+        """Time when this session started."""
 
     def write_plan(self, question_count: int, question_timer: float, frame_count: int):
         """Writes out the commands to follow for the quiz runner
