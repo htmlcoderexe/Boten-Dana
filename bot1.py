@@ -795,6 +795,31 @@ def one_off_updateMDV2():
         BotState.DBLink.execute("UPDATE qdb SET quote = ? WHERE qid = ?",(escaped_quote,qid))
     BotState.write()
 
+def one_off_redo_quiz_scores():
+    res=BotState.DBLink.execute("SELECT quiz_session_id FROM quiz_sessions",())
+    rows = res.fetchall()
+    sessioncount=len(rows)
+    print(f"Loaded {sessioncount} sessions.")
+    for i, row in enumerate(rows):
+        sessid = row[0]
+        print(f"[{i}/{sessioncount}] Processing <{sessid}>")
+        if sessid[0:4] != "-100":
+            print("Skipping session from chat.")
+            continue
+        session = quizstuff.QuizPlaySession.load(sessid)
+        if session:
+            results = session.get_results()
+            stoday = datetime.fromtimestamp(session.time)
+            print(f"Awarding medals on {str(stoday)}")
+            for i, result in enumerate(results):
+                sh = scores.ScoreHelper(result[4], session.chat_id,stoday)
+                if i >= len(quizstuff.QuizPlaySession.MEDAL_EMOJI):
+                    sh.add("quiz_medals_other")
+                sh.add("quiz_medals_" + str(i))
+                sh.add("quiz_participations")
+            print(f"Awarded {len(results)} medals.")
+        else:
+            print("Not found.")
 
 
 # #launch the thing
@@ -805,6 +830,7 @@ if __name__ == '__main__':
     BotState.DB = botconfig.DB
     BotState.DBLink = botconfig.DB.cursor()
     # one_off_updateMDV2()
+    # one_off_redo_quiz_scores()
     BotState.pyroclient = Client("BotenDana")
     # create handlers
     start_handler = CommandHandler('start', start)
