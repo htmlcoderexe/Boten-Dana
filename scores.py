@@ -63,18 +63,33 @@ class ScoreHelper:
         return self.get_scope(scorename, "all")
 
     def get_scope(self, scorename: str, scope: str):
-        res = BotState.DBLink.execute("""
+        if self.chatid == 0:
+            res = BotState.DBLink.execute("""
+            SELECT amount 
+            FROM scores 
+            WHERE userid = ? 
+            AND scorename = ? 
+            AND scope = ? """, (self.userid, scorename, scope))
+            rows = res.fetchall()
+            if not rows:
+                return 0
+            result = 0
+            for row in rows:
+                result += int(row[0])
+            return result
+        else:
+            res = BotState.DBLink.execute("""
             SELECT amount 
             FROM scores 
             WHERE userid = ? 
             AND chatid = ? 
             AND scorename = ? 
             AND scope = ? """, (self.userid, self.chatid, scorename, scope))
-        row = res.fetchone()
-        if row is None:
-            return 0
-        else:
-            return row[0]
+            row = res.fetchone()
+            if row is None:
+                return 0
+            else:
+                return row[0]
 
     def get(self, scorename: str, date: datetime = None):
         if date is None:
