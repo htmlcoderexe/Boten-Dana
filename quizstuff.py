@@ -439,9 +439,9 @@ class QuizPlaySession:
             usr = UserInfo.User(userid, self.chat_id)
             uname = usr.current_nick
             if i < len(QuizPlaySession.MEDAL_EMOJI):
-                results.append((QuizPlaySession.MEDAL_EMOJI[i],uname, seconds, answers))
+                results.append((QuizPlaySession.MEDAL_EMOJI[i],uname, seconds, answers,userid))
             else:
-                results.append((" ",uname, seconds, answers))
+                results.append((" ",uname, seconds, answers,userid))
         return results
 
     def give_awards(self):
@@ -451,7 +451,7 @@ class QuizPlaySession:
         """
         results = self.get_results()
         for i,result in enumerate(results):
-            sh = scores.ScoreHelper(result[1],self.chat_id)
+            sh = scores.ScoreHelper(result[4],self.chat_id)
             if i >= len(QuizPlaySession.MEDAL_EMOJI):
                 sh.add("quiz_medals_other")
             sh.add("quiz_medals_" + str(i))
@@ -882,4 +882,21 @@ class QuestionAttach(TriggeredAction, action_name="quiz_question_attach"):
             self.write_param(3,"question_not_found")
         quiz.questions[question_index].attach_media(msgname)
         self.write_param(3, "ok")
+        return ""
+
+
+class GetQuizMedals(TriggeredAction, action_name="quiz_get_medals"):
+    """
+    Gets user's medals
+    param 0: uid
+    param 1: chatid, 0 for all
+    param 2: outvar
+    """
+
+    async def run_action(self, message: TGMessage) -> str:
+        uid = self.read_int(0)
+        chatid = self.read_int(1)
+        usermedals = QuizPlaySession.get_user_medals(uid,chatid)
+        medals = QuizMedalInfo(*usermedals)
+        self.write_param(2,medals)
         return ""
