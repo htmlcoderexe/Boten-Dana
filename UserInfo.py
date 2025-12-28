@@ -46,8 +46,11 @@ class ChatUserInfo:
         # end get reputation
 
         ######################################################################
-
-        joindate, fake = ChatUserInfo.get_join(self.chatid,self.userid)
+        joininfo = ChatUserInfo.get_join(self.chatid,self.userid)
+        joindate = 0
+        fake = True
+        if joininfo is not None:
+            joindate, fake = joininfo
         # set the resulting values
         self.joindate = float(joindate)
         """First time the user was seen in the chat."""
@@ -156,9 +159,10 @@ class ChatUserInfo:
         row = res.fetchone()
         # if found use that
         if row:
-           return row
+            return row
         # if not found log a join now
         else:
+            print(f"WHAT THE FUCK!!! {chatid}/{userid}")
             return None
 
 
@@ -191,8 +195,8 @@ class User:
         """Most recent known nickname"""
         if self.nicknames:
             self.nicknames.pop()
-        print("'"+self.current_nick+"'")
-        print(repr(self.nicknames))
+        # print("'"+self.current_nick+"'")
+        # print(repr(self.nicknames))
 
     def chatid_or_default(self, chat_id: int = -1) -> int:
         """Obtains the correct chatID for indexing into chat-specific functions
@@ -332,5 +336,5 @@ class User:
         uid = message.from_user.id
         if uid in (telegram.constants.ChatID.ANONYMOUS_ADMIN, telegram.constants.ChatID.SERVICE_CHAT, telegram.constants.ChatID.FAKE_CHANNEL):
             nick = message.sender_chat.title or message.sender_chat.full_name
-        print(f"The extracted nick was {nick}.")
+        # print(f"The extracted nick was {nick}.")
         return nick
