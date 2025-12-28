@@ -261,6 +261,21 @@ class Quiz:
             question.index = ordinal
 
 
+class QuizMedalInfo:
+    """Represents a set of medals."""
+
+    def __init__(self,golds=0, silvers=0,bronzes=0,others=0,participations=0):
+        self.gold = golds
+
+        self.silver = silvers
+
+        self.bronze = bronzes
+
+        self.other = others
+
+        self.participation = participations
+
+
 class QuizPlaySession:
     """Represents a single run of a Quiz."""
     START_MESSAGE_ANIMATION_TIMER: float = 3
@@ -350,6 +365,15 @@ class QuizPlaySession:
             botutils.schedule_kill(session.chat_id, poll_msgid, 0)
             scheduled_events.ScheduledEvent.advance_event("quiz_next",session.chat_id, [(0, session.id),(2,next_question)])
 
+    @staticmethod
+    def get_user_medals(user_id:int, chat_id:int = 0):
+        sh = scores.ScoreHelper(userid=user_id,chatid=chat_id)
+        golds = sh.get_scope("quiz_medals_0","all")
+        silvers = sh.get_scope("quiz_medals_1","all")
+        bronzes = sh.get_scope("quiz_medals_2","all")
+        others = sh.get_scope("quiz_medals_other","all")
+        participtions = sh.get_scope("quiz_participations","all")
+        return golds, silvers, bronzes, others, participtions
 
     def __init__(self, session_id: str, chat_id: int, quiz_id: str, starting_message: int, ended: bool):
         self.id = session_id

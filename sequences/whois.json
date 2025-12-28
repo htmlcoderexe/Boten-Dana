@@ -42,6 +42,10 @@
         "params": ["*uid","userinfo"]
       },
       {
+        "action": "quiz_get_medals",
+        "params": ["*uid",0,"medals"]
+      },
+      {
         "action": "obj_read",
         "params": ["userinfo","current_chat","usermeta"]
       },
@@ -244,7 +248,7 @@
     ]
   },
   "stringpools": {
-    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n%medals%\nпоследнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n{is_returner}{quotes}\n    "],
+    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n\uD83E\uDD47{medals.gold} \uD83E\uDD48{medals.silver} \uD83E\uDD49{medals.bronze} \nпоследнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n{is_returner}{quotes}\n    "],
     "404": ["Да хуй знает\\, в первый раз вижу"],
     "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
     "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],
