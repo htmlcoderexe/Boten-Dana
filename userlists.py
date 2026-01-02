@@ -46,10 +46,9 @@ class ActionCheckUserList(TriggeredAction, action_name="userlist_check"):
     param 2: variable to store the result to
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = int(self.read_param(0))
+        uid = self.read_int(0)
         ulist = self.read_param(1)
-        outvar = self.read_param(2)
-        self.varstore[outvar] = UserList.check_list(uid, ulist)
+        self.write_param(2,UserList.check_list(uid, ulist))
         return ""
 
 
@@ -60,10 +59,9 @@ class ActionUserListAdd(TriggeredAction, action_name="userlist_add"):
     param 2: variable to store the result to
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = int(self.read_param(0))
+        uid = self.read_int(0)
         ulist = self.read_param(1)
-        outvar = self.read_param(2)
-        self.varstore[outvar] = UserList.add_user(uid, ulist)
+        self.write_param(2,UserList.add_user(uid, ulist))
         return ""
 
 
@@ -74,8 +72,7 @@ class ActionUserListRemove(TriggeredAction, action_name="userlist_remove"):
     param 2: variable to store the result to
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = int(self.read_param(0))
+        uid = self.read_int(0)
         ulist = self.read_param(1)
-        outvar = self.read_param(2)
-        self.varstore[outvar] = UserList.remove_user(uid, ulist)
+        self.write_param(2,UserList.remove_user(uid, ulist))
         return ""

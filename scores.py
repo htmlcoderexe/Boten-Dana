@@ -174,7 +174,7 @@ class ActionScoreBoard(TriggeredAction, action_name="sxxxxcore_board"):
             message = message.reply_to_message
         ss = ScoreHelper(message.from_user.id, message.chat.id)
         board = ss.get_top(self.data[0], int(self.data[1]))
-        self.varstore[self.data[2]] = board
+        self.write_param(2,board)
         return ""
 
 

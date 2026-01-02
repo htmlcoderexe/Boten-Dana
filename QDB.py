@@ -186,19 +186,17 @@ class ActionQDBSave(TriggeredAction, action_name="qdb_save"):
     param 1: variable to store the outcome
     """
     async def run_action(self, message: TGMessage) -> str:
-        idvar = self.read_param(0)
-        resultvar = self.read_param(1)
         uid = UserInfo.User.extract_uid(message)
         if self.target_reply:
             if not message.reply_to_message:
-                self.varstore[idvar] = 0
-                self.varstore[resultvar] = "no_text"
+                self.write_param(0,0)
+                self.write_param(1, "no_text")
                 return "qdb_save_no_target"
             message = message.reply_to_message
 
         if not message.text and not message.caption:
-            self.varstore[idvar] = 0
-            self.varstore[resultvar] = "no_text"
+            self.write_param(0,0)
+            self.write_param(1, "no_text")
             return ""
         text = message.text_markdown_v2 if message.text else message.caption_markdown_v2
         author = UserInfo.User.extract_uid(message)
@@ -211,7 +209,7 @@ class ActionQDBSave(TriggeredAction, action_name="qdb_save"):
         qdb = Database(message.chat.id, uid)
         q = qdb.exists(msgid)
         if q:
-            self.varstore[resultvar] = "exists"
+            self.write_param(1,"exists")
         else:
             # use pyro to get the context of the message being captured if possible
             pc = BotState.pyroclient
@@ -223,8 +221,8 @@ class ActionQDBSave(TriggeredAction, action_name="qdb_save"):
                 replytext = fullmsg.reply_to_message.caption if fullmsg.reply_to_message.caption else replytext
             # save the quote
             q = qdb.save_quote(text=text, msg_id=msgid, user_id=author, reply_text=replytext, reply_user=replyuser, reply_id=replyid)
-            self.varstore[resultvar] = "ok"
-        self.varstore[idvar] = q.id
+            self.write_param(1,"ok")
+        self.write_param(0, q.id)
         return ""
 
 
@@ -234,15 +232,14 @@ class ActionQDBUpvote(TriggeredAction, action_name="qdb_upvote"):
     param 1: delta
     param 2: variable to store the new score of the quote"""
     async def run_action(self, message: TGMessage) -> str:
-        qid = int(self.read_param(0))
-        delta = int(self.read_param(1))
-        outvar = self.read_param(2)
+        qid = self.read_int(0)
+        delta = self.read_int(1)
         q = Database.get_by_id(qid)
         if not q:
-            self.varstore[outvar] = -1
+            self.write_param(2,-1)
             return ""
 
-        self.varstore[outvar] = q.upvote(delta)
+        self.write_param(2,q.upvote(delta))
         return ""
 
 
@@ -257,10 +254,9 @@ class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
     """
     async def run_action(self, message: TGMessage) -> str:
         chatid = message.chat_id
-        outvar = self.read_param(0)
-        amount = int(self.read_param(1))
+        amount = self.read_int(1)
         page = max(0, self.read_int(2) - 1)
-        min_score = int(self.read_param(3))
+        min_score = self.read_int(3)
         sortby = self.read_param(4)
         # constrain the options
         if sortby not in ("score","newest","oldest","random"):
@@ -287,13 +283,13 @@ class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
         else:
             start = page * amount
             if start > len(filtered_quotes):
-                self.varstore[outvar] = []
+                self.write_param(0,[])
                 return ""
             finish = start + amount
             quotes = filtered_quotes[start:finish]
         for quote in quotes:
             quote.load_nick()
-        self.varstore[outvar] = quotes
+        self.write_param(0,quotes)
         return ""
 
 
@@ -308,14 +304,13 @@ class ActionQDBGetUserQuotes(TriggeredAction, action_name="qdb_get_user"):
     param 5: sorting mode: "score", "newest", "oldest", random
     """
     async def run_action(self, message: TGMessage) -> str:
-        uid = int(self.read_param(0))
-        outvar = self.read_param(1)
-        amount = int(self.read_param(2))
+        uid = self.read_int(0)
+        amount = self.read_int(2)
         scope = self.read_param(3)
         # ensure scope is fixed
         if scope not in ("global", "local"):
             scope = "global"
-        min_score = int(self.read_param(4))
+        min_score = self.read_int(4)
         sortby = self.read_param(5)
         # constrain the options
         if sortby not in ("score","newest","oldest","random"):
@@ -342,5 +337,5 @@ class ActionQDBGetUserQuotes(TriggeredAction, action_name="qdb_get_user"):
             quotes = filtered_quotes
         else:
             quotes = filtered_quotes[:amount]
-        self.varstore[outvar] = quotes
+        self.write_param(1,quotes)
         return ""

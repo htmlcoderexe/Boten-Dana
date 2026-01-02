@@ -381,7 +381,7 @@ class ReplaySavedMessage(TriggeredAction, action_name="emit_saved_message"):
         msg_name = self.read_param(0)
         if not msg_name:
             return ""
-        msg_ttl = float(self.read_param(1))
+        msg_ttl = self.read_float(1)
         msg_tag = self.read_param(2)
         chatid = self.varstore["__chat_id"]
         override = self.read_int(4)
@@ -409,7 +409,6 @@ class FetchFromPool(TriggeredAction, action_name="fetch_pool"):
     async def run_action(self, message: TGMessage) -> str:
         # get a message out of the pool
         pool_id = self.read_param(0)
-        out_var = self.read_param(1)
         pool = MessagePool(pool_id=pool_id)
-        self.varstore[out_var] = pool.fetch()
+        self.write_param(1, pool.fetch())
         return ""

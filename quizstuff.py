@@ -542,14 +542,13 @@ class FetchEvents(TriggeredAction, action_name="quiz_get_plan"):
     param 0: variable to store the events in.
     """
     async def run_action(self, message: TGMessage) -> str:
-        outvar = self.read_param(0)
         now = time.time()
         res = BotState.DBLink.execute("""
             SELECT quiz_session_id,chatid,time,quiz_name,ordinal
             FROM quiz_next
             WHERE time < ?""", (now,))
         events = res.fetchall()
-        self.varstore[outvar] = events
+        self.write_param(0,events)
         BotState.DBLink.execute("""
             DELETE
             FROM quiz_next
@@ -617,12 +616,11 @@ class FinishQuiz(TriggeredAction, action_name="quiz_finish"):
     """
     async def run_action(self, message: TGMessage) -> str:
         sid = self.read_param(0)
-        out_var = self.read_param(1)
         # load the session
         session = QuizPlaySession.load(sid)
         # fetch the results and award medals
         quiz_results = session.give_awards()
-        self.varstore[out_var] = quiz_results
+        self.write_param(1,quiz_results)
         session.end()
         return ""
 
@@ -641,10 +639,9 @@ class FetchQuestion(TriggeredAction, action_name="quiz_fetch_question"):
     async def run_action(self, message: TGMessage) -> str:
         qid = self.read_param(0)
         idx = self.read_param(1)
-        out_var = self.read_param(2)
         # get the question
         question = Question.fetch(qid,idx)
-        self.varstore[out_var] = question
+        self.write_param(2,question)
         return ""
 
 
@@ -656,10 +653,9 @@ class FetchQuiz(TriggeredAction, action_name="quiz_fetch_quiz"):
     """
     async def run_action(self, message: TGMessage) -> str:
         qid = self.read_param(0)
-        out_var = self.read_param(1)
         # get the quiz
         quiz = Quiz.load(qid)
-        self.varstore[out_var] = quiz
+        self.write_param(1,quiz)
         return ""
 
 
@@ -678,10 +674,9 @@ class BeginQuizEditSession(TriggeredAction, action_name="quiz_begin_edit"):
     """
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
-        out_var = self.read_string(1)
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
-        self.varstore[out_var] = EditSession.begin("quiz_edit", uid, quiz_id)
+        self.write_param(1,EditSession.begin("quiz_edit", uid, quiz_id))
         return ""
 
 
@@ -694,9 +689,8 @@ class EndQuizEditSession(TriggeredAction, action_name="quiz_finish_edit"):
     async def run_action(self, message: TGMessage) -> str:
         uid = UserInfo.User.extract_uid(message)
         quiz_id = self.read_string(0)
-        out_var = self.read_string(1)
         EditSession.clear_old_sessions()
-        self.varstore[out_var] = EditSession.end("quiz_edit", uid, quiz_id)
+        self.write_param(1,EditSession.end("quiz_edit", uid, quiz_id))
         return ""
 
 
@@ -710,7 +704,6 @@ class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_sessions"):
     """
     async def run_action(self, message: TGMessage) -> str:
         quiz_id = self.read_string(0)
-        out_var = self.read_string(1)
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
         sessions = EditSession.find_sessions("quiz_edit", uid)
@@ -721,7 +714,7 @@ class CheckQuizEditSession(TriggeredAction, action_name="quiz_check_sessions"):
             result = "active"
         else:
             result = "busy"
-        self.varstore[out_var] = result
+        self.write_param(1,result)
         return ""
 
 
@@ -732,8 +725,6 @@ class FindQuizEditSession(TriggeredAction, action_name="quiz_find_session"):
     param 1: variable to store quiz id if found
     """
     async def run_action(self, message: TGMessage) -> str:
-        out_var = self.read_string(0)
-        out_var_quiz = self.read_string(1)
         uid = UserInfo.User.extract_uid(message)
         EditSession.clear_old_sessions()
         # find any sessions by user
@@ -741,8 +732,8 @@ class FindQuizEditSession(TriggeredAction, action_name="quiz_find_session"):
         # if exactly one found, return it
         if len(sessions) == 1:
             EditSession.refresh("quiz_edit",uid, sessions[0])
-            self.varstore[out_var_quiz] = sessions[0]
-        self.varstore[out_var] = len(sessions)
+            self.write_param(1,sessions[0])
+        self.write_param(0,len(sessions))
         return ""
 
 
