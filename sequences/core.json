@@ -41,7 +41,25 @@
       }
     }
   ,
+  "buttons": {
+    "test": "test_button",
+    "test2": "test_button2"
+  },
   "subseqs": {
+    "test_button":
+    [
+      {
+        "action": "msgbox",
+        "params": ["ты хуй"]
+      }
+    ],
+    "test_button2":
+    [
+      {
+        "action": "add",
+        "params": [1,1,"empty"]
+      }
+    ],
     "dominating":
       [
         {
@@ -62,6 +80,18 @@
         {
           "action": "fmt_list",
           "params": ["dontcare","test_board_fmt","top"]
+        },
+        {
+          "action": "add_button",
+          "params": ["хуй","test"]
+        },
+        {
+          "action": "add_button",
+          "params": ["хуй 2","test2"]
+        },
+        {
+          "action": "add_button",
+          "params": ["хуй 3","6666"]
         },
         {
           "action": "emit_text",
