@@ -1,0 +1,336 @@
+{
+  "name": "butts",
+  "display_name": "Жопобот",
+  "description": "Не путать с жалкими подобиями.",
+  "version": [1,0,0,0],
+  "triggers": [
+    {
+      "type": "text_exact",
+      "params": ["взять жопу"],
+      "subseq": "grab_butt"
+    },
+    {
+      "type": "text_exact",
+      "params": ["почесать жопу"],
+      "subseq": "scratch_butt"
+    },
+    {
+      "type": "text_exact",
+      "params": ["показать жопу"],
+      "subseq": "show_butt"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["назвать жопу"],
+      "subseq": "name_butt"
+    },
+    {
+      "type": "text_exact",
+      "params": ["держи жопы"],
+      "subseq": "load_butts"
+    },
+    {
+      "type": "text_exact",
+      "params": ["запускай жопы"],
+      "subseq": "admin_start"
+    },
+    {
+      "type": "text_exact",
+      "params": ["реще жопу давай"],
+      "subseq": "admin_drop"
+    }
+  ],
+  "event_handlers":
+  {
+    "announce_butt": "drop_butt",
+    "refresh_butt": "new_butt"
+  },
+  "subseqs":
+  {
+    "grab_butt": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "get_chat_butt",
+        "params": [-1,"butt_id","state"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["", "*butt_id","no_butt",""]
+      },
+      {
+        "action": "if_eq",
+        "params": [-1, "*state","no_butt",""]
+      },
+      {
+        "action": "get_user_butt",
+        "params": [-1,"user_butt"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["","*user_butt","","already_butt"]
+      },
+      {
+        "action": "claim_butt",
+        "params": ["*butt_id",-1]
+      },
+      {
+        "action": "butt_load",
+        "params": ["*butt_id","new_butt"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["new_butt","pic","butt_pic"]
+      },
+      {
+        "action": "emit_photo",
+        "params": ["grab_butt",60,-1,"*butt_pic"]
+      },
+      {
+        "action": "select_butt",
+        "params": [-1,1]
+      }
+    ],
+    "no_butt": [
+      {
+        "action": "emit_text",
+        "params": ["no_butts",30,-1]
+      }
+    ],
+    "already_butt": [
+      {
+        "action": "emit_text",
+        "params": ["has_butt",30,-1]
+      }
+    ],
+    "show_butt": [
+
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "get_user_butt",
+        "params": [-1,"user_butt"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["","*user_butt","no_show_butt",""]
+      },
+      {
+        "action": "butt_load",
+        "params": ["*user_butt","user_butt"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["user_butt","name","buttname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*buttname","buttname"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["user_butt","pic","buttpic"]
+      },
+      {
+        "action": "concat",
+        "params": ["butt_scratch_","*uid","buttscore"]
+      },
+      {
+        "action": "score_get",
+        "params": [-1,"*buttscore","buttpoints","all"]
+      },
+      {
+        "action": "emit_photo",
+        "params": ["show_butt",60,-1,"*buttpic"]
+      }
+    ],
+    "no_show_butt": [
+      {
+        "action": "emit_text",
+        "params": ["nothing_to_show",30,-1]
+      }
+    ],
+    "no_name_butt": [
+      {
+        "action": "emit_text",
+        "params": ["nothing_to_name",30,-1]
+      }
+    ],
+    "where_butt": [
+      {
+        "action": "emit_text",
+        "params": ["nothing_to_scratch",30,-1]
+      }
+
+    ],
+    "scratch_butt": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "get_user_butt",
+        "params": [-1,"user_butt"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["","*user_butt","where_butt",""]
+      },
+      {
+        "action": "userlist_check",
+        "params": ["*uid","no_butt_scratch","is_cooldown"]
+      },
+      {
+        "action": "if_eq",
+        "params": [true, "*is_cooldown","no_scratch",""]
+      },
+      {
+        "action": "concat",
+        "params": ["butt_scratch_","*uid","buttscore"]
+      },
+      {
+        "action": "score_up",
+        "params": ["*uid","*buttscore","1","new_butt_score"]
+      },
+      {
+        "action": "userlist_add",
+        "params": ["*uid","no_butt_scratch","_",3600]
+      },
+      {
+        "action": "emit_text",
+        "params": ["scratch_butt",30,-1]
+      }
+    ],
+    "name_butt": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "get_user_butt",
+        "params": [-1,"user_butt"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["","*user_butt","no_name_butt",""]
+      },
+      {
+        "action": "get_match",
+        "params": ["buttname"]
+      },
+      {
+        "action": "name_butt",
+        "params": ["*user_butt","*buttname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*buttname","buttname"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["new_name",20,-1]
+      }
+    ],
+    "no_scratch": [
+      {
+        "action": "emit_text",
+        "params": ["no_scratch",30,-1]
+      }
+    ],
+    "drop_butt": [
+      {
+        "action": "drop_butt",
+        "params": [-1,"butt_id","butt_pic"]
+      },
+      {
+        "action": "emit_photo",
+        "params": ["butt_drops",3600,0,"*butt_pic"]
+      }
+    ],
+    "new_butt": [
+      {
+        "action": "retract_butt",
+        "params": [-1]
+      },
+      {
+        "action": "select_butt",
+        "params": [-1]
+      }
+    ],
+    "load_butts": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*uid","*__operator","","exit"]
+      },
+      {
+        "action": "load_butts"
+      }
+    ],
+    "admin_start": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*uid","*__operator","new_butt","exit"]
+      }
+    ],
+    "admin_drop": [
+      {
+        "action": "get_uid",
+        "params": ["uid"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*uid","*__operator","drop_butt","exit"]
+      }
+    ],
+    "exit": []
+  },
+  "stringpools": {
+    "grab_butt": ["Поздравляю, у тебя теперь есть классная жопа\\! Почеши её\\! \\(\\\"почесать жопу\\\"\\)\nНу или покажи всем\\, какая же она классная\\!\\(\\\"показать жопу\\\"\\)"],
+    "butt_drops": ["Тебе жопа\\, Милая Беседа ❤\nЧтобы взять жопу\\, пропишите команду\\\"взять жопу\\\""],
+    "scratch_butt": ["Вы успешно почесали жопу\\.\nОна получила \\+1 к ухоженности\\."],
+    "no_scratch": ["Нельзя чесать жопу чаще\\, чем раз в час\\, а то расчешете ещё нахер\\."],
+    "nothing_to_scratch": ["Чесать нечего\\, возьми сначала жопу\\, чтобы её чесать\\."],
+    "nothing_to_show": ["Жопы\\-то и нету\\, что показывать будешь\\?"],
+    "nothing_to_name": ["Где жопа\\? Жопы\\ нету\\, называть нечего\\."],
+    "show_butt": ["Имя вашей жопы\\: {buttname}\n Уровень вашей жопы\\: 1\nУхоженность\\: {buttpoints}"],
+    "new_name": ["Теперь вашу жопу зовут {buttname}\\."],
+    "no_butts": ["Жопабот не присылал жоп\\:\\(\nСкорее всего\\, последнюю жопу забрал кто\\-то первее тебя\\. Жди лошара"],
+    "has_butt": ["Нахера тебе ещё одна жопа\\?"]
+  }
+}
