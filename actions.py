@@ -6,7 +6,7 @@ import json
 import time
 
 import telegram.constants
-from telegram import Message as TGMessage
+from telegram import Message as TGMessage, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import ContextTypes
 
 import UserInfo
@@ -326,6 +326,8 @@ class TriggeredSequence:
     """Contains subsequences registered to run on a timer"""
     event_handlers = {}
     """Contains event handlers subscribing to a specific event"""
+    button_handlers = {}
+    """Contains handlers for buttons ("inline keyboard buttons")."""
 
     def __init__(self, name:str, display_name:str, desc:str, version:tuple[int], triggers:list[Trigger], subseqs:dict[str,list[TriggeredAction]],
                  strings=None, config_vars:dict[str,tuple[str,str]] = None, commands:dict[str,tuple[str,str]] = None):
@@ -387,7 +389,9 @@ class TriggeredSequence:
             actionlist = []
             for action in actions:
                 atype = action['action']
-                aparams = action['params']
+                aparams = []
+                if "params" in action:
+                    aparams = action['params']
                 atarget = False
                 if 'target' in action:
                     atarget = True
@@ -438,6 +442,11 @@ class TriggeredSequence:
                 commands[cmd] = (cmd_desc, subseq)
             print(f"Loaded {len(data['commands'])} commands.")
         print(f"Loaded <{name}> with {errorcounter} errors.")
+        buttons = {}
+        if 'buttons' in data:
+            for button, subseqname in data['buttons'].items():
+                buttons[button] = subseqname
+                TriggeredSequence.register_button(button,name,subseqname)
         return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings,config_vars,commands)
 
     async def run(self, message: TGMessage):
@@ -559,6 +568,7 @@ class TriggeredSequence:
                         break
                 # otherwise just remove this action from the original copy and keep going
                 actions.remove(action)
+        return var_store
 
     def get_random_string(self, pool_name:str):
         """
@@ -656,6 +666,20 @@ class TriggeredSequence:
         return True
 
     @staticmethod
+    def register_button(button:str, sequence:str,subseq:str):
+        """
+        Subscribes a specific subsequence to handle an event.
+        @param button:
+        @param sequence:
+        @param subseq:
+        @return:
+        """
+        if button in TriggeredSequence.button_handlers:
+            return False
+        TriggeredSequence.button_handlers[button] = sequence, subseq
+        return True
+
+    @staticmethod
     async def run_handler(event_type:str, event:scheduled_events.ScheduledEvent):
         """
 
@@ -672,8 +696,31 @@ class TriggeredSequence:
             return
         if sub not in TriggeredSequence.running_sequences[seq].subseqs:
             print(f"Invalid event handler for <{event_type}>: subsequence <{sub}> not found in <{seq}>.")
+            return
         print(f"Dispatching <{event_type}> to <{sub}/{seq}>.")
         await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "", {"__event": event, "__chat_id": event.chat_id})
+
+    @staticmethod
+    async def run_button(query:CallbackQuery, chatid:int):
+        button_data = query.data
+        if button_data in TriggeredSequence.button_handlers:
+            seq, sub = TriggeredSequence.button_handlers[button_data]
+            if seq not in TriggeredSequence.running_sequences:
+                print(f"Invalid button handler for <{button_data}>: sequence <{seq}> does not exist.")
+                await query.answer()
+                return
+            if sub not in TriggeredSequence.running_sequences[seq].subseqs:
+                print(f"Invalid button handler for <{button_data}>: subsequence <{sub}> not found in <{seq}>.")
+                await query.answer()
+                return
+            print(f"Dispatching button <{button_data}> to <{sub}/{seq}>.")
+            context = {"__button": button_data, "__chat_id": chatid, "__uid":query.from_user.id,"__query":query,'__query_answered': False}
+            context = await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "",context)
+            if not context['__query_answered']:
+                await query.answer()
+        else:
+            print(f"Invalid button data <{button_data}>.")
+            await query.answer("undefined", True)
 
     @staticmethod
     async def process_events():
@@ -692,6 +739,66 @@ class MockMessage:
 # ###############################################
 #     Output Actions
 # ###############################################
+
+class PrepareButton(TriggeredAction, action_name="add_button"):
+
+    async def run_action(self, message: TGMessage) -> str:
+        button_text = self.read_string(0)
+        button_data = self.read_string(1)
+        if "__buttons" not in self.varstore:
+            buttons = []
+            self.varstore["__buttons"]=buttons
+        else:
+            buttons = self.varstore["__buttons"]
+        buttons.append((button_text,button_data))
+
+
+class MessageBox(TriggeredAction, action_name="msgbox"):
+    """
+
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        q = self.varstore['__query']
+        msg = self.read_string(0)
+        print(q)
+        if q:
+            await q.answer(msg,True)
+            print(f"Answered with <{msg}>")
+            self.varstore['__query_answered'] = True
+
+
+class EmitPhoto(TriggeredAction, action_name="emit_photo"):
+    """Responds from an internal pool
+    param 0: pool to use, can be *pointer
+    param 1: message TTL, -1 to keep
+    param 2: ID of the message to reply to. If not set (0), then this message won't be a reply.
+    If -1, the message passed through the trigger will be used.
+    param 3: file_id of a photo to use
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        pool_name = self.read_param(0)
+        msg_ttl = self.read_int(1)
+        chatid = self.varstore["__chat_id"]
+        msgid = self.read_int(2)
+        fileid = self.read_string(3)
+        if self.target_reply:
+            if not message.reply_to_message:
+                return "respond_no_target"
+            message = message.reply_to_message
+        if msgid == -1:
+            msgid = message.id
+        text = self.get_random_string(pool_name)
+        text = text.format_map(self.varstore)
+        print("-------Writing message:--------\n" + text + "\n--------End of message:--------")
+        msg = await botstate.BotState.bot.send_photo(chat_id=chatid, caption=text,
+                                                     parse_mode='MarkdownV2',
+                                                     reply_to_message_id=msgid,
+                                                     photo=fileid)
+        if msg:
+            self.varstore["__last_msg"] = msg.id
+            botutils.schedule_kill(msg.chat.id, msg.id, float(msg_ttl))
+        return ""
+
 
 class EmitText(TriggeredAction, action_name="emit_text"):
     """Responds from an internal pool
@@ -730,9 +837,16 @@ class EmitText(TriggeredAction, action_name="emit_text"):
             accumulator += chunk
         if len(accumulator) > 0:
             print("-------Writing message remains:--------\n" + accumulator + "\n--------End of message:--------")
+            buttons = None
+            kbd=None
+            if "__buttons" in self.varstore and self.varstore['__buttons'] is not None:
+                buttons = [[InlineKeyboardButton(button[0], callback_data=button[1]) for button in self.varstore['__buttons']]]
+                self.varstore['__buttons'] = None
+                kbd=InlineKeyboardMarkup(buttons)
+            print(buttons)
             msg = await botstate.BotState.bot.send_message(chat_id=chatid, text=accumulator,
                                                            parse_mode='MarkdownV2',
-                                                           reply_to_message_id=msgid)
+                                                           reply_to_message_id=msgid,reply_markup=kbd)
             if msg:
 
                 self.varstore["__last_msg"] = msg.id
