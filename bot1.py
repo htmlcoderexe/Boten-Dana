@@ -246,6 +246,7 @@ async def chat_load(context):
     print("---------LOADING CHATS")
     await datastuff.load_chats()
     print("DONE LOADING----------")
+    changelogs.blast_logs()
 
 
 async def reg_commands(context: CallbackContext):
@@ -350,7 +351,6 @@ if __name__ == '__main__':
     # BotState.q.run_repeating(callback=reg_commands, interval=6, first=1)
     # startup messages
     # #datastuff.blast("перезагрузка успешна!!11")
-    changelogs.blast_logs()
 
     # start the main bot
     BotState.pyroclient.start()
