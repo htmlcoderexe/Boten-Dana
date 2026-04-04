@@ -8,6 +8,7 @@
     0,
     0
   ],
+  "shortname": "пеписа",
   "triggers": [
     {
       "type": "text_exact",

@@ -3,6 +3,7 @@
   "display_name": "Чистильщик",
   "version": [1,0,0,0],
   "description": "Даёт возможность удалять спам от ботов в руки обычным пользователям.",
+  "shortname": "чистка",
   "triggers": [
     {
       "type": "text_exact",

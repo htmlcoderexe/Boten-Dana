@@ -2,6 +2,7 @@
   "name": "core",
   "display_name": "Базовые функции",
   "description": "Базовые функции бота.",
+  "shortname": "бот",
   "version": [1,0,0,0],
   "triggers": [
     {

@@ -3,6 +3,7 @@
   "display_name": "Анализ пользователя",
   "description": "Показывает информацию о пользователе.",
   "version": [1,0,0,0],
+  "shortname": "анализ",
   "triggers": [
     {
       "type": "text_exact",

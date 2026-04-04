@@ -3,6 +3,7 @@
   "display_name": "Цитатник",
   "description": "Башорг для чатов.",
   "version": [1,0,0,0],
+  "shortname": "цитаты",
   "triggers": [
     {
       "type": "text_exact",

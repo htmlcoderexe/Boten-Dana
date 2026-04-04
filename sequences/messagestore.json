@@ -3,6 +3,7 @@
   "display_name": "Сохранение сообщений",
   "description": "Позволяет сохранять и вызывать сообщения.",
   "version": [1,0,0,0],
+  "shortname": "сохранение",
   "triggers": [
     {
       "type": "text_prefix",

@@ -3,6 +3,7 @@
   "display_name": "Жопобот",
   "description": "Не путать с жалкими подобиями.",
   "version": [1,0,0,0],
+  "shortname": "жопобот",
   "triggers": [
     {
       "type": "text_exact",

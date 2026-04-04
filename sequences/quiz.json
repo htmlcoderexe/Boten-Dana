@@ -3,6 +3,7 @@
   "display_name": "Викторина",
   "description": "Позволяет проводить викторины.",
   "version": [1,0,0,0],
+  "shortname": "викторина",
   "triggers": [
     {
       "type": "text_exact",

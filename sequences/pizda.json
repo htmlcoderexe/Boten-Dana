@@ -3,6 +3,7 @@
   "display_name": "Kirkorov-mod",
   "description": "Быстро отучает говорить \"да\" в чятике.",
   "version": [1,0,0,0],
+  "shortname": "пизда",
   "triggers": [
     {
       "type": "text_exact",

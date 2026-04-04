@@ -3,6 +3,7 @@
   "display_name": "Доски почёта",
   "description": "Пока не работает. Доски почётные и не очень.",
   "version": [0,0,0,0],
+  "shortname": "доски",
   "triggers": [
     {
       "type": "text_exact",
