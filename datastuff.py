@@ -18,6 +18,7 @@ from collections import namedtuple
 from enum import Enum
 
 import requests
+import telegram.error
 # import telegram
 from telegram import InputMediaPhoto
 # from telegram import Bot
@@ -27,6 +28,7 @@ from telegram import Update, Message, Poll
 from telegram.ext import ContextTypes
 
 import botconfig
+import botutils
 from botstate import BotState
 import strings
 from botutils import MD, TU, print_to_string
@@ -50,10 +52,15 @@ def send_message(message: string, target_id: int) -> requests.Response:
 
 # blast to all current chats
 def blast(bot_message: string, remove: bool = True, doprivates: bool = False):
-    for chat in BotState.current_chats:
-        if str(chat)[0] != "-" and not doprivates:
+    for chat, status in BotState.current_chats:
+        # no spamming private chats
+        if chat.type == telegram.ChatFullInfo.PRIVATE and not doprivates:
             continue
-        res = send_message(message=bot_message, target_id=chat)
+        # can't post messages as a member anyway
+        if status == telegram.ChatMember.MEMBER:
+            continue
+
+        res = send_message(message=bot_message, target_id=chat.id)
         ajson = json.loads(res.content)
         print("------BLAST START-------")
         print("------MESSAGE START-----")
@@ -65,7 +72,7 @@ def blast(bot_message: string, remove: bool = True, doprivates: bool = False):
         if "result" in ajson:
             update = Message.de_json(ajson["result"], bot=BotState.bot)
             if remove:
-                schedule_kill(chatid=chat, msgid=update.id, expiration=time.time() + botconfig.killdelay)
+                botutils.schedule_kill(chatid=chat, msgid=update.id, expiration=time.time() + botconfig.killdelay)
         else:
             print("fuckity")
         print("------BLAST END---------")
@@ -245,17 +252,31 @@ def XX__log_user_event(userid: int, chatid: int, event_type: string, data: strin
 
 
 # load all chats
-def load_chats():
+async def load_chats():
     res = BotState.DBLink.execute("SELECT DISTINCT chatid FROM userseen")
     chats = res.fetchall()
     #print(chats)
+    print("##### KNOWN CHATS1 #####")
     for chat in chats:
-        info = BotState.bot.get_chat(chat)
-        #print(info)
-        BotState.current_chats.append(chat[0])
-    print(BotState.current_chats)
-
-
+        chatid = int(chat[0])
+        if chatid > 0:
+            continue
+        try:
+            info = await BotState.bot.get_chat(chatid)
+            me = await BotState.bot.get_chat_member(chatid, BotState.bot.id)
+            if me:
+                BotState.update_chat_status(chatid,info.effective_name,me.status)
+                if me.status in ["member","administrator"]:
+                    BotState.current_chats.append((info,me.status))
+                    print(f"[{me.status}/{chatid}]<{info.effective_name}>")
+        except telegram.error.BadRequest as problem:
+            pass
+            # print(f"<{chat}> was not loaded. BadRequest: <{problem.message}>")
+        except Exception as other:
+            pass
+            # print(f"<{chat}> was not loaded, general exception: {type(other)}")
+    # print(BotState.current_chats)
+    print("##### END KNOWN CHATS #####")
 
 
 # joining users

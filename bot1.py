@@ -85,10 +85,12 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # global botuid
     BotState.botuid = context.bot.id
     BotState.bot = context.bot
+    print("------------------")
     if update.message is None:
         # it could be something else!!
         if update.edited_message is not None:
             print("it was edited.")
+        print("------------------")
         return
     # extract useful information from the update
     chatid = update.effective_chat.id
@@ -96,15 +98,15 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     nickname = UserInfo.User.extract_nick(update.message)
 
     usr = UserInfo.User.refresh(user_id=userid,chat_id=chatid)
-
-    print(repr(usr))
-    print(chatid)
+    chat_name = update.effective_chat.effective_name
+    BotState.update_chat_info(chatid, chat_name)
+    chatinfo = BotState.get_chat_status(chatid)
+    print(f"<{chat_name}> <{chatinfo}>")
+    usr.refresh_nick(nickname)
     if update.message and update.message.text:
         print("------------------")
         print(update.message.text)
-        print("------------------")
     usr.msg_uptick()
-    usr.refresh_nick(nickname)
     # upcount voice seconds if there's a voice message
     if update.message.voice is not None:
         usr.score_add("voice", update.message.voice.duration)
@@ -118,6 +120,7 @@ async def chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # also upcount character counts
         usr.score_add("text",len(rawtext))
         usr.score_add("mat",len(antimat.get_mats("тест " + rawtext + " тест")))
+    print("------------------")
     await actions.TriggeredSequence.run_triggers(update.message)
 
 
@@ -186,7 +189,7 @@ async def receive_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def receive_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    print(update)
+    # print(update)
     # msg = await BotState.pyroclient.get_messages(update.effective_chat.id,update.message_reaction.message_id)
     # print(msg)
     # TODO: triggers based on reactions
@@ -239,7 +242,7 @@ async def join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             scheduled_events.ScheduledEvent.schedule_event("user_join", chatid, -1, uid)
 
 
-async def chat_load():
+async def chat_load(context):
     print("---------LOADING CHATS")
     await datastuff.load_chats()
     print("DONE LOADING----------")
@@ -334,7 +337,8 @@ if __name__ == '__main__':
     application.add_handler(ChatMemberHandler(join_leave, ChatMemberHandler.CHAT_MEMBER))
     application.add_handler(CallbackQueryHandler(button))
     # state inits
-    datastuff.load_chats()
+    # datastuff.load_chats()
+    application.job_queue.run_once(chat_load, 1.0)
     # datastuff.quiz_refresh_stats()
     BotState.q = application.job_queue
     print("registering one-run")

@@ -21,6 +21,7 @@ def assert_table(name: str, columns, primary_key=None):
     else:
         print(f"Table \"{name}\" already exists.")
 
+
 def do_tables():
     assert_table("repuser", ("chatid","userid", "rep","msg"))
     assert_table("userseen",("chatid","userid","last","lastunreg","emoji"))
@@ -52,3 +53,4 @@ def do_tables():
     assert_table("message_captures", ("session_id","capture_mode","context_id","capture_command"))
     assert_table("message_events",("chatid","messageid","event_type","data0","data1","data2","data3","data4","data5","data6"))
     assert_table("butts_game_butts",("butt_id","file_id","owner","spawning_chat","name","hash"), "butt_id")
+    assert_table("chat_info",("chatid","name","status","time"))

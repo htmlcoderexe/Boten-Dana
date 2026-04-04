@@ -257,9 +257,10 @@ class User:
         @param nick: new nickname
         @return: Whether a refresh happened or not.
         """
-        print("'"+nick+"'")
+        print(f"<{nick}> <{self.id}>")
         # if user has no known names yet, update
         if not self.nicknames and not self.current_nick:
+            print(f"new name registered: <{nick}>.")
             self.log_event(event_type="renamed", data=nick)
             self.nicknames = [nick]
             self.current_nick = nick
@@ -316,7 +317,7 @@ class User:
         uid = message.from_user.id
         if uid in (telegram.constants.ChatID.ANONYMOUS_ADMIN, telegram.constants.ChatID.SERVICE_CHAT, telegram.constants.ChatID.FAKE_CHANNEL):
             uid = message.sender_chat.id
-        print(f"The extracted uid was {uid}.")
+        # print(f"The extracted uid was {uid}.")
         return uid
 
     @staticmethod
