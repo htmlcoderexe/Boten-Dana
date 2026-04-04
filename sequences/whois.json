@@ -134,8 +134,12 @@
         "params": ["*dick","dick"]
       },
       {
-        "action": "if_gte",
-        "params": ["*joincount",2, "returner","no_returner"]
+        "action": "get_user_butt",
+        "params": ["*uid","user_butt"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["","*user_butt","no_butt","has_butt"]
       }
     ],
     "returner": [
@@ -156,6 +160,46 @@
       {
         "action": "if_gte",
         "params": ["*nickount",1, "yes_nicks","no_nicks"]
+      }
+    ],
+    "has_butt": [
+      {
+        "action": "butt_load",
+        "params": ["*user_butt","user_butt"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["user_butt","name","buttname"]
+      },
+      {
+        "action": "escape",
+        "params": ["*buttname","buttname"]
+      },
+      {
+        "action": "concat",
+        "params": ["butt_scratch_","*uid","buttscorename"]
+      },
+      {
+        "action": "score_get",
+        "params": ["*uid","*buttscorename","buttscore","all"]
+      },
+      {
+        "action": "fmt_string",
+        "params": ["april_butt","buttinfo"]
+      },
+      {
+        "action": "if_gte",
+        "params": ["*joincount",2, "returner","no_returner"]
+      }
+    ],
+    "no_butt": [
+      {
+        "action": "concat",
+        "params": ["","","buttinfo"]
+      },
+      {
+        "action": "if_gte",
+        "params": ["*joincount",2, "returner","no_returner"]
       }
     ],
     "yes_nicks": [
@@ -248,12 +292,13 @@
     ]
   },
   "stringpools": {
-    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n\uD83E\uDD47{medals.gold} \uD83E\uDD48{medals.silver} \uD83E\uDD49{medals.bronze} \nпоследнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n{is_returner}{quotes}\n    "],
+    "ok": ["Пользователь {userinfo.current_nick}\n{usernicks}\nid \\{userinfo.id}\nпепяка: {usermeta.reputation}\nдлина пеписы: {dick} см\n\uD83E\uDD47{medals.gold} \uD83E\uDD48{medals.silver} \uD83E\uDD49{medals.bronze} \n{buttinfo}последнее действие: {last_seen} назад\nвпервые засечен на радаре\\: {joindate} назад \n{is_returner}{quotes}\n    "],
     "404": ["Да хуй знает\\, в первый раз вижу"],
     "self": ["А я\\-то что\\? Я бот\\, отвали\\, противный\\."],
     "nomessage": ["Ты про кого\\? Я тут всех знаю\\.\\.\\."],
     "nickname_list_format": ["{0}\n"],
     "returner": ["Рецидивист\\. В чате уже {joincount}\\-й раз\\.\n"],
+    "april_butt": ["🍑{buttname} \\[{buttscore}\\]\n"],
     "user_quotes_format": [
       "\n*№{0.id}*\n\\<\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\n{0.text_raw}\n\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\=\\>"
     ],
