@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 import telegram.helpers
 from pyrogram import Client
 from telegram import Poll, Update, ChatMember, ChatMemberUpdated
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, CallbackQueryHandler
 from telegram.ext import filters, PollAnswerHandler, MessageHandler, ApplicationBuilder, CommandHandler, \
     ContextTypes, MessageReactionHandler, ChatMemberHandler
 
@@ -18,13 +18,17 @@ import botutils
 import env_vars
 import scheduled_events
 import quizstuff
+import QDB
+import userlists
 import messagestore
 import antimat
 import botconfig
 import scores
+import butts
 from botstate import BotState
 import changelogs
 import datastuff
+import botstartup
 
 
 # #process member update, stole from PTB docs:
@@ -145,8 +149,15 @@ async def everyminute(context: CallbackContext):
     kills = scheduled_events.ScheduledEvent.fetch_events("msg_kill")
     for kill in kills:
         botutils.kill_message(chatid=kill.chat_id, msgid=kill.event_data[0])
+
+    unsubs = scheduled_events.ScheduledEvent.fetch_events("remove_list")
+    for unsub in unsubs:
+        user = unsub.event_data[0]
+        ulist = unsub.event_data[1]
+        userlists.UserList.remove_user(user,ulist)
     await actions.TriggeredSequence.run_timers()
     await actions.TriggeredSequence.process_events()
+
     # for chat in BotState.current_chats:
     #    if str(chat)[0] != "-":
     #        continue
@@ -181,6 +192,17 @@ async def receive_reaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     # TODO: triggers based on reactions
     # await console_capture_message(userid=update.effective_user.id,chatid=update.effective_chat.id,msg=msg)
     pass
+
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+    """Parses the CallbackQuery and updates the message text."""
+
+    query = update.callback_query
+    await actions.TriggeredSequence.run_button(query, update.effective_chat.id)
+    print(update)
+
+    # await query.edit_message_text(text=f"Selected option: {query.data}")
 
 
 async def join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -279,6 +301,7 @@ if __name__ == '__main__':
     BotState.bot = application.bot
     BotState.DB = botconfig.DB
     BotState.DBLink = botconfig.DB.cursor()
+    botstartup.do_tables()
     # one_off_updateMDV2()
     # one_off_redo_quiz_scores()
     BotState.pyroclient = Client("BotenDana")
@@ -309,6 +332,7 @@ if __name__ == '__main__':
     application.add_handler(PollAnswerHandler(receive_poll_answer))
     application.add_handler(MessageReactionHandler(receive_reaction))
     application.add_handler(ChatMemberHandler(join_leave, ChatMemberHandler.CHAT_MEMBER))
+    application.add_handler(CallbackQueryHandler(button))
     # state inits
     datastuff.load_chats()
     # datastuff.quiz_refresh_stats()

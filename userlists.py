@@ -1,4 +1,7 @@
+import time
+
 import botstate
+import scheduled_events
 from actions import TriggeredAction
 from telegram import Message as TGMessage
 
@@ -21,7 +24,7 @@ class UserList:
             botstate.BotState.DBLink.execute("""
             INSERT INTO user_lists
             VALUES (?, ?)
-            """,(list_name,user_id))
+            """,(user_id,list_name))
             botstate.BotState.write()
             return True
         return False
@@ -61,7 +64,11 @@ class ActionUserListAdd(TriggeredAction, action_name="userlist_add"):
     async def run_action(self, message: TGMessage) -> str:
         uid = self.read_int(0)
         ulist = self.read_param(1)
-        self.write_param(2,UserList.add_user(uid, ulist))
+        res = UserList.add_user(uid, ulist)
+        self.write_param(2,res)
+        timeout = self.read_int(3)
+        if timeout != -1:
+            scheduled_events.ScheduledEvent.schedule_event("remove_list",0, time.time()+timeout, uid,ulist)
         return ""
 
 
