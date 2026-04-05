@@ -18,6 +18,16 @@
     },
     {
       "type": "text_exact",
+      "params": ["бот справка","бот хелп"],
+      "subseq": "help_show_all"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["бот справка "],
+      "subseq": "get_help"
+    },
+    {
+      "type": "text_exact",
       "params": ["бот придержи","бот оставь","бот не удаляй"],
       "subseq": "cancel_kill",
       "target": "reply"
@@ -35,6 +45,11 @@
         "description": "Показать статус бота.",
         "subseq": "show_status"
       },
+      "help":
+      {
+        "description": "Справка по функциям бота.",
+        "subseq": "help_show_all"
+      },
       "sbtest":
       {
         "description": "scoreboard_test",
@@ -47,6 +62,115 @@
     "test2": "test_button2"
   },
   "subseqs": {
+    "get_help":
+    [
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "get_match",
+        "params": ["helptopic"]
+      },
+      {
+        "action": "get_help",
+        "params": ["*helptopic","help_out"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["help_out","result_type","result"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*result","none","help_404",""]
+      },
+      {
+        "action": "obj_read",
+        "params": ["help_out","content","main_help"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["help_out","moduletopic","modulecode"]
+      },
+      {
+        "action": "obj_read",
+        "params": ["help_out","modulename","modulename"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*result","module_only","help_main",""]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*result","module_topics","help_main_list",""]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*result","topic","help_topic",""]
+      }
+    ],
+    "help_list":
+    [
+
+    ],
+    "help_main":
+    [
+      {
+        "action": "emit_text",
+        "params": ["help_module",60]
+      }
+    ],
+    "help_404":
+    [
+      {
+        "action": "emit_text",
+        "params": ["help_404",60]
+      }
+    ],
+    "help_topic":
+    [
+      {
+        "action": "obj_read",
+        "params": ["help_out","topic","topicname"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["help_module_topic",60]
+      }
+    ],
+    "help_main_list":
+    [
+      {
+        "action": "obj_read",
+        "params": ["help_out","topiclist","topics"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["topics","help_topics_list_format","helplist"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["help_module_with_topics",60]
+      }
+    ],
+    "help_show_all": [
+      {
+        "action": "kill_msg",
+        "params": [10]
+      },
+      {
+        "action": "get_seqs",
+        "params": ["loaded_seqs"]
+      },
+      {
+        "action": "fmt_list",
+        "params": ["loaded_seqs","help_modules_list_format","seqlist"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["help_modules_all",60]
+      }
+    ],
     "test_button":
     [
       {
@@ -253,7 +377,15 @@
     "test_board_fmt": [
       "\\{0[1]:6d} \\{0[2]:6d} \\{0[3]:6d} {0[0]: <13.13}\n"
     ],
-    "domin8":["*DOMINATING!*"]
+    "domin8":["*DOMINATING!*"],
+    "help_main": ["Найдена справка по следующим модулям\\, для вызова справки по модулю напишите \\\"бот справка *название справки*\\\","],
+    "help_module": ["*Справка по модулю \\\"{modulename}\\\"*\n{main_help}"],
+    "help_module_with_topics": ["*Справка по модулю \\\"{modulename}\\\"*\n\n{main_help}\n\n*Дополнительная информация*\n\nТакже найдены следующие темы справки\\, напишите \\\"бот справка {modulecode} *название справки*\\\" для просмотра\\.\n\n{helplist}"],
+    "help_module_topic": ["*Справка по модулю \\\"{modulename}\\\"\\>{topicname}*\n\n{main_help}"],
+    "help_404": ["Такого не найдено\\("],
+    "help_topics_list_format":  ["\\\"{0}\\\"\n"],
+    "help_modules_all": ["Загружены следующие модули\\, вот команды для получения справки: \n\\(цифры указывают количество файлов справки\\)\\:\n\n{seqlist}"],
+    "help_modules_list_format": ["*{0.display_name}* \\\"бот справка {0.helpname}\\\" {0.topic_count} \n"]
   },
     "config_vars": [
     {
@@ -266,5 +398,9 @@
       "display_name": "Шанс срабатывания пизды3",
       "default": "0.2"
     }
-  ]
+  ],
+  "helptopics": {
+    "_": "Это \\- главный модуль бота\\. Он поддерживает функцию плюсования \\(пепяка\\)\\, чистит команды за пользователями \\(только те\\, которые с \\/\\)\\, а ещё можно отменить удаление сообщения от бота\\, которое было бы автоматически удалено\\. \nПоследнее можно сделать\\, написав одну из следующих команд в ответ на сообщение\\: \n\\\"бот придержи\\\"\\,\\\"бот оставь\\\"\\,\\\"бот не удаляй\\\"\\. Также есть команда /status \\- на данный момент там ироткр техническая информация\\.",
+    "пепяка": "Пепяка \\- это что\\-то типа репутации или кармы пользователя\\. Её можно только дать другому пользователю\\, написав \\+ в ответ на сообщение пользователя\\."
+  }
 }

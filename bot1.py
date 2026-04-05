@@ -251,7 +251,7 @@ async def chat_load(context):
 
 async def reg_commands(context: CallbackContext):
     print("registering commands...")
-    commands = [("start","initiate the bot"),("settings","configure stuff"),("help","no help")]
+    commands = [("start","initiate the bot"),("settings","configure stuff")]
     for seqname, seq in actions.TriggeredSequence.running_sequences.items():
         for cmd,info in seq.commands.items():
             commands.append((cmd,info[0]))

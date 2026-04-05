@@ -310,11 +310,27 @@ class TriggeredAction:
 
 
 class SequenceMd2Info:
-    def __init__(self, name:str,display_name:str,description:str,version:str):
+    def __init__(self, name:str,display_name:str,description:str,version:str,helpname:str,help_count:str):
         self.name = name
         self.display_name = display_name
         self.description = description
         self.version = version
+        self.helpname = helpname
+        self.topic_count = help_count
+        print("created smd2info")
+
+
+class HelpTopic:
+    def __init__(self, moduletopic:str,content:str,topicname:str,result_type,topiclist=None,modulename=""):
+        self.moduletopic = moduletopic
+        self.content = content
+        self.topic = topicname
+        self.result_type = result_type
+        if topiclist is None:
+            topiclist = []
+        self.topiclist = topiclist
+        self.modulename = modulename
+        print(topiclist)
 
 
 class TriggeredSequence:
@@ -351,9 +367,25 @@ class TriggeredSequence:
         """Environment variables used for configuring this sequence."""
         self.commands = commands
         """Commands registered for this sequence."""
+        self.helpname = ""
+        """Registered help shortname for this sequence."""
+        self.helptopics = {}
+        """Contains help topics, if any"""
+        self.mainhelp = ""
+        """Contains main help info if any"""
+        self.topic_count = 0
+        """Contains the amount of help topics available"""
+
 
     def md2info(self) -> SequenceMd2Info:
-        info = SequenceMd2Info(botutils.MD(self.name), botutils.MD(self.display_name),botutils.MD(self.description),botutils.MD(f"{self.version[0]}.{self.version[1]}.{self.version[2]}"))
+        info = SequenceMd2Info(
+            botutils.MD(self.name),
+            botutils.MD(self.display_name),
+            botutils.MD(self.description),
+            botutils.MD(f"{self.version[0]}.{self.version[1]}.{self.version[2]}"),
+            botutils.MD(self.helpname),
+            botutils.MD(str(self.topic_count))
+            )
         # print(info.__dict__)
         return info
 
@@ -447,7 +479,17 @@ class TriggeredSequence:
             for button, subseqname in data['buttons'].items():
                 buttons[button] = subseqname
                 TriggeredSequence.register_button(button,name,subseqname)
-        return cls(name,disp_name,desc,version,seq_triggers,subseqs,strings,config_vars,commands)
+        result_seq = cls(name,disp_name,desc,version,seq_triggers,subseqs,strings,config_vars,commands)
+        if 'shortname' in data:
+            result_seq.helpname = data['shortname']
+        if 'helptopics' in data:
+            for topic,content in data['helptopics'].items():
+                if topic == "_":
+                    result_seq.mainhelp = content
+                else:
+                    result_seq.helptopics[topic] = content
+                result_seq.topic_count += 1
+        return result_seq
 
     async def run(self, message: TGMessage):
         """
@@ -499,6 +541,34 @@ class TriggeredSequence:
             subseq = self.commands[command][1]
             await self.run_subseq(subseq, Trigger.Empty(),update.message,"")
         return handler
+
+    @staticmethod
+    def get_help(request:str) -> HelpTopic:
+        request_split = request.split(None,2)
+        mod = request_split[0]
+        topic = "_"
+        if len(request_split) > 1:
+            topic = request_split[1]
+        result = "nothing"
+        for _,seq in TriggeredSequence.running_sequences.items():
+            if seq.helpname == mod:
+                displayname = seq.display_name
+                # found module by name
+                if topic == "_":
+                    result = "module_only"
+                    help_content = seq.mainhelp
+                    topic_keys = list(seq.helptopics.keys())
+                    if len(topic_keys) > 0:
+                        result = "module_topics"
+                    topiclist = topic_keys
+                    return HelpTopic(mod,help_content,topic,result, topiclist,displayname)
+                else:
+                    for helptopic,content in seq.helptopics.items():
+                        if topic == helptopic:
+                            result = "topic"
+                            help_content = seq.helptopics[topic]
+                            return HelpTopic(mod, help_content, topic, result, None,displayname)
+        return HelpTopic(mod, "", topic, result, None,"")
 
     async def run_subseq(self, subseq:str, trigger:Trigger, message: TGMessage, matchdata: str = "", extra_vars=None):
         """
@@ -1229,6 +1299,18 @@ class RollDice(TriggeredAction, action_name="roll_dice"):
         for i in range(0, n):
             total = total + random.randint(1, m)
         self.write_param(2, total)
+        return ""
+
+
+class GetHelp(TriggeredAction, action_name="get_help"):
+    """
+    param 0: string to search
+    param 1: output
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        help_string = self.read_string(0)
+        help_ = TriggeredSequence.get_help(help_string)
+        self.write_param(1, help_)
         return ""
 
 
