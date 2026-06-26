@@ -28,6 +28,17 @@
     },
     {
       "type": "text_prefix",
+      "params": ["цитаты поиск "],
+      "subseq": "quote_search_user_tag",
+      "tag": "whois_list"
+    },
+    {
+      "type": "text_prefix",
+      "params": ["цитаты поиск "],
+      "subseq": "quote_search"
+    },
+    {
+      "type": "text_prefix",
       "params": ["плюсую "],
       "subseq": "quote_upvote",
       "tag": "whois_list"
@@ -147,10 +158,101 @@
         "params": [5]
       }
     ],
+    "quote_search_user_tag": [
+      {
+        "action": "get_match",
+        "params": ["quote_search"]
+      },
+      {
+        "action": "qdb_search",
+        "params": ["*quote_search","user_quotes","*__tag0",-1, "global", 0, "oldest"]
+      },
+      {
+        "action": "get_user",
+        "params": ["*__tag0","userinfo"]
+      },
+      {
+        "action": "count",
+        "params": ["user_quotes", "user_quotes_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*user_quotes_count",0,"no_quotes_yet","show_user_quotes"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      }
+    ],
+    "quote_search": [
+      {
+        "action": "get_match",
+        "params": ["quote_search"]
+      },
+      {
+        "action": "get_uid",
+        "params": ["uid"],
+        "target": "reply"
+      },
+      {
+        "action": "if_eq",
+        "params": ["*uid","*__bot_uid","self",""]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*uid",0,"quote_search_chat","quote_search_user"]
+      }
+    ],
+    "quote_search_user": [
+
+      {
+        "action": "qdb_search",
+        "params": ["*quote_search","user_quotes","*uid",-1, "global", 0, "oldest"]
+      },
+      {
+        "action": "get_user",
+        "params": ["*uid","userinfo"]
+      },
+      {
+        "action": "count",
+        "params": ["user_quotes", "user_quotes_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*user_quotes_count",0,"no_quotes_yet","show_user_quotes"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      }
+    ],
+    "quote_search_chat": [
+
+      {
+        "action": "qdb_search",
+        "params": ["*quote_search","user_quotes",-1,-1, "local", 0, "oldest"]
+      },
+      {
+        "action": "get_user",
+        "params": ["*__tag0","userinfo"]
+      },
+      {
+        "action": "count",
+        "params": ["user_quotes", "user_quotes_count"]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*user_quotes_count",0,"no_quotes_yet_chat","show_chat_search"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [5]
+      }
+    ],
     "no_quotes_yet": [
       {
         "action": "emit_text",
-        "params": ["no_quotes", 10]
+        "params": ["no_quotes_found", 10]
       }
     ],
     "show_user_quotes": [
@@ -161,6 +263,26 @@
       {
         "action": "emit_text",
         "params": ["user_quotes_template",60]
+      },
+      {
+        "action": "tag_msg",
+        "params": ["quotes_list",-1]
+      }
+    ],
+    "no_quotes_yet_chat": [
+      {
+        "action": "emit_text",
+        "params": ["no_quotes_found", 10]
+      }
+    ],
+    "show_chat_search": [
+      {
+        "action": "fmt_list",
+        "params": ["user_quotes","chat_quotes_format","chat_quote_list"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["chat_quotes_template",60]
       },
       {
         "action": "tag_msg",
@@ -299,6 +421,9 @@
     ],
     "chat_no_quotes": [
       "Тут ничего нет ещё да\\."
+    ],
+    "no_quotes_found": [
+      "Не найдено\\."
     ],
     "chat_last_page": [
       "Больше нету\\, ещё насохраняйте\\!"

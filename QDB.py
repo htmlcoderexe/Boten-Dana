@@ -132,6 +132,36 @@ class Database:
             return [Quote(*row) for row in rows]
         return []
 
+    def find_quotes(self, search: str, userid: int = -1, local_only: bool = True) -> list[Quote]:
+        """
+        Find all quotes matching a search string
+        @param search: text to search for
+        @param userid: optional user ID to fetch the quotes from, else all quotes are searched
+        @param local_only: only consult this chat if True (default)
+        @return:
+        """
+        params = ["%"+search+"%"]
+        query = Quote.db_query + """
+        WHERE   quote LIKE ?
+        """
+        if userid != -1:
+            query += """
+            AND     author = ?
+            """
+            params.append(userid)
+        if local_only:
+            query += """
+            AND     chatid = ?
+            """
+            params.append(self.chatid)
+        # print(query)
+        res = BotState.DBLink.execute(query, params)
+        rows = res.fetchall()
+        # print(rows)
+        if rows:
+            return [Quote(*row) for row in rows]
+        return []
+
     def get_chat_quotes(self, min_score:int = 1, chat_id:int = 0) -> list[Quote]:
         """
         Gets quotes from a chat
@@ -290,6 +320,56 @@ class GetChatQuotes(TriggeredAction, action_name="qdb_get_chat"):
         for quote in quotes:
             quote.load_nick()
         self.write_param(0,quotes)
+        return ""
+
+
+class QDBSearch(TriggeredAction, action_name="qdb_search"):
+    """
+    Searches QDB
+    param 0: string to search
+    param 1: variable to store the quotes in
+    param 2: userID
+    param 3: amount of quotes to get, -1 to get all
+    param 4: "local" or "global" to get quotes from everywhere or just this chat.
+    param 5: score threshold
+    param 6: sorting mode: "score", "newest", "oldest", random
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        search = self.read_string(0)
+        uid = self.read_int(2)
+        amount = self.read_int(3)
+        scope = self.read_param(4)
+        # ensure scope is fixed
+        if scope not in ("global", "local"):
+            scope = "local"
+        min_score = self.read_int(5)
+        sortby = self.read_param(6)
+        # constrain the options
+        if sortby not in ("score","newest","oldest","random"):
+            sortby = "oldest"
+        qdb = Database(message.chat.id,uid)
+        # fetch all quotes
+        quotes = qdb.find_quotes(search, uid, scope == "local")
+        # quotes are fetched with oldest first at the top so this is the default sort
+        match sortby:
+            case "newest":
+                # reverse the list to get newest first
+                quotes.reverse()
+            case "random":
+                # shuffle the list for random order
+                random.shuffle(quotes)
+            case "score":
+                # sort by rating then reverse (higher scores first)
+                quotes = sorted(quotes, key=lambda q: q.rating)
+                quotes.reverse()
+        # filter by score
+        filtered_quotes = [q for q in quotes if q.rating >= min_score]
+        # if -1 is specified, return everything so far, else only the first <amount>
+        if amount == -1:
+            quotes = filtered_quotes
+        else:
+            quotes = filtered_quotes[:amount]
+        self.write_param(1,quotes)
         return ""
 
 
