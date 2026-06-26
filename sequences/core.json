@@ -97,6 +97,10 @@
         "params": ["help_out","modulename","modulename"]
       },
       {
+        "action": "escape",
+        "params": ["*modulename","modulename"]
+      },
+      {
         "action": "if_eq",
         "params": ["*result","module_only","help_main",""]
       },
