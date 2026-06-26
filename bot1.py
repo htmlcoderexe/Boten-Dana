@@ -224,10 +224,12 @@ async def join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         if uid != actor_uid:
             # user got removed?
             # #TODO: special event trigger for this
-            new_user.log_event("removed",actor_uid)
             if update.chat_member.new_chat_member.status == ChatMember.BANNED:
+                new_user.log_event("banned",actor_uid)
                 scheduled_events.ScheduledEvent.schedule_event("user_banned", chatid, -1, uid, actor_uid)
-
+            else:
+                new_user.log_event("removed",actor_uid)
+                scheduled_events.ScheduledEvent.schedule_event("user_removed", chatid, -1, uid, actor_uid)
         else:
             scheduled_events.ScheduledEvent.schedule_event("user_leave",chatid, -1, uid)
         pass
