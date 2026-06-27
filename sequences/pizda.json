@@ -12,17 +12,37 @@
     },
     {
       "type": "text_exact",
+      "params": ["настройки киркорова"],
+      "subseq": "show_prefs"
+    },
+    {
+      "type": "text_exact",
       "params": ["твоя"],
       "subseq": "tvoya",
       "tag": "pizda_message"
     }
   ],
+  "buttons": {
+    "p_always": "pref_always_pizda",
+    "p_never": "pref_never_pizda",
+    "p_more": "pref_more_pizda",
+    "p_less": "pref_less_pizda",
+    "p_normal": "pref_normal_pizda"
+  },
   "subseqs":
   {
     "main": [
       {
         "action": "get_uid",
         "params": ["uid"]
+      },
+      {
+        "action": "userlist_check",
+        "params": ["*uid","pizda_always","user_subscribed"]
+      },
+      {
+        "action": "if_eq",
+        "params": [true, "*user_subscribed","pizda",""]
       },
       {
         "action": "userlist_check",
@@ -39,8 +59,22 @@
         "params": ["pizda_frequency","pizda_chance"]
       },
       {
-        "action": "load_env",
-        "params": ["pizda_pool_id","pizda_pool"]
+        "action": "roll_chance",
+        "params": ["*pizda_chance","pizda"]
+      } ,
+      {
+        "action": "if_eq",
+        "params": ["*pizda",true,"successfirst","failfirst"]
+      }
+    ],
+    "failfirst": [
+      {
+        "action": "userlist_check",
+        "params": ["*uid","pizda_more","user_more"]
+      },
+      {
+        "action": "if_eq",
+        "params": [true, "*user_more","","exit"]
       },
       {
         "action": "roll_chance",
@@ -48,10 +82,32 @@
       } ,
       {
         "action": "if_eq",
-        "params": ["*pizda",true,"pizda",""]
+        "params": ["*pizda",true,"pizda","exit"]
+      }
+    ],
+    "successfirst": [
+      {
+        "action": "userlist_check",
+        "params": ["*uid","pizda_less","user_less"]
+      },
+      {
+        "action": "if_eq",
+        "params": [true, "*user_less","","pizda"]
+      },
+      {
+        "action": "roll_chance",
+        "params": ["*pizda_chance","pizda"]
+      } ,
+      {
+        "action": "if_eq",
+        "params": ["*pizda",true,"pizda","exit"]
       }
     ],
     "pizda": [
+      {
+        "action": "load_env",
+        "params": ["pizda_pool_id","pizda_pool"]
+      },
       {
         "action": "fetch_pool",
         "params": ["*pizda_pool","pizda_message_id"]
@@ -59,6 +115,211 @@
       {
         "action": "emit_saved_message",
         "params": ["*pizda_message_id",-1,"pizda_message",-1]
+      }
+    ],
+    "show_prefs":
+      [
+        {
+          "action": "scoreboard",
+          "params": ["dontcare",-1,"all",-1,20,"rep","mat","voice"]
+        },
+        {
+          "action": "fmt_list",
+          "params": ["dontcare","test_board_fmt","top"]
+        },
+        {
+          "action": "add_button",
+          "params": ["Всегда","p_always"]
+        },
+        {
+          "action": "add_button",
+          "params": ["Чаще","p_more"]
+        },
+        {
+          "action": "add_button",
+          "params": ["Средне","p_normal"]
+        },
+        {
+          "action": "add_button",
+          "params": ["Реже","p_less"]
+        },
+        {
+          "action": "add_button",
+          "params": ["Никогда","p_never"]
+        },
+        {
+          "action": "emit_text",
+          "params": ["pref_prompt",-1]
+        },
+        {
+          "action": "kill_msg",
+          "params": [2]
+        }
+      ],
+    "pref_never_pizda": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_unsubscribe"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_always"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_more"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_less"]
+      },
+      {
+        "action": "userlist_add",
+        "params": ["*__uid", "pizda_unsubscribe"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
+      }
+    ],
+    "pref_always_pizda": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_unsubscribe"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_always"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_more"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_less"]
+      },
+      {
+        "action": "userlist_add",
+        "params": ["*__uid", "pizda_always"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
+      }
+    ],
+    "pref_more_pizda": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_unsubscribe"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_always"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_more"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_less"]
+      },
+      {
+        "action": "userlist_add",
+        "params": ["*__uid", "pizda_more"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
+      }
+    ],
+    "pref_less_pizda": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_unsubscribe"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_always"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_more"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_less"]
+      },
+      {
+        "action": "userlist_add",
+        "params": ["*__uid", "pizda_less"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
+      }
+    ],
+    "pref_normal_pizda": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_unsubscribe"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_always"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_more"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__uid", "pizda_less"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
       }
     ],
     "tvoya": [
@@ -79,5 +340,8 @@
       "display_name": "Шанс срабатывания пизды1",
       "default": "0.2"
     }
-  ]
+  ],
+  "stringpools": {
+    "pref_prompt": ["Выберите частоту ответа бота на сообщение \\\"да\\\"\\.\nДанная настройка действует только на данного пользователя\\, но во всех чатах\\.\nНастройка \\\"Средне\\\" \\- стандартный шанс\\. Настройки \\\"Реже\\\" и \\\"Чаще\\\" меняют вероятность в соответсвующую сторону \\- например\\, если базовый шанс равняется 20\\%\\, то при этих настройках он будет равняться приблизительно 4\\% при настройке \\\"Реже\\\"\\, и приблизительно 36\\% при настройке \\\"Чаще\\\"\\."]
+  }
 }
