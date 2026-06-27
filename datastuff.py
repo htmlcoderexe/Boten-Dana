@@ -241,15 +241,6 @@ id {userid}
     return MD(output)
 
 
-# log an event
-def XX__log_user_event(userid: int, chatid: int, event_type: string, data: string):
-    last = time.time()
-    BotState.DBLink.execute("""INSERT INTO user_events VALUES
-    (?,?,?,?,?)
-    """, (chatid, userid, last, event_type, data))
-    print(f"Event of type <{event_type}> logged for user {userid}@{chatid}.")
-    BotState.write()
-
 
 # load all chats
 async def load_chats():
@@ -278,35 +269,6 @@ async def load_chats():
     # print(BotState.current_chats)
     print("##### END KNOWN CHATS #####")
 
-
-# joining users
-# unused?
-def XXU__handle_join(upd: Update) -> string:
-    userid = upd.chat_member.new_chat_member.user.id
-    chatid = upd.effective_chat.id
-    log_user_event(userid=userid, chatid=chatid, event_type="joined", data="join")
-    oldnick = get_newest_nick(userid=userid, chatid=chatid)
-    newnick = upd.chat_member.new_chat_member.user.full_name
-    if oldnick is None or oldnick != newnick:
-        log_user_event(userid=userid, chatid=chatid, event_type="renamed", data=newnick)
-    if oldnick is None:
-        handle_new_user(userid=userid, chatid=chatid)
-
-
-# leaving users
-def XXU__handle_leave(upd: Update) -> string:
-    userid = upd.chat_member.new_chat_member.user.id
-    chatid = upd.effective_chat.id
-    log_user_event(userid=userid, chatid=chatid, event_type="left", data="")
-
-# covered in userchatinfo/setjoin
-def XX__handle_new_user(userid: int, chatid: int, unknown_date: bool = False):
-    last = time.time()
-    BotState.DBLink.execute("""
-    INSERT INTO join_dates 
-    VALUES (?,?,?,?)
-    """, (chatid, userid, last, "true" if unknown_date else "false"))
-    BotState.write()
 
 
 def superping(chatid: int):
