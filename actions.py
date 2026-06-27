@@ -784,7 +784,9 @@ class TriggeredSequence:
                 await query.answer()
                 return
             print(f"Dispatching button <{button_data}> to <{sub}/{seq}>.")
-            context = {"__button": button_data, "__chat_id": chatid, "__uid":query.from_user.id,"__query":query,'__query_answered': False}
+            tags = messagetagger.MessageTagger.get_tags(chatid, query.message.message_id)
+            button_uid = tags['button_user'][0]
+            context = {"__button": button_data, "__chat_id": chatid, "__uid":query.from_user.id,"__query":query,'__query_answered': False, "__button_owner":button_uid, "__button_msg":query.message.message_id}
             context = await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "",context)
             if not context['__query_answered']:
                 await query.answer()
@@ -918,7 +920,10 @@ class EmitText(TriggeredAction, action_name="emit_text"):
                                                            parse_mode='MarkdownV2',
                                                            reply_to_message_id=msgid,reply_markup=kbd)
             if msg:
-
+                uid = 0
+                if "__uid" in self.varstore:
+                    uid = self.varstore["__uid"]
+                messagetagger.MessageTagger.tag_message(chatid, msg.id,"button_user", uid)
                 self.varstore["__last_msg"] = msg.id
                 botutils.schedule_kill(chatid,msg.id,float(msg_ttl))
         print(self.varstore)
@@ -1484,14 +1489,25 @@ class GetLoadedSequences(TriggeredAction, action_name="get_seqs"):
 class RemoveMessage(TriggeredAction, action_name="kill_msg"):
     """Erases a message
     param 0: time delay before removal
+    param 1: message id to remove, if left blank/-1, targets the current message/reply
     """
     async def run_action(self, message: TGMessage) -> str:
         delay = self.data[0]
-        if self.target_reply:
-            if not message.reply_to_message:
-                return "kill_no_target"
-            message = message.reply_to_message
-        botutils.schedule_kill(message.chat.id, message.id, float(delay))
+        msgid = self.read_int(1)
+        if msgid == -1:
+            if not message:
+                return ""
+            msgid = message.message_id
+            if self.target_reply:
+                if not message.reply_to_message:
+                    return "kill_no_target"
+                msgid = message.reply_to_message.message_id
+
+        if message:
+            chatid = message.chat.id
+        else:
+            chatid = self.varstore['__chat_id']
+        botutils.schedule_kill(chatid, msgid, float(delay))
         return ""
 
 
