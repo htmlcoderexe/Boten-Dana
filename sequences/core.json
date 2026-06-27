@@ -185,8 +185,8 @@
     "test_button2":
     [
       {
-        "action": "add",
-        "params": [1,1,"empty"]
+        "action": "msgbox",
+        "params": ["*__button_owner"]
       }
     ],
     "dominating":
