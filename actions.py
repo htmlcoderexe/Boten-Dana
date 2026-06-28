@@ -106,8 +106,11 @@ class TriggerTextPre(Trigger):
     """Matches a prefix and returns trimmed remains"""
 
     def match(self, data:str) -> str:
-        if data.startswith(self.trigger[0]):
-            return data.removeprefix(self.trigger[0]).strip()
+        ucmatch = False
+        dataprefix = data[0:len(self.trigger[0])].lower()
+        ucmatch = dataprefix == self.trigger[0]
+        if ucmatch:
+            return data[len(self.trigger[0]):].strip()
         return ""
 
 
