@@ -267,7 +267,7 @@ class TriggeredAction:
         try:
             value = int(value)
         except (ValueError, TypeError):
-            print(f"Unable to get int from <{value}>, casting 0")
+            print(f"Unable to get int from <{value}>, casting -1")
             value = -1
         return value
 
@@ -281,7 +281,7 @@ class TriggeredAction:
         try:
             value = float(value)
         except (ValueError, TypeError):
-            print(f"Unable to get float from <{value}>, casting 0")
+            print(f"Unable to get float from <{value}>, casting -1")
             value = -1
         return value
 
@@ -897,7 +897,9 @@ class EmitText(TriggeredAction, action_name="emit_text"):
                 return "respond_no_target"
             message = message.reply_to_message
         if msgid == -1:
-            msgid = message.id
+            msgid = 0
+            if message is not None:
+                msgid = message.id
         text = self.get_random_string(pool_name)
         text = text.format_map(self.varstore)
         chunks = text.split("\u2029")
