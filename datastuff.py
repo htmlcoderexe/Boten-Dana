@@ -29,6 +29,7 @@ from telegram.ext import ContextTypes
 
 import botconfig
 import botutils
+import userlists
 from botstate import BotState
 import strings
 from botutils import MD, TU, print_to_string
@@ -59,23 +60,23 @@ def blast(bot_message: string, remove: bool = True, doprivates: bool = False):
         # can't post messages as a member anyway
         if status == telegram.ChatMember.MEMBER:
             continue
-
-        res = send_message(message=bot_message, target_id=chat.id)
-        ajson = json.loads(res.content)
-        print("------BLAST START-------")
-        print("------MESSAGE START-----")
-        print(bot_message)
-        print("------MESSAGE END-------")
-        print("------RESULT START------")
-        print(ajson)
-        print("------RESULT END--------")
-        if "result" in ajson:
-            update = Message.de_json(ajson["result"], bot=BotState.bot)
-            if remove:
-                botutils.schedule_kill(chatid=chat, msgid=update.id, expiration=time.time() + botconfig.killdelay)
-        else:
-            print("fuckity")
-        print("------BLAST END---------")
+        if userlists.UserList.check_list(user_id=chat.id, list_name="news_subscribers"):
+            res = send_message(message=bot_message, target_id=chat.id)
+            ajson = json.loads(res.content)
+            print("------BLAST START-------")
+            print("------MESSAGE START-----")
+            print(bot_message)
+            print("------MESSAGE END-------")
+            print("------RESULT START------")
+            print(ajson)
+            print("------RESULT END--------")
+            if "result" in ajson:
+                update = Message.de_json(ajson["result"], bot=BotState.bot)
+                if remove:
+                    botutils.schedule_kill(chatid=chat, msgid=update.id, expiration=time.time() + botconfig.killdelay)
+            else:
+                print("fuckity")
+            print("------BLAST END---------")
 
 
 

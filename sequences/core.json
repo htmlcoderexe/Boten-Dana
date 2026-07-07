@@ -50,6 +50,11 @@
         "description": "Показать статус бота.",
         "subseq": "show_status"
       },
+      "news_subscribe":
+      {
+        "description": "Подписка на новости бота.",
+        "subseq": "whatsnew"
+      },
       "help":
       {
         "description": "Справка по функциям бота.",
@@ -64,7 +69,9 @@
   ,
   "buttons": {
     "test": "test_button",
-    "test2": "test_button2"
+    "test2": "test_button2",
+    "news_subscribe": "news_subscribe",
+    "news_unsubscribe": "news_unsubscribe"
   },
   "subseqs": {
     "get_help":
@@ -300,6 +307,94 @@
     "cancel_no_kill": [
 
     ],
+    "whatsnew":
+    [
+      {
+        "action": "userlist_check",
+        "params": ["*__chat_id","news_subscribers","subscribed"]
+      },
+      {
+        "action": "get_admin",
+        "params": []
+      },
+
+      {
+        "action": "if_eq",
+        "params": ["*__is_admin",true,"**news_subscribe_buttons",""]
+      },
+      {
+        "action": "if_eq",
+        "params": ["*subscribed",true,"news_show_subscribed","news_show_not_subscribed"]
+      }
+
+    ],
+    "news_subscribe_buttons": [
+        {
+          "action": "add_button",
+          "params": ["Вкл.","news_subscribe"]
+        },
+        {
+          "action": "add_button",
+          "params": ["Выкл.","news_unsubscribe"]
+        }
+
+    ],
+    "news_show_subscribed": [
+      {
+        "action": "emit_text",
+        "params": ["chat_subscribed",30]
+      }
+    ],
+    "news_show_not_subscribed": [
+      {
+        "action": "emit_text",
+        "params": ["chat_not_subscribed",30]
+      }
+    ],
+    "news_subscribe": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_add",
+        "params": ["*__chat_id", "news_subscribers"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["news_subscribed_ok",15]
+      }
+    ],
+    "news_unsubscribe": [
+      {
+        "action": "if_eq",
+        "params": ["*__button_owner","*__uid","","pref_not_u"]
+      },
+      {
+        "action": "userlist_remove",
+        "params": ["*__chat_id", "news_subscribers"]
+      },
+      {
+        "action": "msgbox",
+        "params": ["ok"]
+      },
+      {
+        "action": "kill_msg",
+        "params": [0,"*__button_msg"]
+      },
+      {
+        "action": "emit_text",
+        "params": ["news_unsubscribed_ok",15]
+      }
+    ],
     "upvote_user": [
       {
         "action": "get_uid",
@@ -412,7 +507,11 @@
     "help_404": ["Такого не найдено\\("],
     "help_topics_list_format":  ["\\\"{0}\\\"\n"],
     "help_modules_all": ["Загружены следующие модули\\, вот команды для получения справки: \n\\(цифры указывают количество файлов справки\\)\\:\n\n{seqlist}"],
-    "help_modules_list_format": ["*{0.display_name}* \\\"бот справка {0.helpname}\\\" {0.topic_count} \n"]
+    "help_modules_list_format": ["*{0.display_name}* \\\"`бот справка {0.helpname}`\\\" {0.topic_count} \n"],
+    "chat_subscribed": ["Новости бота *вкл\\.*\nПри обновлении бота будет отправлено сообщение прямо в чат\\. Администраторы чата могут отключить подписку командой /news\\_subscribe и нажатием соответствующей кнопки\\."],
+    "chat_not_subscribed": ["Новости бота *выкл\\.*\nДля получения сообщений об обновлении бота прямо в чат\\, администраторы чата могут включить подписку командой /news\\_subscribe и нажатием соответствующей кнопки\\."],
+    "news_subscribed_ok": ["Подписка на обновления включена\\."],
+    "news_unsubscribed_ok": ["Подписка на обновления выключена\\."]
   },
     "config_vars": [
     {
