@@ -206,6 +206,9 @@ class TriggeredAction:
         @return:
         """
         if str(value).startswith("*"):
+            # literal *
+            if str(value).startswith("**"):
+                return value.removeprefix("*")
             var_name = value.removeprefix("*")
             print(f"var_store pointer read at <{var_name}>")
             if var_name not in self.varstore:
