@@ -19,6 +19,12 @@ def print_to_string(*args, **kwargs):
 
 def MD(text_input: str,version: int = 2) -> str:
     """Shortcut to escape MarkDown"""
+    # by the way this regex gets it all or most:
+    #
+    # ([\x21-\x2f\x3a-\x3f\x5b-\x5f\x7b-\x7d])
+    # TG docs say any ASCII char can be safely escaped with a backslash
+    # even if it wouldn't otherwise have an effect
+    # so probably the fastest way
     return escape_markdown(text=text_input, version=version)
 
 
