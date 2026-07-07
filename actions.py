@@ -589,14 +589,16 @@ class TriggeredSequence:
             return
         print(f"--- ENTRY POINT <{subseq}> ---")
         triggering_user = 0
+        true_user = 0
         chat_id = 0
         if extra_vars is None:
             extra_vars = {}
         if message is not None:
             triggering_user = UserInfo.User.extract_uid(message)
+            true_user = message.from_user.id
             chat_id = message.chat_id
         # init local variable store
-        var_store = {'__bot_uid': botstate.BotState.botuid, '__uid': triggering_user, '__chat_id': chat_id, '__operator': botconfig.operator} | extra_vars
+        var_store = {'__bot_uid': botstate.BotState.botuid,'__real_uid': true_user, '__uid': triggering_user, '__chat_id': chat_id, '__operator': botconfig.operator} | extra_vars
         try:
             if trigger.tagdata:
                 print(trigger.tagdata)
@@ -789,7 +791,7 @@ class TriggeredSequence:
             print(f"Dispatching button <{button_data}> to <{sub}/{seq}>.")
             tags = messagetagger.MessageTagger.get_tags(chatid, query.message.message_id)
             button_uid = tags['button_user'][0]
-            context = {"__button": button_data, "__chat_id": chatid, "__uid":query.from_user.id,"__query":query,'__query_answered': False, "__button_owner":button_uid, "__button_msg":query.message.message_id}
+            context = {"__button": button_data, "__chat_id": chatid, "__uid":query.from_user.id,"__real_uid":query.from_user.id,"__query":query,'__query_answered': False, "__button_owner":button_uid, "__button_msg":query.message.message_id}
             context = await TriggeredSequence.running_sequences[seq].run_subseq(sub, None, None, "",context)
             if not context['__query_answered']:
                 await query.answer()
@@ -1362,6 +1364,22 @@ class GetUserInfo(TriggeredAction, action_name="get_user"):
         uid = self.read_int(0)
         usr = UserInfo.User(uid, message.chat_id)
         self.write_param(1,usr)
+        return ""
+
+
+class GetUserAccessLevel(TriggeredAction, action_name="get_admin"):
+    """
+
+    """
+    async def run_action(self, message: TGMessage) -> str:
+        uid = self.read_int(0)
+        if uid == -1:
+            uid = self.varstore['__real_uid']
+        chatid = self.varstore["__chat_id"]
+        usr = await botstate.BotState.bot.get_chat_member(chat_id=chatid, user_id=uid)
+        status = usr.status
+        self.varstore['__is_admin'] = status in [telegram.ChatMember.ADMINISTRATOR,telegram.ChatMember.OWNER]
+        self.varstore['__is_owner'] = status == telegram.ChatMember.OWNER
         return ""
 
 
